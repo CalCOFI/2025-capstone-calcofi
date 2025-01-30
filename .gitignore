@@ -47,3 +47,7 @@ po/*~
 
 # RStudio Connect folder
 rsconnect/
+data/194903-202105_Bottle.csv
+data/194903-202105_Cast.csv
+data/CALCOFI_DIC_20250122_OA.csv
+*.Rproj
