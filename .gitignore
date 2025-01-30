@@ -51,3 +51,5 @@ data/194903-202105_Bottle.csv
 data/194903-202105_Cast.csv
 data/CALCOFI_DIC_20250122_OA.csv
 *.Rproj
+*.DS_Store
+data/.DS_Store
