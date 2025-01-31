@@ -1,0 +1,47 @@
+---
+title: "data merging and EDA"
+author: "Jade"
+format: html
+---
+
+```{r}
+library(httr)
+library(jsonlite)
+library(tidyverse)
+```
+
+
+# Access data
+
+```{r}
+bottle_data <- read_csv(here::here("data/194903-202105_Bottle.csv"),
+                        locale= locale(encoding = "latin1"),
+                        guess_max = Inf)
+
+oa_data <- read_csv(here::here("data/CALCOFI_DIC_20250122_OA.csv"))
+
+cast_data <- read_csv(here::here("data/194903-202105_Cast.csv"))
+```
+
+# Joins
+
+```{r}
+bottle_data |> glimpse()
+oa_data |> glimpse()
+cast_data |> glimpse()
+```
+
+```{r}
+mod_cast <- cast_data |> 
+  select(Cst_Cnt, Lat_Dec, Lon_Dec, Date)
+
+bottle_complete <- left_join(bottle_data, mod_cast)
+
+oa_data <- oa_data |> 
+  mutate(Date = paste0(Month_UTC, "/", Day_UTC, "/", Year_UTC, sep = ""))
+
+oa_data <- oa_data |> slice(-1) |> mutate(Depth = as.numeric(Depth),
+                                          Latitude = as.numeric(Latitude),
+                                          Longitude = as.numeric(Longitude))
+```
+
