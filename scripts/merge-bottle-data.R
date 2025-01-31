@@ -2,7 +2,7 @@ library(tidyverse)
 
 # Read in oceanographic data
 hydro_bottle <- read_csv(
-  "calcofi_hydro_bottle/194903-202105_Bottle.csv",
+  "data/calcofi_hydro_bottle/194903-202105_Bottle.csv",
    # change encoding
    locale=locale(encoding="latin1"),
    # increase guess_max to correctly guess column types
@@ -10,10 +10,10 @@ hydro_bottle <- read_csv(
 )
 
 # Read in cast data
-cast_bottle <- read_csv("calcofi_hydro_bottle/194903-202105_Cast.csv")
+cast_bottle <- read_csv("data/calcofi_hydro_bottle/194903-202105_Cast.csv")
 
 # Read in ocean acidification bottle data
-oah_bottle <- read_csv("calcofi_oah_bottle.csv")
+oah_bottle <- read_csv("data/calcofi_oah_bottle.csv")
 
 # Drop first row (units) of ocean acidification bottle data
 oah_bottle <- oah_bottle[2:nrow(oah_bottle),]
