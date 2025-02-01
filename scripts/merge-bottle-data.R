@@ -39,10 +39,10 @@ oah_bottle <- oah_bottle %>%
   )
 
 # Merge ocean acidification and oceanographic bottle data based on date, location, and depth
-merged_bottle_data <- left_join(
+merged_bottle_data <- inner_join(
   oah_bottle, 
   hydro_bottle,
-  by = join_by(Date, Latitude == Lat_Dec, Longitude == Lon_Dec, Depth == Depthm, Station_ID == Sta_ID)
+  by = join_by(Date, Depth == Depthm, Station_ID == Sta_ID)
   )
 
 # Save merged data
