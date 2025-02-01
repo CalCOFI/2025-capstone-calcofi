@@ -5,8 +5,10 @@ calcofi_zoop_data <- read_csv("~/Documents/PSTAT197B/data/195101-201607_1701-170
 # change the date format in oah_bottle
 
 oah_bottle_format <- oah_bottle %>% 
-  mutate(Date = as.Date(Date, format = "%m/%d/%Y")) %>% 
-  mutate(Date = format(Date, "%m/%d/%Y"))
+  mutate(Date = as.Date(Date, format = "%m/%d/%Y"))
+
+calcofi_zoop_data <- calcofi_zoop_data %>% 
+  mutate(Tow_Date = as.Date(Tow_Date, format = "%m/%d/%Y")) 
 
 # merge the zoop data with the ocean acidification data
 merged_zoop_data <- inner_join(
