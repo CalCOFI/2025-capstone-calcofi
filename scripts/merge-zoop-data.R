@@ -10,4 +10,4 @@ merged_zoop_data <- inner_join(
 )
 
 # Save merged data
-write_csv(merged_zoop_data, "data/merged_bottle_data.csv")
+write_csv(merged_zoop_data, "data/merged_zoop_data.csv")
