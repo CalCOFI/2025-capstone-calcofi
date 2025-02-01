@@ -1,6 +1,6 @@
 library(tidyverse)
 
-# Read in oceanographic data
+# Read in oceanographic bottle data
 hydro_bottle <- read_csv(
   "data/calcofi_hydro_bottle/194903-202105_Bottle.csv",
    # change encoding
@@ -12,11 +12,11 @@ hydro_bottle <- read_csv(
 # Read in cast data
 cast_bottle <- read_csv("data/calcofi_hydro_bottle/194903-202105_Cast.csv")
 
-# Read in ocean acidification bottle data
-oah_bottle <- read_csv("data/calcofi_oah_bottle.csv")
+# Read in carbonate chemistry bottle data
+cc_bottle <- read_csv("data/carbonate_chem_bottle.csv")
 
-# Drop first row (units) of ocean acidification bottle data
-oah_bottle <- oah_bottle[2:nrow(oah_bottle),]
+# Drop first row (containing units) of carbonate chemistry bottle data
+cc_bottle <- cc_bottle[2:nrow(cc_bottle),]
 
 # Merge oceanographic and cast data based on Cst_Cnt (Cast Count) and Sta_ID (Station ID)
 hydro_bottle <- hydro_bottle %>%
@@ -25,7 +25,8 @@ hydro_bottle <- hydro_bottle %>%
     by = join_by(Cst_Cnt, Sta_ID)
   )
 
-oah_bottle <- oah_bottle %>%
+# Prepare carbonate chemistry data for merging
+cc_bottle <- cc_bottle %>%
   # Create new date column for merging
   mutate(
     Date = paste(Month_UTC, Day_UTC, Year_UTC, sep = "/"),
@@ -33,14 +34,12 @@ oah_bottle <- oah_bottle %>%
   ) %>%
   # Change column types for merging
   mutate(
-    Latitude = as.double(Latitude),
-    Longitude = as.double(Longitude),
     Depth = as.double(Depth)
   )
 
-# Merge ocean acidification and oceanographic bottle data based on date, location, and depth
+# Merge carbonate chemistry and oceanographic bottle data based on date, location, and depth
 merged_bottle_data <- inner_join(
-  oah_bottle, 
+  cc_bottle, 
   hydro_bottle,
   by = join_by(Date, Depth == Depthm, Station_ID == Sta_ID)
   )
