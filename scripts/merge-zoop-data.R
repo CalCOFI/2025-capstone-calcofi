@@ -17,3 +17,13 @@ merged_zoop_data <- inner_join(
 
 # Save merged data
 write_csv(merged_zoop_data, "data/merged_zoop_data.csv")
+
+# Merge carbonate chemistry and oceanographic bottle data based on date, location, and depth
+merged_bottle_data <- inner_join(
+  oah_bottle_format, 
+  hydro_bottle,
+  by = join_by(Date_format == Date, Depth == Depthm, Station_ID == Sta_ID)
+)
+
+# Save merged data
+write_csv(merged_bottle_data, "data/merged_bottle_data.csv")
