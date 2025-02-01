@@ -48,6 +48,8 @@ hydro_bottle <- hydro_bottle %>%
     Date = as.Date(Date, format = c("%m/%d/%Y"))
   )
 
+hydro_bottle[,c("Date")]
+
 # Merge carbonate chemistry and oceanographic bottle data based on date, location, and depth
 merged_bottle_data <- inner_join(
   cc_bottle, 
