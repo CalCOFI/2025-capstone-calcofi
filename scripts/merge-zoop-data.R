@@ -9,3 +9,5 @@ merged_zoop_data <- inner_join(
   by = join_by(Date == Tow_Date, Station_ID == Sta_ID)
 )
 
+# Save merged data
+write_csv(merged_zoop_data, "data/merged_bottle_data.csv")
