@@ -1,7 +1,7 @@
 # Part I
 ## Importing data (dates are wrong i think)
 
-```{r}
+```{r, eval =F}
 
 # Read in oceanographic bottle data
 hydro_bottle <- read_csv(here::here(
@@ -127,7 +127,9 @@ merged_cc_krill_data <- inner_join(
 
 head(merged_cc_krill_data)
 
-#dim(merged_cc_krill_data)
+nrow(merged_cc_krill_data)
+
+#write_csv(merged_cc_krill_data, here::here("data/merged_krill_data.csv"))
 ```
 
 
