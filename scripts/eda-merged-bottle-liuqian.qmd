@@ -5,10 +5,14 @@ format: html
 editor: visual
 ---
 
+# Spacial and temporal information
+
 ```{r}
 # Load necessary libraries
 library(ggplot2)
-
+library(readr)
+# read in merged bottle data
+merged_bottle_data <- read_csv("../data/merged_bottle_data.csv")
 # First plot: Date vs Station ID
 ggplot(merged_bottle_data, aes(x = Date, y = Station_ID)) +
   geom_point(alpha = 0.5, size = 1) +
@@ -16,10 +20,118 @@ ggplot(merged_bottle_data, aes(x = Date, y = Station_ID)) +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-# Second plot: Latitude vs Longitude (Station Positions)
-ggplot(merged_bottle_data, aes(x = Longitude, y = Latitude)) +
-  geom_point(alpha = 0.5, size = 1, color = "blue") +
-  labs(title = "Geographical Positions of Stations", x = "Longitude", y = "Latitude") +
-  theme_minimal()
-
 ```
+
+```{r}
+library(mapview)  # For interactive maps
+library(sf)       # For spatial data handling
+library(dplyr)    # For data manipulation
+
+# Count the number of observations per Station_ID
+station_counts <- merged_bottle_data %>%
+  group_by(Station_ID) %>%
+  summarise(Observation_Count = n())  # Count occurrences per Station_ID
+
+# Merge the count data back to the original dataset
+merged_bottle_ct <- merged_bottle_data %>%
+  left_join(station_counts, by = "Station_ID")
+
+# Convert to spatial format using sf (assuming 'Latitude' and 'Longitude' columns exist)
+merged_bottle_sf <- st_as_sf(merged_bottle_ct, 
+                             coords = c("Longitude", "Latitude"), 
+                             crs = 4326)  # WGS 84 (standard lat/lon system)
+
+# Create an interactive map
+mapview(merged_bottle_sf, 
+        zcol = "Observation_Count",  # Color by number of observations
+        layer.name = "Stations (Observations Count)", 
+        legend = TRUE)
+```
+
+# Variable descriptions
+
+## Sample identifiers
+
+`Cst_Cnt`: Cast Count - All CalCOFI casts ever conducted, consecutively numbered
+
+`Btl_Cnt`: Bottle Count - All CalCOFI bottles ever sampled, consecutively numbered
+
+`Station_ID`: Line and Station \[Line\] \[Station\]
+
+## Spacial/temporal info
+
+`Date`: date object (yyyy-mm-dd)
+
+`Depthm`: Bottle depth in meters
+
+`Latitude`:
+
+`Longitude`:
+
+## Measurements
+
+### from calcofi hydro bottle data:
+
+`T_degC`: Water temperature in degrees Celsius (degrees Celsius)
+
+`Salnty`: Salinity (Practical Salinity Scale 1978)
+
+`O2ml_L`: Milliliters oxygen per liter of seawater
+
+`STheta`: Potential Density (Sigma Theta) (kilograms per cubic meter)
+
+`O2Sat`: Oxygen percent saturation
+
+`Oxy_ $\mu$ mol/Kg`: Oxygen micromoles per kilogram seawater
+
+`ChlorA`: Migrograms Chlorophyll-a per liter seawater, measured fluorometrically
+
+`Phaeop`: Micrograms Phaeopigment per liter seawater, measured fluormetrically
+
+`PO4uM`: Micromoles Phosphate per liter of seawater
+
+`SiO3uM`: Micromoles Silicate per liter of seawater
+
+`NO2uM`: Micromoles Nitrite per liter of seawater
+
+`NO3uM`: Micromoles Nitrate per liter of seawater
+
+`NH3uM`: Micromoles Ammonia per liter of seawater
+
+`DIC1`: Dissolved Inorganic Carbon micromoles per kilogram solution
+
+`DIC2`: Dissolved Inorganic Carbon micromoles per kilogram solution (on a replicate sample)
+
+`TA1`: Total Alkalinity micromoles per kilogram solution
+
+`TA2`: Total Alkalinity micromoles per kilogram solution (on a replicate sample)
+
+`pH1`: pH (the degree of acidity/alkalinity of a solution)
+
+`pH2`: pH (the degree of acidity/alkalinity of a solution) on a replicate sample
+
+(Obtained from: <https://calcofi.org/data/oceanographic-data/bottle-database/>)
+
+### from carbonate chemistry data:
+
+| **Dissolved Inorganic Carbon** |
+|:------------------------------:|
+|       **Abbreviation:**        |
+|           **Unit:**            |
+
+| **Total alkalinity** |
+|:--------------------:|
+|  **Abbreviation:**   |
+|      **Unit:**       |
+
+| **Sea water practical salinity** |
+|:--------------------------------:|
+|        **Abbreviation:**         |
+|            **Unit:**             |
+
+| **Sea water temperature** |
+|:-------------------------:|
+|     **Abbreviation:**     |
+|         **Unit:**         |
+
+(Citation: Keeling, Charles D.; Lueker, Timothy J.; Emanuele, Guy; Dickson, Andrew G.; Martz, Todd R.; Wolfe, Wiley H.; Mau, Aaron (2025). Discrete profile dissolved inorganic carbon, total alkalinity, water temperature and salinity measurements collected and assembled from a number of cruises on many different ships for the California Cooperative Oceanic Fisheries Investigations program (CalCOFI) in the North East Pacific Ocean Coastal area from 1983-03-19 to 2021-07-20 (NCEI Accession 0301029). NOAA National Centers for Environmental Information. Unpublished Dataset. https://www.ncei.noaa.gov/archive/accession/0301029. Accessed Jan 2nd 2025.)
