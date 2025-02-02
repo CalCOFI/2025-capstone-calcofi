@@ -81,7 +81,7 @@ krill_data$Formatted_Station <- sprintf("%05.1f", krill_data$Station)
 
 krill_data <- krill_data %>%
   mutate(
-    StationID = paste(krill_data$Formatted_Line, krill_data$Formatted_Station, sep = " "),
+    Station_ID = paste(krill_data$Formatted_Line, krill_data$Formatted_Station, sep = " "),
     .before = Line
   )
 
@@ -112,13 +112,22 @@ cc_data$Depth <- as.numeric(cc_data$Depth)
 head(cc_data)
 ```
 
+```{r}
+head(cc_data)
+head(krill_data)
+```
+
 Merge datasets by Date, Station_ID, and Depth
 ```{r}
 merged_cc_krill_data <- inner_join(
   cc_data, 
   krill_data,
-  by = join_by(Date, Depth, Station_ID)
+  by = join_by(Date, Station_ID)
   )
 
+head(merged_cc_krill_data)
+
+#dim(merged_cc_krill_data)
 ```
+
 
