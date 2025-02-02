@@ -1,3 +1,5 @@
+### MERGE CALCOFI OCEANOGRAPHIC AND CARBONATE CHEMISTRY DATA ###
+
 library(tidyverse)
 
 # Read in oceanographic bottle data
@@ -29,13 +31,24 @@ hydro_bottle <- hydro_bottle %>%
 cc_bottle <- cc_bottle %>%
   # Create new date column for merging
   mutate(
-    Date = paste(Month_UTC, Day_UTC, Year_UTC, sep = "/"),
+    Date = as.Date(
+      paste(Month_UTC, Day_UTC, Year_UTC, sep = "/"),
+      tryFormats = c("%m/%d/%Y")
+    ),
     .before = Year_UTC
   ) %>%
   # Change column types for merging
   mutate(
     Depth = as.double(Depth)
   )
+
+# Prepare hydro bottle data for merging
+hydro_bottle <- hydro_bottle %>%
+  mutate(
+    Date = as.Date(Date, format = c("%m/%d/%Y"))
+  )
+
+hydro_bottle[,c("Date")]
 
 # Merge carbonate chemistry and oceanographic bottle data based on date, location, and depth
 merged_bottle_data <- inner_join(
