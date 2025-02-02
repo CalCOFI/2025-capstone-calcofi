@@ -1,0 +1,25 @@
+---
+title: "eda-merged-bottle-data"
+author: "Liuqian Bao"
+format: html
+editor: visual
+---
+
+```{r}
+# Load necessary libraries
+library(ggplot2)
+
+# First plot: Date vs Station ID
+ggplot(merged_bottle_data, aes(x = Date, y = Station_ID)) +
+  geom_point(alpha = 0.5, size = 1) +
+  labs(title = "Visualization of Date vs Station ID", x = "Date", y = "Station ID") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+# Second plot: Latitude vs Longitude (Station Positions)
+ggplot(merged_bottle_data, aes(x = Longitude, y = Latitude)) +
+  geom_point(alpha = 0.5, size = 1, color = "blue") +
+  labs(title = "Geographical Positions of Stations", x = "Longitude", y = "Latitude") +
+  theme_minimal()
+
+```
