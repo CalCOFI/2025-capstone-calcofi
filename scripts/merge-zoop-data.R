@@ -5,15 +5,27 @@ calcofi_zoop_data <- read_csv("~/Documents/PSTAT197B/data/195101-201607_1701-170
 # change the date format in oah_bottle
 
 oah_bottle_format <- oah_bottle %>% 
-  mutate(Date_obj = as.Date(Date, format = "%m/%d/%Y")) %>% 
-  mutate(Date_format = format(Date_obj, "%m/%d/%Y"))
+  mutate(Date = as.Date(Date, format = "%m/%d/%Y"))
+
+calcofi_zoop_data <- calcofi_zoop_data %>% 
+  mutate(Tow_Date = as.Date(Tow_Date, format = "%m/%d/%Y")) 
 
 # merge the zoop data with the ocean acidification data
 merged_zoop_data <- inner_join(
   oah_bottle_format, 
   calcofi_zoop_data,
-  by = join_by(Date_format == Tow_Date, Station_ID == Sta_ID)
+  by = join_by(Date == Tow_Date, Station_ID == Sta_ID)
 )
 
 # Save merged data
 write_csv(merged_zoop_data, "data/merged_zoop_data.csv")
+
+# Merge carbonate chemistry and oceanographic bottle data based on date, location, and depth
+merged_bottle_data <- inner_join(
+  oah_bottle_format, 
+  hydro_bottle,
+  by = join_by(Date_format == Date, Depth == Depthm, Station_ID == Sta_ID)
+)
+
+# Save merged data
+write_csv(merged_bottle_data, "data/merged_bottle_data.csv")
