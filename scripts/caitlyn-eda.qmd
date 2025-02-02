@@ -1,0 +1,124 @@
+# Part I
+## Importing data (dates are wrong i think)
+
+```{r}
+
+# Read in oceanographic bottle data
+hydro_bottle <- read_csv(here::here(
+  "data/calcofi_hydro_bottle/194903-202105_Bottle.csv"),
+   # change encoding
+   locale=locale(encoding="latin1"),
+   # increase guess_max to correctly guess column types
+   guess_max = Inf
+)
+
+# Read in cast data
+cast_bottle <- read_csv(here::here("data/calcofi_hydro_bottle/194903-202105_Cast.csv"))
+
+# Read in carbonate chemistry bottle data
+cc_bottle <- read_csv(here::here("data/carbonate_chem_bottle.csv"))
+
+# Drop first row (containing units) of carbonate chemistry bottle data
+cc_bottle <- cc_bottle[2:nrow(cc_bottle),]
+
+# Merge oceanographic and cast data based on Cst_Cnt (Cast Count) and Sta_ID (Station ID)
+hydro_bottle <- hydro_bottle %>%
+  left_join(
+    cast_bottle,
+    by = join_by(Cst_Cnt, Sta_ID)
+  )
+
+# Prepare carbonate chemistry data for merging
+cc_bottle <- cc_bottle %>%
+  # Create new date column for merging
+  mutate(
+    Date = paste(Month_UTC, Day_UTC, Year_UTC, sep = "/"),
+    .before = Year_UTC
+  ) %>%
+  # Change column types for merging
+  mutate(
+    Depth = as.double(Depth)
+  )
+
+# Merge carbonate chemistry and oceanographic bottle data based on date, location, and depth
+merged_bottle_data <- inner_join(
+  cc_bottle, 
+  hydro_bottle,
+  by = join_by(Date, Depth == Depthm, Station_ID == Sta_ID)
+  )
+
+# Save merged data
+write_csv(merged_bottle_data, here::here("data/merged_bottle_data.csv"))
+```
+
+# Part IIb (Krill data)
+## Merging carbonate chemistry dataset with krill dataset
+
+```{r}
+library(readr)
+# Read in carbonate chemistry bottle data
+cc_data <- read_csv(here::here("data/carbonate_chem_bottle.csv"))
+cc_data <- cc_data[2:nrow(cc_data),]
+krill_data <- read_csv(here::here("data/krill_data/BTEDB_Abundances.csv"))
+head(cc_data)
+head(krill_data)
+```
+Station ID (combining "Line" and "Station" variables in krill dataset to match CC dataset)
+
+```{r}
+# unique(cc_bottle$Station_ID)  # Unique Station_IDs
+# unique(krill_data$Line)       # Unique Lines
+# unique(krill_data$Station)    # Unique Stations
+
+krill_data$Formatted_Line <- sprintf("%05.1f", krill_data$Line)
+
+krill_data$Station <- as.numeric(krill_data$Line)
+krill_data$Formatted_Station <- sprintf("%05.1f", krill_data$Station)
+
+# krill_data$Station_ID <- paste(krill_data$Formatted_Line, krill_data$Formatted_Station, sep = " ")
+# 
+# krill_data <- cbind(Station_ID = krill_data$Station_ID, krill_data)
+
+krill_data <- krill_data %>%
+  mutate(
+    StationID = paste(krill_data$Formatted_Line, krill_data$Formatted_Station, sep = " "),
+    .before = Line
+  )
+
+head(krill_data)
+```
+
+Date (creating new Date variable in cc data to match krill data)
+
+```{r}
+# cc_data$Date <- as.Date(with(cc_data, paste(Year_UTC, Month_UTC, Day_UTC, sep = "-")), format = "%Y-%m-%d")
+# 
+# cc_data <- cbind(Date = cc_data$Date, cc_data)
+
+cc_data <- cc_data %>%
+  mutate(
+    Date = as.Date(with(cc_data, paste(Year_UTC, Month_UTC, Day_UTC, sep = "-")), format = "%Y-%m-%d"),
+    .before = Year_UTC
+  )
+
+head(cc_data)
+
+```
+
+Convert "Depth" variable in cc dataset to numeric
+
+```{r}
+cc_data$Depth <- as.numeric(cc_data$Depth)
+head(cc_data)
+```
+
+Merge datasets by Date, Station_ID, and Depth
+```{r}
+merged_cc_krill_data <- inner_join(
+  cc_data, 
+  krill_data,
+  by = join_by(Date, Depth, Station_ID)
+  )
+
+```
+
