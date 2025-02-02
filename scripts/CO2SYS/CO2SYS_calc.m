@@ -1,7 +1,7 @@
 % CO2SYS_calc.m
 
 % read in cleaned merged bottle data
-merged_bottle = readtable("../../data/clean_merged_bottle_data.csv");
+merged_bottle = readtable("../../data/merged_bottle_data.csv");
 
 [CO2SYS_out,out_headers] = CO2SYS( ...
     merged_bottle.TA, ...
