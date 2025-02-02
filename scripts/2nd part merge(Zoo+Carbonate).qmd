@@ -3,6 +3,7 @@ title: "2nd part merge(Zoo+Carbonate)"
 format: html
 editor: visual
 ---
+<<<<<<< Updated upstream
 
 ```{r}
 # Load libraries
@@ -97,3 +98,5 @@ Temporal (Time) Coverage:
 
 Number of stations sampled per day (Num_Stations).
 The "Date Station Coverage" table shows how many stations were sampled on each date.
+=======
+>>>>>>> Stashed changes
