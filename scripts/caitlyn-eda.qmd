@@ -1,4 +1,4 @@
-# Part I
+# Part I [Ignore]
 ## Importing data (dates are wrong i think)
 
 ```{r, eval =F}
@@ -72,7 +72,7 @@ Station ID (combining "Line" and "Station" variables in krill dataset to match C
 
 krill_data$Formatted_Line <- sprintf("%05.1f", krill_data$Line)
 
-krill_data$Station <- as.numeric(krill_data$Line)
+krill_data$Station <- as.numeric(krill_data$Station)
 krill_data$Formatted_Station <- sprintf("%05.1f", krill_data$Station)
 
 # krill_data$Station_ID <- paste(krill_data$Formatted_Line, krill_data$Formatted_Station, sep = " ")
@@ -129,7 +129,39 @@ head(merged_cc_krill_data)
 
 nrow(merged_cc_krill_data)
 
-#write_csv(merged_cc_krill_data, here::here("data/merged_krill_data.csv"))
+write_csv(merged_cc_krill_data, here::here("data/merged_krill_data.csv"))
 ```
 
+# EDA
 
+```{r}
+library(ggplot2)
+
+merged_krill_data <- read_csv(here::here("data/merged_krill_data.csv"))
+head(merged_krill_data)
+
+# Compute records per station
+station_counts <- merged_krill_data %>%
+  group_by(Station_ID) %>%
+  summarise(Record_Count = n()) %>%
+  arrange(desc(Record_Count))
+
+# **Compute records per date**
+date_counts <- merged_krill_data %>%
+  group_by(Date) %>%
+  summarise(Record_Count = n()) %>%
+  arrange(Date)
+
+# Plot station record count
+ggplot(station_counts, aes(x = reorder(Station_ID, -Record_Count), y = Record_Count)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Record Count per Station ID", x = "Station ID", y = "Number of Records") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+# Plot date record count
+ggplot(date_counts, aes(x = Date, y = Record_Count)) +
+  geom_line(color = "darkred") +
+  geom_point(size = 2, color = "darkred") +
+  labs(title = "Record Count Over Time", x = "Date", y = "Number of Records") +
+  theme_minimal()
+```
