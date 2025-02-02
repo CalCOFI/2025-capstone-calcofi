@@ -1,0 +1,99 @@
+---
+title: "2nd part merge(Zoo+Carbonate)"
+format: html
+editor: visual
+---
+
+```{r}
+# Load libraries
+library(readr)
+library(dplyr)
+
+# Load data
+oah_bottle <- read_csv("~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/carbonate_chem_bottle.csv")
+zooplankton <- read_csv("~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/zooplankton.csv")
+
+
+# `Year_UTC`, `Month_UTC`, `Day_UTC` in oah_bottle
+oah_bottle <- oah_bottle %>%
+  filter(!is.na(Year_UTC)) %>%  # romove NaN lines
+  mutate(
+    Date = sprintf("%02d/%02d/%04d", Month_UTC, Day_UTC, Year_UTC),  #MM/DD/YYYY
+    Station_ID = trimws(as.character(Station_ID))  # process Station_ID
+  )
+
+# `Tow_Date` and `Sta_ID` in zooplankton
+zooplankton <- zooplankton %>%
+  rename(Station_ID = Sta_ID) %>%
+  mutate(
+    Station_ID = trimws(as.character(Station_ID)),
+    Tow_Date = as.character(Tow_Date)  # string check
+  )
+
+# Merge
+merged_zoop_data <- inner_join(
+  oah_bottle, 
+  zooplankton,
+  by = join_by(Date == Tow_Date, Station_ID)
+)
+
+
+#write_csv(merged_zoop_data, "merged_zoop_data.csv")
+
+
+nrow(merged_zoop_data)
+# We have 456 lines for the merge data
+
+```
+```{r}
+library(ggplot2)
+
+merged_zoop_data <- read_csv("merged_zoop_data.csv")
+
+# Ensure Date column is in Date format
+merged_zoop_data <- merged_zoop_data %>%
+  mutate(Date = as.Date(Date, format="%m/%d/%Y"))
+
+# Compute records per station
+station_counts <- merged_zoop_data %>%
+  group_by(Station_ID) %>%
+  summarise(Record_Count = n()) %>%
+  arrange(desc(Record_Count))
+
+# **Compute records per date**
+date_counts <- merged_zoop_data %>%
+  group_by(Date) %>%
+  summarise(Record_Count = n()) %>%
+  arrange(Date)
+
+# Plot station record count
+ggplot(station_counts, aes(x = reorder(Station_ID, -Record_Count), y = Record_Count)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Record Count per Station ID", x = "Station ID", y = "Number of Records") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+# Plot date record count
+ggplot(date_counts, aes(x = Date, y = Record_Count)) +
+  geom_line(color = "darkred") +
+  geom_point(size = 2, color = "darkred") +
+  labs(title = "Record Count Over Time", x = "Date", y = "Number of Records") +
+  theme_minimal()
+
+```
+Station Data Distribution (First Plot):
+1. Station ID 090.0 090.0 has the highest number of records, exceeding 120.
+2. Other stations have fewer records, and some stations have sparse data coverage.
+
+Temporal Data Distribution (Second Plot):
+1. Most data is concentrated between 1983-1992 and 2012-2017.
+2. There is a gap between 1995-2003, indicating that no sampling was conducted or records were missing during this period.
+
+Spatial and Temporal Overlap Analysis
+Spatial (Station) Coverage:
+
+Each station's time span (earliest and latest records) and the total number of recorded days.
+You can refer to the "Station Time Span" table to see which stations have the longest observation periods.
+Temporal (Time) Coverage:
+
+Number of stations sampled per day (Num_Stations).
+The "Date Station Coverage" table shows how many stations were sampled on each date.
