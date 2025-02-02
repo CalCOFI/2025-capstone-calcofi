@@ -1,0 +1,87 @@
+```{r}
+library(ggplot2)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(maps)
+```
+
+
+```{r}
+zoop_merged <- read.csv('../data/merged_zoop_data.csv')
+oah_bottle <- read.csv('../data/carbonate_chem_bottle.csv')[-1,]
+zoop <- read.csv('../data/zooplankton.csv')
+```
+
+```{r}
+head(zoop_merged)
+```
+
+```{r}
+head(oah_bottle)
+```
+
+```{r}
+head(zoop)
+```
+
+
+# Plot location density
+```{r}
+coords_merged <- zoop_merged[, c('Latitude', 'Longitude')]
+
+# find min and max coordinates
+min_lon <- min(coords_merged[, 'Longitude'])
+max_lon <- max(coords_merged[, 'Longitude'])
+
+min_lat <- min(coords_merged[, 'Latitude'])
+max_lat <- max(coords_merged[, 'Latitude'])
+```
+
+
+```{r}
+world <- ne_countries(scale = "medium", returnclass = "sf")
+states <- st_as_sf(map("state", plot = FALSE, fill = TRUE))
+
+ggplot(data=world) + 
+  geom_sf(fill = "antiquewhite1") + 
+  geom_sf(data = states, fill = NA) + 
+  geom_point(data=coords_merged, aes(x=Longitude, y=Latitude), shape=1, size=2) + 
+  coord_sf(xlim = c(min_lon - 3, max_lon + 3), ylim = c(min_lat - 3, max_lat + 3), expand=FALSE) + 
+  theme(panel.grid.major = element_line(color = gray(0.5), linetype = "dashed", 
+        linewidth = 0.5), panel.background = element_rect(fill = "aliceblue")) + 
+  ggtitle('Station Locations of Merged Zooplankton Data')
+```
+
+# Timeline
+```{r}
+ggplot(zoop_merged, aes(x=as.Date(Date_format, format = '%m/%d/%Y'), y=Station_ID)) + 
+  geom_point(size=1, shape=1) + 
+  scale_x_date(name = '', date_breaks = '5 years', expand = expansion(mult = c(0.05, 0.1))) + 
+  theme_minimal() + 
+  ggtitle('Timeline of Observations by Station')
+```
+
+Most observations are before 2002, there is a gap from 2002-2011
+
+
+
+
+
+
+
+
+
+
+
+# Notes
+456 observations in merged dataset
+
+Depth?
+
+Potential variables of interest: Salinity_PSS78, Tow_DpthM, Vol_StrM3, Ttl_PVolC3, Sml_PVolC3
+
+Data collected from 16 stations
+
+Data from 113 different dates
+
