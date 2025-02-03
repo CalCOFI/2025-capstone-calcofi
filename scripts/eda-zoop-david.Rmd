@@ -1,0 +1,106 @@
+```{r}
+library(ggplot2)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(maps)
+```
+
+
+```{r}
+# import data
+zoop_merged <- read.csv('../data/merged_zoop_data.csv')
+oah_bottle <- read.csv('../data/carbonate_chem_bottle.csv')[-1,]
+zoop <- read.csv('../data/zooplankton.csv')
+```
+
+```{r}
+head(zoop_merged)
+```
+
+```{r}
+head(oah_bottle)
+```
+
+```{r}
+head(zoop)
+```
+
+
+# Plot location density
+```{r}
+# filter coordinate columns and count observations by station
+coords_merged <- zoop_merged[, c('Station_ID', 'Latitude', 'Longitude')] %>%
+  dplyr::count(Station_ID, Latitude, Longitude) %>%
+  dplyr::rename(Num_Observations = n)
+
+# find min and max coordinates
+min_lon <- min(coords_merged[, 'Longitude'])
+max_lon <- max(coords_merged[, 'Longitude'])
+
+min_lat <- min(coords_merged[, 'Latitude'])
+max_lat <- max(coords_merged[, 'Latitude'])
+```
+
+```{r}
+coords_merged
+```
+
+
+```{r}
+# plot observed station location with density of observations
+world <- ne_countries(scale = "medium", returnclass = "sf")
+states <- st_as_sf(map("state", plot = FALSE, fill = TRUE))
+
+station_loc_map <- ggplot(data=world) + 
+  geom_sf(fill = "antiquewhite1") + 
+  geom_point(data=coords_merged, aes(x=Longitude, y=Latitude, size=Num_Observations)) + 
+  coord_sf(xlim = c(min_lon - 2, max_lon + 1), ylim = c(min_lat - 1, max_lat + 2), expand=FALSE) + 
+  theme(panel.grid.major = element_line(color = gray(0.5), linetype = "dashed", 
+        linewidth = 0.5), panel.background = element_rect(fill = "aliceblue")) + 
+  ggtitle('Station Locations of Merged Zooplankton Data')
+
+# save figure
+ggsave(path='../images/merged_zoop_EDA', filename='station_loc_map.png')
+
+station_loc_map
+```
+
+# Distribution of observations across time
+```{r}
+# plot each observation by time and station
+timeline_obs_station <- ggplot(data=zoop_merged, aes(x=as.Date(Date), y=Station_ID)) + 
+  geom_point(size=1, shape=1) + 
+  scale_x_date(name = '', date_breaks = '5 years', expand = expansion(mult = c(0.05, 0.1))) + 
+  theme_minimal() + 
+  ggtitle('Timeline of Observations by Station')
+
+# save figure
+ggsave(path='../images/merged_zoop_EDA', filename='timeline_obs_station.png')
+
+timeline_obs_station
+```
+
+Most observations are before 2002, there is a gap from 2002-2011.
+
+Station 090.0.090.0 (the one mentioned in the paper) has the most observations.
+
+
+
+
+
+
+
+
+
+# Notes
+456 observations in merged dataset
+
+Depth?
+
+Variables I don't understand: Salinity_PSS78, Tow_DpthM, Vol_StrM3, Ttl_PVolC3, Sml_PVolC3
+
+Data collected from 16 stations
+
+Data from 113 different dates
+
