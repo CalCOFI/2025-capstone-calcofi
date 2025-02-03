@@ -1,7 +1,7 @@
 % ESPER_calc_all.m
 
 % Use ESPER_Mixed function to compute TA, TC, pH, etc. from combined 
-% bottle data using all available predictors
+% bottle data using only temperature and salinity as predictors
 
 % read in combined bottle data
 merged_bottle = readtable("../../data/merged_bottle_data.csv");
@@ -13,10 +13,10 @@ DesiredVars = 1:7;
 OutputCoords = merged_bottle{:,["Longitude", "Latitude", "Depth"]};
 
 % select predictors from combined bottle data
-PredictorMeasurements = merged_bottle{:,["Salnty","T_degC","PO4uM","NO3uM","SiO3uM","Oxy__mol_Kg"]};
+PredictorMeasurements = merged_bottle{:,["Salnty","T_degC"]};
 
 % indicate predictor types
-PredictorTypes = 1:6;
+PredictorTypes = 1:2;
 
 % extract dates from combined bottle data
 EstDates = decyear(merged_bottle{:,["Year_UTC","Month_UTC","Day_UTC"]});
@@ -34,5 +34,5 @@ EstimateTable = splitvars(struct2table(Estimates));
 UncertaintyTable = splitvars(struct2table(Uncertainties));
 
 % write output to csv files
-writetable(EstimateTable,"../../data/ESPER_output/ESPER_estimates_all.csv")
-writetable(UncertaintyTable,"../../data/ESPER_output/ESPER_uncertainties_all.csv")
+writetable(EstimateTable,"../../data/ESPER_output/ESPER_estimates_lim.csv")
+writetable(UncertaintyTable,"../../data/ESPER_output/ESPER_uncertainties_lim.csv")
