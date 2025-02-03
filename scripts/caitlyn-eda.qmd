@@ -51,6 +51,8 @@ merged_bottle_data <- inner_join(
 write_csv(merged_bottle_data, here::here("data/merged_bottle_data.csv"))
 ```
 
+------------------------------------
+Start here
 # Part IIb (Krill data)
 ## Merging carbonate chemistry dataset with krill dataset
 
@@ -164,4 +166,105 @@ ggplot(date_counts, aes(x = Date, y = Record_Count)) +
   geom_point(size = 2, color = "darkred") +
   labs(title = "Record Count Over Time", x = "Date", y = "Number of Records") +
   theme_minimal()
+```
+
+```{r}
+nrow(cc_data)
+nrow(krill_data)
+```
+
+```{r}
+merged_krill_data$Station_ID %>% unique() %>% length()
+nrow(merged_krill_data)
+min(merged_krill_data$Year_UTC)
+max(merged_krill_data$Year_UTC)
+min(merged_krill_data$Depth, na.rm = T)
+max(merged_krill_data$Depth, na.rm = T)
+min(merged_krill_data$MaxDepth)
+max(merged_krill_data$MaxDepth)
+```
+
+```{r}
+# Load required libraries
+library(ggplot2)
+library(maps)
+library(dplyr)
+
+world <- map_data("world")
+ca_counties <- subset(map_data("county"), region == "california")
+
+ggplot() +
+  geom_polygon(
+    data = world,
+    aes(
+      x = long,
+      y = lat,
+      group = group
+    ),
+    color = "black",
+    fill = "gray90"
+  ) +
+  geom_point(
+    data = merged_krill_data %>%
+      group_by(Station_ID) %>%
+      summarize(
+        Latitude = first(Latitude.x),
+        Longitude = first(Longitude.x),
+        Count = n()
+      ),
+    aes(
+      x = Longitude,
+      y = Latitude,
+      size = Count
+    )
+  ) +
+  geom_text(
+    data = merged_krill_data %>%
+      group_by(Station_ID) %>%
+      summarize(
+        Latitude = first(Latitude.x),
+        Longitude = first(Longitude.x),
+        Count = n()
+      ),
+    aes(
+      x = Longitude,
+      y = Latitude,
+      label = Station_ID
+    ),
+    hjust = -0.1,
+    vjust = 2.0,
+    angle = -17,
+    size = 2,
+    color = "red"
+  ) +
+  coord_cartesian(
+    xlim = c(merged_krill_data$Longitude.x %>% min() - 1.5, merged_krill_data$Longitude.x %>% max() + 3.5),
+    ylim = c(merged_krill_data$Latitude.x %>% min() - 1,merged_krill_data$Latitude.x %>% max() + 1)
+  ) +
+  theme_minimal() +
+  labs(
+    x = "Longitude",
+    y = "Latitude",
+    title = "Number of Observations by Station in Merged Krill Dataset",
+    size = "Observations"
+  )
+
+ggsave(here::here("images/merged_krill_EDA/obs_by_station.png"))
+```
+
+```{r}
+
+merged_krill_data$Date <- as.Date(merged_krill_data$Date, format = "%Y-%m-%d")
+
+ggplot(data = merged_krill_data, aes(x = Date, y = Station_ID)) +
+  geom_point(size=1, shape=1) +  
+  theme_minimal() +  
+  labs(
+    title = "Timeline of Stations by Date in Merged Krill Dataset",
+    x = "Date",
+    y = "Station_ID"
+  ) +
+  scale_x_date(name = '', date_breaks = '5 years', expand = expansion(mult = c(0.05, 0.1)))
+
+ggsave(here::here("images/merged_krill_EDA/stations_by_date.png"))
 ```
