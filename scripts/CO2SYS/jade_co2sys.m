@@ -16,4 +16,4 @@ kso4c   =    1;    % Choice of HSO4- dissociation constants KSO4 ("1" means "Dic
 [d, dheader, dnice] = CO2SYS(par1,par2,par1type,par2type,sal,tempin,tempout,presin,presout,sil,po4,pHscale,k1k2c,kso4c);
 A = array2table(d, 'VariableNames',dheader);  % convert from array to table
 T1 = cat(2,T,A);   % concatenate newly calculated columns with the original data
-writetable(T1, "data/merged_bottle_co2sys.csv")
+%writetable(T1, "data/merged_bottle_co2sys.csv")
