@@ -1,4 +1,7 @@
+# merged_bottle_EDA.R
+
 ### EDA ON MERGED BOTTLE DATASET ###
+
 library(tidyverse)
 library(maps)
 
@@ -129,6 +132,7 @@ ggplot() +
   labs(
     x = "Longitude",
     y = "Latitude",
-    title = "Number of Observations by Station in Merged Bottle Dataset"
+    title = "Number of Observations by Station in Merged Bottle Dataset",
+    size = "Observations"
   )
 ggsave("images/merged_bottle_EDA/obs_by_station.png")
