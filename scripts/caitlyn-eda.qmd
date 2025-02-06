@@ -1,54 +1,38 @@
-# Part I [Ignore]
-## Importing data (dates are wrong i think)
+# Assessing missingness
 
-```{r, eval =F}
-
-# Read in oceanographic bottle data
-hydro_bottle <- read_csv(here::here(
+```{r, eval = F}
+library(naniar)
+# Oceanographic data
+## Bottle data
+bottle_data <- read_csv(here::here(
   "data/calcofi_hydro_bottle/194903-202105_Bottle.csv"),
-   # change encoding
    locale=locale(encoding="latin1"),
-   # increase guess_max to correctly guess column types
-   guess_max = Inf
-)
+   guess_max = Inf)
+#bottle_data %>% vis_miss()
+sum(is.na(bottle_data))
 
-# Read in cast data
-cast_bottle <- read_csv(here::here("data/calcofi_hydro_bottle/194903-202105_Cast.csv"))
+## Cast data
+cast_data <- read_csv(here::here("data/calcofi_hydro_bottle/194903-202105_Cast.csv"))
+#cast_data %>% vis_miss()
+sum(is.na(bottle_data))
 
-# Read in carbonate chemistry bottle data
-cc_bottle <- read_csv(here::here("data/carbonate_chem_bottle.csv"))
+# Carbonate chemistry bottle data
+cc_data <- read_csv(here::here("data/carbonate_chem_bottle.csv"))
 
-# Drop first row (containing units) of carbonate chemistry bottle data
-cc_bottle <- cc_bottle[2:nrow(cc_bottle),]
+## Drop first row (containing units) of carbonate chemistry bottle data
+cc_data <- cc_bottle[2:nrow(cc_bottle),]
+cc_data %>% vis_miss()
 
-# Merge oceanographic and cast data based on Cst_Cnt (Cast Count) and Sta_ID (Station ID)
-hydro_bottle <- hydro_bottle %>%
-  left_join(
-    cast_bottle,
-    by = join_by(Cst_Cnt, Sta_ID)
-  )
+# Zooplankton data
+zooplankton_data <- read_csv(here::here("data/zooplankton.csv"))
+#zooplankton_data %>% vis_miss()
 
-# Prepare carbonate chemistry data for merging
-cc_bottle <- cc_bottle %>%
-  # Create new date column for merging
-  mutate(
-    Date = paste(Month_UTC, Day_UTC, Year_UTC, sep = "/"),
-    .before = Year_UTC
-  ) %>%
-  # Change column types for merging
-  mutate(
-    Depth = as.double(Depth)
-  )
+# Krill data
+krill_data <- read_csv(here::here("data/krill_data/BTEDB_Abundances.csv"))
+#krill_data %>% vis_miss()
 
-# Merge carbonate chemistry and oceanographic bottle data based on date, location, and depth
-merged_bottle_data <- inner_join(
-  cc_bottle, 
-  hydro_bottle,
-  by = join_by(Date, Depth == Depthm, Station_ID == Sta_ID)
-  )
-
-# Save merged data
-write_csv(merged_bottle_data, here::here("data/merged_bottle_data.csv"))
+nrow(cc_data)
+nrow(krill_data)
 ```
 
 ------------------------------------
@@ -134,7 +118,17 @@ nrow(merged_cc_krill_data)
 write_csv(merged_cc_krill_data, here::here("data/merged_krill_data.csv"))
 ```
 
+
+
 # EDA
+
+```{r}
+# Assess visual missingness in merged krill dataset
+merged_krill_data %>% vis_miss()
+
+missing_by_column <- colSums(is.na(merged_krill_data))
+print(missing_by_column[missing_by_column > 0])
+```
 
 ```{r}
 library(ggplot2)

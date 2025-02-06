@@ -114,6 +114,12 @@ cc_bottle %>%
   facet_wrap(
     vars(Day_UTC)
   ) +
+  scale_y_discrete(
+    limits = month.abb
+  ) +
+  scale_x_discrete(
+    limits = factor(2008:2021)
+  ) +
   theme_minimal() +
   theme(
     axis.text.x = element_text(angle = 45)
