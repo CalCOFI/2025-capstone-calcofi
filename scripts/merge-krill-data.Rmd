@@ -1,0 +1,70 @@
+```{r}
+library(dplyr)
+```
+
+```{r}
+# load carbonate chem bottle data
+cc_data <- read.csv('../data/carbonate_chem_bottle.csv')[-1,]
+# load krill data
+krill_data <- read.csv('../data/krill_data/BTEDB_Abundances.csv')
+```
+
+```{r}
+head(cc_data)
+```
+
+```{r}
+head(krill_data)
+```
+
+```{r}
+unique(cc_data$Station_ID)
+```
+
+
+```{r}
+# format Station_ID column
+krill_data$Station_ID <- paste(
+  sprintf('%05.1f', krill_data$Line),
+  sprintf('%05.1f', as.numeric(krill_data$Station)),
+  sep = ' '
+)
+```
+
+
+```{r}
+# format date in carbonate chem data
+cc_data <- cc_data %>%
+  mutate(
+    Date = as.character(as.Date(
+      paste(Month_UTC, Day_UTC, Year_UTC, sep = "/"),
+      tryFormats = c("%m/%d/%Y")
+    )),
+    .before = Year_UTC
+  ) %>%
+  mutate(
+    Depth = as.double(Depth)
+  )
+```
+
+```{r}
+head(cc_data)
+```
+
+```{r}
+unique(cc_data$Date)
+```
+
+
+```{r}
+merged_cc_krill_data <- inner_join(
+  cc_data,
+  krill_data,
+  by = join_by(Date, Station_ID)
+)
+```
+
+```{r}
+head(merged_cc_krill_data)
+```
+

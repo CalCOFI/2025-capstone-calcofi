@@ -8,6 +8,7 @@ format: html
 library(httr)
 library(jsonlite)
 library(tidyverse)
+library(naniar)
 ```
 
 
@@ -43,5 +44,25 @@ oa_data <- oa_data |>
 oa_data <- oa_data |> slice(-1) |> mutate(Depth = as.numeric(Depth),
                                           Latitude = as.numeric(Latitude),
                                           Longitude = as.numeric(Longitude))
+```
+
+#  Carbonate Missingness
+
+```{r}
+merged_bottle <- read_csv(here::here("data/merged_bottle_co2sys.csv"))
+
+merged_subset <- merged_bottle |> 
+  select(TA, Salnty, T_degC, DIC, Barometer, SiO3uM, PO4uM, pHin, pCO2in)
+
+vis_miss(merged_subset)
+
+cols_with_missing <- merged_bottle %>%
+  summarise(across(everything(), ~sum(is.na(.)))) %>%
+  pivot_longer(cols = everything(), names_to = "variable", values_to = "n_missing") %>%
+  filter(n_missing > 1) %>%
+  arrange(-n_missing) |> 
+  mutate(prop_miss = n_missing / 461)
+
+cols_with_missing
 ```
 

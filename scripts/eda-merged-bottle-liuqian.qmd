@@ -36,7 +36,7 @@ station_counts <- merged_bottle_data %>%
 merged_bottle_ct <- merged_bottle_data %>%
   left_join(station_counts, by = "Station_ID")
 
-# Convert to spatial format using sf (assuming 'Latitude' and 'Longitude' columns exist)
+# Convert to spatial format using sf 
 merged_bottle_sf <- st_as_sf(merged_bottle_ct, 
                              coords = c("Longitude", "Latitude"), 
                              crs = 4326)  # WGS 84 (standard lat/lon system)
