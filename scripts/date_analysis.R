@@ -25,6 +25,25 @@ hydro_bottle <- hydro_bottle %>%
     by = join_by(Cst_Cnt, Sta_ID)
   )
 
+# convert dates to common format
+cc_bottle <- cc_bottle %>%
+  mutate(
+    Date = as.Date(
+      paste(Month_UTC, Day_UTC, Year_UTC, sep = "/"),
+      tryFormats = c("%m/%d/%Y")
+    ),
+    .before = Year_UTC
+  ) %>%
+  # Change column types for merging
+  mutate(
+    Depth = as.double(Depth)
+  )
+
+hydro_bottle <- hydro_bottle %>%
+  mutate(
+    Date = as.Date(Date, format = c("%m/%d/%Y"))
+  )
+
 # generate histogram of days for carb chem data
 cc_bottle %>%
   select(
