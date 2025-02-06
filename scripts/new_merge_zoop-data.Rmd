@@ -1,0 +1,67 @@
+```{r}
+# load new zooplankton data
+zoop_data <- read.csv('../data/Zooplankton-new.csv')
+
+# load carbonate chem bottle data
+cc_data <- read.csv('../data/carbonate_chem_bottle.csv')[-1,]
+```
+
+```{r}
+head(zoop_data)
+```
+
+```{r}
+head(cc_data)
+```
+
+
+```{r}
+# format Station_ID column
+zoop_data$Station_ID <- paste(
+  sprintf('%05.1f', zoop_data$line),
+  sprintf('%05.1f', zoop_data$station),
+  sep = ' '
+)
+```
+
+
+```{r}
+# format date in carbonate chem data
+cc_data <- cc_data %>%
+  mutate(
+    Date = as.Date(
+      paste(Month_UTC, Day_UTC, Year_UTC, sep = "/"),
+      tryFormats = c("%m/%d/%Y")
+    ),
+    .before = Year_UTC
+  ) %>%
+  mutate(
+    Depth = as.double(Depth)
+  )
+
+# format date in zooplankton data
+zoop_data$Date = as.Date(zoop_data$time)
+```
+
+```{r}
+# join data on matching station ID and date
+merged_cc_zoop_data <- inner_join(
+  cc_data,
+  zoop_data,
+  by = join_by(Station_ID, Date)
+)
+```
+
+```{r}
+merged_cc_zoop_data
+```
+
+
+```{r}
+unique(merged_cc_zoop_data$Date)
+```
+
+```{r}
+unique(merged_cc_zoop_data$Station_ID)
+```
+
