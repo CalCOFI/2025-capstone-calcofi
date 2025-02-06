@@ -1,20 +1,28 @@
 # Access the zooplankton data
 library(readr)
-calcofi_zoop_data <- read_csv("~/Documents/PSTAT197B/data/195101-201607_1701-1704_1802-1804_Zoop.csv")
+zoop_new <- read_csv("~/Documents/PSTAT197B/capstone-calcofi-seagrant/data/Zooplankton-new.csv")
 
 # change the date format in oah_bottle
 
-oah_bottle_format <- oah_bottle %>% 
-  mutate(Date = as.Date(Date, format = "%m/%d/%Y"))
+zoop_new <- zoop_new %>% 
+  mutate(
+    time = ymd_hms(time),  # Convert to proper Date-Time format
+    Date = as.Date(time),       # Extract Date
+    Time = format(time, "%H:%M:%S")  # Extract Time as character
+  ) %>%
+  select(-time)  # Keep only the new columns
 
-calcofi_zoop_data <- calcofi_zoop_data %>% 
-  mutate(Tow_Date = as.Date(Tow_Date, format = "%m/%d/%Y")) 
+zoop_new$Station_ID <- paste(
+  sprintf('%05.1f', zoop_new$line),
+  sprintf('%05.1f', as.numeric(zoop_new$station)),
+  sep = ' '
+)
 
 # merge the zoop data with the ocean acidification data
 merged_zoop_data <- inner_join(
-  oah_bottle_format, 
-  calcofi_zoop_data,
-  by = join_by(Date == Tow_Date, Station_ID == Sta_ID)
+  cc_bottle, 
+  zoop_new,
+  by = join_by(Date == Date, Station_ID == Station_ID)
 )
 
 # Save merged data
