@@ -122,10 +122,38 @@ esper_bottle_combined <- esper_bottle_combined %>%
 
 ### FITTING ###
 
+# fit TA_lim residuals
+TA_lim_fit <- esper_bottle_combined %>%
+  mutate(
+    Date_Dec = date_decimal(Date.cc)
+  ) %>%
+  filter(
+    Depth <= 20
+  ) %>%
+  lm(
+    formula = TA_lim_res ~ Date_Dec
+  )
+
+summary(TA_lim_fit)
+
+# fit TA_all residuals
+TA_all_fit <- esper_bottle_combined %>%
+  mutate(
+    Date_Dec = date_decimal(Date.cc)
+  ) %>%
+  filter(
+    Depth <= 20
+  ) %>%
+  lm(
+    formula = TA_all_res ~ Date_Dec
+  )
+
+summary(TA_all_fit)
+
 # fit DIC_lim residuals
 DIC_lim_fit <- esper_bottle_combined %>%
   mutate(
-    Date_Dec = date_decimal(Date)
+    Date_Dec = date_decimal(Date.cc)
   ) %>%
   filter(
     Depth <= 20
@@ -139,7 +167,7 @@ summary(DIC_lim_fit)
 # fit DIC_all residuals
 DIC_all_fit <- esper_bottle_combined %>%
   mutate(
-    Date_Dec = date_decimal(Date)
+    Date_Dec = date_decimal(Date.cc)
   ) %>%
   filter(
     Depth <= 20
@@ -157,7 +185,7 @@ esper_bottle_combined %>%
   ) %>%
   ggplot(
     aes(
-      x = Date
+      x = Date.cc
     )
   ) +
   geom_point(
@@ -189,6 +217,7 @@ esper_bottle_combined %>%
     color = "Legend",
     x = "",
     y = TeX("$C_T$"),
+    caption = "ESPER predictions computed using Temperature and Salinity Only, Depth < 20m"
   )
 ggsave("images/ESPER_comparison/CT_lim.png")
 
@@ -198,7 +227,7 @@ esper_bottle_combined %>%
   ) %>%
   ggplot(
     aes(
-      x = Date
+      x = Date.cc
     )
   ) +
   geom_point(
@@ -215,7 +244,8 @@ esper_bottle_combined %>%
   theme_minimal() +
   labs(
     x = "",
-    y = TeX("$C_T$ Residuals (Obs - ESPER)")
+    y = TeX("$C_T$ Residuals (Obs - ESPER)"),
+    caption = "ESPER predictions computed using Temperature and Salinity Only, Depth < 20m"
   )
 ggsave("images/ESPER_comparison/CT_lim_res.png")
 
@@ -225,7 +255,7 @@ esper_bottle_combined %>%
   ) %>%
   ggplot(
     aes(
-      x = Date
+      x = Date.cc
     )
   ) +
   geom_point(
@@ -256,7 +286,8 @@ esper_bottle_combined %>%
     shape = "Legend",
     color = "Legend",
     x = "",
-    y = TeX("$C_T$")
+    y = TeX("$C_T$"),
+    caption = "ESPER predictions computed using all variables, Depth < 20m"
   )
 ggsave("images/ESPER_comparison/CT_all.png")
 
@@ -266,7 +297,7 @@ esper_bottle_combined %>%
   ) %>%
   ggplot(
     aes(
-      x = Date
+      x = Date.cc
     )
   ) +
   geom_point(
@@ -283,7 +314,8 @@ esper_bottle_combined %>%
   theme_minimal() +
   labs(
     x = "",
-    y = TeX("$C_T$ Residuals (Obs - ESPER)")
+    y = TeX("$C_T$ Residuals (Obs - ESPER)"),
+    caption = "ESPER predictions computed using all variables, Depth < 20m"
   )
 ggsave("images/ESPER_comparison/CT_all_res.png")
 
@@ -293,7 +325,7 @@ esper_bottle_combined %>%
   ) %>%
   ggplot(
     aes(
-      x = Date
+      x = Date.cc
     )
   ) +
   geom_point(
@@ -325,6 +357,7 @@ esper_bottle_combined %>%
     color = "Legend",
     x = "",
     y = TeX("$A_T$"),
+    caption = "ESPER predictions computed using Temperature and Salinity Only, Depth < 20m"
   )
 ggsave("images/ESPER_comparison/AT_lim.png")
 
@@ -334,7 +367,7 @@ esper_bottle_combined %>%
   ) %>%
   ggplot(
     aes(
-      x = Date
+      x = Date.cc
     )
   ) +
   geom_point(
@@ -351,7 +384,8 @@ esper_bottle_combined %>%
   theme_minimal() +
   labs(
     x = "",
-    y = TeX("$A_T$ Residuals (Obs - ESPER)")
+    y = TeX("$A_T$ Residuals (Obs - ESPER)"),
+    caption = "ESPER predictions computed using Temperature and Salinity Only, Depth < 20m"
   )
 ggsave("images/ESPER_comparison/AT_lim_res.png")
 
@@ -361,7 +395,7 @@ esper_bottle_combined %>%
   ) %>%
   ggplot(
     aes(
-      x = Date
+      x = Date.cc
     )
   ) +
   geom_point(
@@ -393,6 +427,7 @@ esper_bottle_combined %>%
     color = "Legend",
     x = "",
     y = TeX("$A_T$"),
+    caption = "ESPER predictions computed using all variables, Depth < 20m"
   )
 ggsave("images/ESPER_comparison/AT_all.png")
 
@@ -402,7 +437,7 @@ esper_bottle_combined %>%
   ) %>%
   ggplot(
     aes(
-      x = Date
+      x = Date.cc
     )
   ) +
   geom_point(
@@ -419,6 +454,7 @@ esper_bottle_combined %>%
   theme_minimal() +
   labs(
     x = "",
-    y = TeX("$A_T$ Residuals (Obs - ESPER)")
+    y = TeX("$A_T$ Residuals (Obs - ESPER)"),
+    caption = "ESPER predictions computed using all variables, Depth < 20m"
   )
 ggsave("images/ESPER_comparison/AT_all_res.png")
