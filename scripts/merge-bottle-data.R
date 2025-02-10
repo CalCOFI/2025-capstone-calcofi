@@ -69,6 +69,7 @@ merged_bottle_data <- inner_join(
                Year_UTC == Year,
                Station_ID == Sta_ID,
                between(Depth, Depthm_Lower, Depthm_Upper)),
+  suffix = c(".cc", ".hydro")
 )
 
 # Save merged data
