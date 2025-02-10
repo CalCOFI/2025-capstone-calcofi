@@ -3,7 +3,8 @@
 ### COMPARE OBSERVED TA, TC IN MERGED BOTTLE DATA TO ESPER PREDICTIONS 
 
 library(tidyverse)
-library(latex2exp)
+library(ggforce)
+library(scales)
 
 ### READ IN DATA ###
 
@@ -180,281 +181,105 @@ summary(DIC_all_fit)
 
 ### PLOTTING ###
 esper_bottle_combined %>%
-  filter(
-    Depth <= 20
-  ) %>%
   ggplot(
     aes(
-      x = Date.cc
-    )
-  ) +
-  geom_point(
-    aes(
-      y = DIC,
-      color = "Observations",
-      shape = "Observations"
-    ),
-    na.rm = TRUE
-  ) +
-  geom_point(
-    aes(
+      x = DIC,
       y = DIC_lim,
-      shape = "ESPER",
-      color = "ESPER"
-    ),
-    na.rm = TRUE
-  ) +
-  theme_minimal() +
-  scale_color_discrete(
-    breaks = c("Observations", "ESPER"), type = c("blue", "black")
-  ) +
-  scale_shape_manual(
-    breaks = c("Observations", "ESPER"), values = c(1, 4)
-  ) +
-  guides(color=guide_legend(), shape=guide_legend()) + 
-  labs(
-    shape = "Legend",
-    color = "Legend",
-    x = "",
-    y = TeX("$C_T$"),
-    caption = "ESPER predictions computed using Temperature and Salinity Only, Depth < 20m"
-  )
-ggsave("images/ESPER_comparison/CT_lim.png")
-
-esper_bottle_combined %>%
-  filter(
-    Depth <= 20
-  ) %>%
-  ggplot(
-    aes(
-      x = Date.cc
+      color = Depth
     )
   ) +
   geom_point(
-    aes(
-      y = DIC_lim_res,
-    ),
-    shape = 1,
     na.rm = TRUE
-  ) + 
-  geom_hline(
-    yintercept = 0,
-    lty = 2
-  ) + 
+  ) +
+  geom_abline(
+    slope = 1,
+    intercept = 0
+  ) +
+  scale_color_gradient(
+    trans = trans_reverser("pseudo_log"),
+    breaks = c(1,10,100,1000)
+  ) +
   theme_minimal() +
   labs(
-    x = "",
-    y = TeX("$C_T$ Residuals (Obs - ESPER)"),
-    caption = "ESPER predictions computed using Temperature and Salinity Only, Depth < 20m"
+    x = "Observed DIC",
+    y = "Predicted DIC",
+    caption = "From ESPER using temperature and salinity variables"
   )
-ggsave("images/ESPER_comparison/CT_lim_res.png")
 
 esper_bottle_combined %>%
-  filter(
-    Depth <= 20
-  ) %>%
   ggplot(
     aes(
-      x = Date.cc
-    )
-  ) +
-  geom_point(
-    aes(
-      y = DIC,
-      color = "Observations",
-      shape = "Observations"
-    ),
-    na.rm = TRUE
-  ) +
-  geom_point(
-    aes(
+      x = DIC,
       y = DIC_all,
-      shape = "ESPER",
-      color = "ESPER"
-    ),
-    na.rm = TRUE
-  ) +
-  theme_minimal() +
-  scale_color_discrete(
-    breaks = c("Observations", "ESPER"), type = c("blue", "black")
-  ) +
-  scale_shape_manual(
-    breaks = c("Observations", "ESPER"), values = c(1, 4)
-  ) +
-  guides(color=guide_legend(), shape=guide_legend()) + 
-  labs(
-    shape = "Legend",
-    color = "Legend",
-    x = "",
-    y = TeX("$C_T$"),
-    caption = "ESPER predictions computed using all variables, Depth < 20m"
-  )
-ggsave("images/ESPER_comparison/CT_all.png")
-
-esper_bottle_combined %>%
-  filter(
-    Depth <= 20
-  ) %>%
-  ggplot(
-    aes(
-      x = Date.cc
+      color = Depth
     )
   ) +
   geom_point(
-    aes(
-      y = DIC_all_res,
-    ),
-    shape = 1,
     na.rm = TRUE
-  ) + 
-  geom_hline(
-    yintercept = 0,
-    lty = 2
-  ) + 
+  ) +
+  geom_abline(
+    slope = 1,
+    intercept = 0
+  ) +
+  scale_color_gradient(
+    trans = trans_reverser("pseudo_log"),
+    breaks = c(1,10,100,1000)
+  ) +
   theme_minimal() +
   labs(
-    x = "",
-    y = TeX("$C_T$ Residuals (Obs - ESPER)"),
-    caption = "ESPER predictions computed using all variables, Depth < 20m"
+    x = "Observed DIC",
+    y = "Predicted DIC",
+    caption = "From ESPER using all input variables"
   )
-ggsave("images/ESPER_comparison/CT_all_res.png")
 
 esper_bottle_combined %>%
-  filter(
-    Depth <= 20
-  ) %>%
   ggplot(
     aes(
-      x = Date.cc
-    )
-  ) +
-  geom_point(
-    aes(
-      y = TA,
-      color = "Observations",
-      shape = "Observations"
-    ),
-    na.rm = TRUE
-  ) +
-  geom_point(
-    aes(
+      x = TA,
       y = TA_lim,
-      shape = "ESPER",
-      color = "ESPER"
-    ),
-    na.rm = TRUE
-  ) +
-  theme_minimal() +
-  scale_color_discrete(
-    breaks = c("Observations", "ESPER"), type = c("blue", "black")
-  ) +
-  scale_shape_manual(
-    breaks = c("Observations", "ESPER"), values = c(1, 4)
-  ) +
-  guides(color=guide_legend(), shape=guide_legend()) + 
-  labs(
-    shape = "Legend",
-    color = "Legend",
-    x = "",
-    y = TeX("$A_T$"),
-    caption = "ESPER predictions computed using Temperature and Salinity Only, Depth < 20m"
-  )
-ggsave("images/ESPER_comparison/AT_lim.png")
-
-esper_bottle_combined %>%
-  filter(
-    Depth <= 20
-  ) %>%
-  ggplot(
-    aes(
-      x = Date.cc
+      color = Depth
     )
   ) +
   geom_point(
-    aes(
-      y = TA_lim_res,
-    ),
-    shape = 1,
     na.rm = TRUE
-  ) + 
-  geom_hline(
-    yintercept = 0,
-    lty = 2
-  ) + 
+  ) +
+  geom_abline(
+    slope = 1,
+    intercept = 0
+  ) +
+  scale_color_gradient(
+    trans = trans_reverser("pseudo_log"),
+    breaks = c(1,10,100,1000)
+  ) +
   theme_minimal() +
   labs(
-    x = "",
-    y = TeX("$A_T$ Residuals (Obs - ESPER)"),
-    caption = "ESPER predictions computed using Temperature and Salinity Only, Depth < 20m"
+    x = "Observed TA",
+    y = "Predicted TA",
+    caption = "From ESPER using temperature and salinity variables"
   )
-ggsave("images/ESPER_comparison/AT_lim_res.png")
 
 esper_bottle_combined %>%
-  filter(
-    Depth <= 20
-  ) %>%
   ggplot(
     aes(
-      x = Date.cc
-    )
-  ) +
-  geom_point(
-    aes(
-      y = TA,
-      color = "Observations",
-      shape = "Observations"
-    ),
-    na.rm = TRUE
-  ) +
-  geom_point(
-    aes(
+      x = TA,
       y = TA_all,
-      shape = "ESPER",
-      color = "ESPER"
-    ),
-    na.rm = TRUE
-  ) +
-  theme_minimal() +
-  scale_color_discrete(
-    breaks = c("Observations", "ESPER"), type = c("blue", "black")
-  ) +
-  scale_shape_manual(
-    breaks = c("Observations", "ESPER"), values = c(1, 4)
-  ) +
-  guides(color=guide_legend(), shape=guide_legend()) + 
-  labs(
-    shape = "Legend",
-    color = "Legend",
-    x = "",
-    y = TeX("$A_T$"),
-    caption = "ESPER predictions computed using all variables, Depth < 20m"
-  )
-ggsave("images/ESPER_comparison/AT_all.png")
-
-esper_bottle_combined %>%
-  filter(
-    Depth <= 20
-  ) %>%
-  ggplot(
-    aes(
-      x = Date.cc
+      color = Depth
     )
   ) +
   geom_point(
-    aes(
-      y = TA_all_res,
-    ),
-    shape = 1,
     na.rm = TRUE
-  ) + 
-  geom_hline(
-    yintercept = 0,
-    lty = 2
-  ) + 
+  ) +
+  geom_abline(
+    slope = 1,
+    intercept = 0
+  ) +
+  scale_color_gradient(
+    trans = trans_reverser("pseudo_log"),
+    breaks = c(1,10,100,1000)
+  ) +
   theme_minimal() +
   labs(
-    x = "",
-    y = TeX("$A_T$ Residuals (Obs - ESPER)"),
-    caption = "ESPER predictions computed using all variables, Depth < 20m"
+    x = "Observed TA",
+    y = "Predicted TA",
+    caption = "From ESPER using all input variables"
   )
-ggsave("images/ESPER_comparison/AT_all_res.png")
