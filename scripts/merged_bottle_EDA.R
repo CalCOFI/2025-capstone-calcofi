@@ -4,12 +4,13 @@
 
 library(tidyverse)
 library(maps)
+library(ggforce)
 
 # read in merged bottle data
 merged_bottle_data <- read_csv("data/merged_bottle_data.csv")
 
 # summary of year and depth
-merged_bottle_data[,c("Year","Depth")] %>%
+merged_bottle_data[,c("Year_UTC","Depth")] %>%
   summary()
 
 # number of unique stations
@@ -41,7 +42,7 @@ merged_bottle_data %>%
   )
 ggsave("images/merged_bottle_EDA/obs_by_year.png")
 
-# create plot of depth against year, with size and color indicating number of observaions
+# create plot of depth against year, with size and color indicating number of observations
 merged_bottle_data %>%
   group_by(
     Year_UTC, Depth
@@ -58,7 +59,9 @@ merged_bottle_data %>%
     )
   ) +
   geom_point() +
-  scale_y_log10() +
+  scale_y_continuous(
+    transform = trans_reverser("log10")
+  ) +
   scale_size_continuous(limits=c(1, 75), breaks=seq(0,75, by=20)) +
   guides(col=guide_legend(), size=guide_legend()) +
   scale_color_continuous(limits=c(1, 75), breaks=seq(0,75, by=20)) +
@@ -102,27 +105,6 @@ ggplot() +
       y = Latitude,
       size = Count
     )
-  ) +
-  geom_text(
-    data = merged_bottle_data %>%
-      group_by(
-        Station_ID
-      ) %>%
-      summarize(
-        Latitude = first(Latitude),
-        Longitude = first(Longitude),
-        Count = n()
-      ),
-    aes(
-      x = Longitude,
-      y = Latitude,
-      label = Station_ID
-    ),
-    hjust = -0.1,
-    vjust = 2.0,
-    angle = -17,
-    size = 2,
-    color = "red"
   ) +
   coord_cartesian(
     xlim = c(merged_bottle_data$Longitude %>% min() - 1.5, merged_bottle_data$Longitude %>% max() + 3.5),
