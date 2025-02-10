@@ -4,6 +4,8 @@
 
 library(tidyverse)
 library(maps)
+library(ggforce)
+library(scales)
 
 # read in merged bottle data
 merged_bottle_data <- read_csv("data/merged_bottle_data.csv")
@@ -58,8 +60,9 @@ merged_bottle_data %>%
     )
   ) +
   geom_point() +
+  scale_y_reverse() +
   scale_y_continuous(
-    transform = pseudo_log_trans(base = 10),
+    transform = trans_reverser("pseudo_log"),
     breaks = c(1,10,100,1000)
   ) +
   scale_size_continuous(limits=c(1, 75), breaks=seq(0,75, by=20)) +
