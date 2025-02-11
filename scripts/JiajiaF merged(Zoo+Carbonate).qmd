@@ -5,6 +5,58 @@ editor: visual
 ---
 <<<<<<< Updated upstream
 
+## New Merge(new data)
+```{r}
+# Load libraries
+library(readr)
+library(dplyr)
+library(lubridate)
+# Load data
+oah_bottle <- read_csv("~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/carbonate_chem_bottle.csv")
+new_zooplankton <- read_csv("~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/Zooplankton-new.csv")
+
+```
+### `Year_UTC`, `Month_UTC`, `Day_UTC`, `Time_UTC` ↔ time
+### To common format "YYYY-MM-DD HH:MM:SS UTC"
+```{r}
+
+
+oah_bottle <- oah_bottle %>%
+  mutate(datetime_UTC = make_datetime(Year_UTC, Month_UTC, Day_UTC, 
+                                      hour = hour(hms(Time_UTC)), 
+                                      min = minute(hms(Time_UTC)), 
+                                      sec = second(hms(Time_UTC)))) %>%
+  select(-Year_UTC, -Month_UTC, -Day_UTC, -Time_UTC) # Remove original columns
+```
+
+```{r}
+new_zooplankton <- new_zooplankton %>%
+  mutate(datetime_UTC = ymd_hms(time, tz = "UTC")) %>%
+  select(-time) # Remove original column
+
+```
+
+```{r}
+# Station_ID (CALCOFI)  ↔ 0+ line + 0+ station 
+colnames(new_zooplankton)
+new_zooplankton <- new_zooplankton %>%
+  mutate(Station_ID = paste0("0", line, "0", station)) %>%
+  select(-line, -station) # 移除原始列
+
+
+
+```
+
+```{r}
+# Latitude, Longitude (CALCOFI) ↔ latitude, longitude
+
+```
+
+```{r}
+# Ship_Name ↔ ship
+```
+
+## Old Merge
 ```{r}
 # Load libraries
 library(readr)
