@@ -65,3 +65,47 @@ unique(merged_cc_zoop_data$Date)
 unique(merged_cc_zoop_data$Station_ID)
 ```
 
+
+
+
+
+
+# Average by month
+```{r}
+zoop_data$Month_UTC <- as.integer(format(zoop_data$Date, '%m'))
+zoop_data$Year_UTC <- as.integer(format(zoop_data$Date, '%Y'))
+```
+
+```{r}
+head(zoop_data)
+```
+
+```{r}
+# group by station and month
+zoop_data_by_month <- zoop_data %>% group_by(Station_ID, Year_UTC, Month_UTC) %>%
+  summarise(avg_vol_sampled = mean(volume_sampled),
+            avg_small_plankton = mean(small_plankton),
+            avg_total_plankton = mean(total_plankton))
+```
+
+
+
+```{r}
+cc_data_by_month <- cc_data %>% group_by(Station_ID, Year_UTC, Month_UTC) %>%
+  summarise(avg_CTDTEMP_ITS90 = mean(as.numeric(CTDTEMP_ITS90), na.rm = TRUE),
+            avg_Salinity_PSS78 = mean(Salinity_PSS78, na.rm = TRUE),
+            avg_DIC = mean(as.numeric(DIC, na.rm = TRUE)))
+```
+
+```{r}
+merged_cc_zoop_data <- inner_join(
+  cc_data_by_month,
+  zoop_data_by_month,
+  by = join_by(Station_ID, Year_UTC, Month_UTC)
+)
+```
+
+```{r}
+merged_cc_zoop_data[with(merged_cc_zoop_data, order(Year_UTC, Month_UTC)),]
+```
+

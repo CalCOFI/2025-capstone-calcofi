@@ -29,6 +29,21 @@ hydro_bottle <- hydro_bottle %>%
     by = join_by(Cst_Cnt, Sta_ID)
   )
 
+# Prepare hydro bottle data for merging
+depth_tol <- 0.9
+hydro_bottle <- hydro_bottle %>%
+  mutate(
+    Date = as.Date(Date, format = c("%m/%d/%Y"))
+  ) %>%
+  mutate(
+    Year = year(Date),
+    Month = month(Date)
+  ) %>%
+  mutate(
+    Depthm_Upper = Depthm + depth_tol,
+    Depthm_Lower = Depthm - depth_tol
+  )
+
 # Prepare carbonate chemistry data for merging
 cc_bottle <- cc_bottle %>%
   # Create new date column for merging
@@ -41,23 +56,21 @@ cc_bottle <- cc_bottle %>%
   ) %>%
   # Change column types for merging
   mutate(
-    Depth = as.double(Depth)
+    Depth = as.double(Depth),
+    Latitude = as.double(Latitude),
+    Longitude = as.double(Longitude)
   )
-
-# Prepare hydro bottle data for merging
-hydro_bottle <- hydro_bottle %>%
-  mutate(
-    Date = as.Date(Date, format = c("%m/%d/%Y"))
-  )
-
-hydro_bottle[,c("Date")]
 
 # Merge carbonate chemistry and oceanographic bottle data based on date, location, and depth
 merged_bottle_data <- inner_join(
   cc_bottle, 
   hydro_bottle,
-  by = join_by(Date, Depth == Depthm, Station_ID == Sta_ID)
-  )
+  by = join_by(Month_UTC == Month,
+               Year_UTC == Year,
+               Station_ID == Sta_ID,
+               between(Depth, Depthm_Lower, Depthm_Upper)),
+  suffix = c(".cc", ".hydro")
+)
 
 # Save merged data
 write_csv(merged_bottle_data, "data/merged_bottle_data.csv")
