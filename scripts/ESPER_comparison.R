@@ -5,6 +5,7 @@
 library(tidyverse)
 library(ggforce)
 library(scales)
+library(ModelMetrics)
 
 ### READ IN DATA ###
 
@@ -283,3 +284,19 @@ esper_bottle_combined %>%
     y = "Predicted TA",
     caption = "From ESPER using all input variables"
   )
+
+### Metrics ###
+esper_bottle_combined <- esper_bottle_combined %>%
+  mutate(
+    TA_lim_absolute_res = abs(TA - TA_lim),
+    TA_all_absolute_res = abs(TA - TA_all),
+    DIC_lim_absolute_res = abs(DIC - DIC_lim),
+    DIC_all_absolute_res = abs(DIC - DIC_all)
+  )
+
+
+TA_lim_rmse <- sqrt(mean((esper_bottle_combined$TA - esper_bottle_combined$TA_lim)^2 , na.rm = TRUE))
+TA_all_rmse <- sqrt(mean((esper_bottle_combined$TA - esper_bottle_combined$TA_all)^2 , na.rm = TRUE))
+DIC_lim_rmse <- sqrt(mean((esper_bottle_combined$DIC - esper_bottle_combined$DIC_lim)^2 , na.rm = TRUE))
+DIC_all_rmse <- sqrt(mean((esper_bottle_combined$DIC - esper_bottle_combined$DIC_all)^2 , na.rm = TRUE))
+
