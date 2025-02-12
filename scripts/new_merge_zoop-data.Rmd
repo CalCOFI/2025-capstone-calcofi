@@ -1,0 +1,111 @@
+```{r}
+# load new zooplankton data
+zoop_data <- read.csv('../data/Zooplankton-new.csv')
+
+# load carbonate chem bottle data
+cc_data <- read.csv('../data/carbonate_chem_bottle.csv')[-1,]
+```
+
+```{r}
+head(zoop_data)
+```
+
+```{r}
+head(cc_data)
+```
+
+
+```{r}
+# format Station_ID column
+zoop_data$Station_ID <- paste(
+  sprintf('%05.1f', zoop_data$line),
+  sprintf('%05.1f', zoop_data$station),
+  sep = ' '
+)
+```
+
+
+```{r}
+# format date in carbonate chem data
+cc_data <- cc_data %>%
+  mutate(
+    Date = as.Date(
+      paste(Month_UTC, Day_UTC, Year_UTC, sep = "/"),
+      tryFormats = c("%m/%d/%Y")
+    ),
+    .before = Year_UTC
+  ) %>%
+  mutate(
+    Depth = as.double(Depth)
+  )
+
+# format date in zooplankton data
+zoop_data$Date = as.Date(zoop_data$time)
+```
+
+```{r}
+# join data on matching station ID and date
+merged_cc_zoop_data <- inner_join(
+  cc_data,
+  zoop_data,
+  by = join_by(Station_ID, Date)
+)
+```
+
+```{r}
+merged_cc_zoop_data
+```
+
+
+```{r}
+unique(merged_cc_zoop_data$Date)
+```
+
+```{r}
+unique(merged_cc_zoop_data$Station_ID)
+```
+
+
+
+
+
+
+# Average by month
+```{r}
+zoop_data$Month_UTC <- as.integer(format(zoop_data$Date, '%m'))
+zoop_data$Year_UTC <- as.integer(format(zoop_data$Date, '%Y'))
+```
+
+```{r}
+head(zoop_data)
+```
+
+```{r}
+# group by station and month
+zoop_data_by_month <- zoop_data %>% group_by(Station_ID, Year_UTC, Month_UTC) %>%
+  summarise(avg_vol_sampled = mean(volume_sampled),
+            avg_small_plankton = mean(small_plankton),
+            avg_total_plankton = mean(total_plankton))
+```
+
+
+
+```{r}
+cc_data_by_month <- cc_data %>% group_by(Station_ID, Year_UTC, Month_UTC) %>%
+  summarise(avg_CTDTEMP_ITS90 = mean(as.numeric(CTDTEMP_ITS90), na.rm = TRUE),
+            avg_Salinity_PSS78 = mean(Salinity_PSS78, na.rm = TRUE),
+            avg_DIC = mean(as.numeric(DIC, na.rm = TRUE)))
+```
+
+```{r}
+merged_cc_zoop_data <- inner_join(
+  cc_data_by_month,
+  zoop_data_by_month,
+  by = join_by(Station_ID, Year_UTC, Month_UTC)
+)
+```
+
+```{r}
+merged_cc_zoop_data[with(merged_cc_zoop_data, order(Year_UTC, Month_UTC)),]
+```
+

@@ -5,6 +5,86 @@ editor: visual
 ---
 <<<<<<< Updated upstream
 
+## New Merge(new data)
+```{r}
+# Load libraries
+library(readr)
+library(dplyr)
+library(lubridate)
+# Load data
+oah_bottle <- read_csv("~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/carbonate_chem_bottle.csv")
+new_zooplankton <- read_csv("~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/Zooplankton-new.csv")
+
+```
+### `Year_UTC`, `Month_UTC`, `Day_UTC`, `Time_UTC` ↔ time
+### To common format "YYYY-MM-DD HH:MM:SS UTC"
+
+```{r}
+library(dplyr)
+library(lubridate)
+library(readr)
+
+
+oah_bottle <- read_csv("~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/carbonate_chem_bottle.csv")
+new_zooplankton <- read_csv("~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/Zooplankton-new.csv")
+
+
+oah_bottle <- oah_bottle %>%
+  filter(!is.na(Year_UTC)) %>%  # Remove rows Year_UTC is missing
+  mutate(
+    Year_UTC = as.integer(Year_UTC),
+    Month_UTC = as.integer(Month_UTC),
+    Day_UTC = as.integer(Day_UTC),
+    datetime_UTC = make_datetime(Year_UTC, Month_UTC, Day_UTC, 
+                                 hour = hour(hms(Time_UTC)), 
+                                 min = minute(hms(Time_UTC)), 
+                                 sec = second(hms(Time_UTC)))
+  ) %>%
+  select(-Year_UTC, -Month_UTC, -Day_UTC, -Time_UTC)  # Remove original columns
+
+# Fix Zooplankton Dataset (new_zooplankton)
+new_zooplankton <- new_zooplankton %>%
+  mutate(datetime_UTC = ymd_hms(time, tz = "UTC")) %>%
+  select(-time)  # Remove original column
+
+
+head(oah_bottle$datetime_UTC)
+head(new_zooplankton$datetime_UTC)
+
+```
+
+```{r}
+# Station_ID (CALCOFI)  ↔ 0+ line + 0+ station 
+library(dplyr)
+library(stringr)
+
+new_zooplankton <- new_zooplankton %>%
+  mutate(Station_ID = paste0(
+    str_pad(as.integer(line), 3, pad = "0"), ".",  #  line is 3-digit integer
+    str_pad(as.integer(station), 4, pad = "0"), ".0"  #  station is 4-digit integer
+  )) %>%
+  select(-line, -station)  # Remove original columns
+
+
+
+
+```
+
+
+```{r}
+head(new_zooplankton$Station_ID)
+```
+
+```{r}
+# Latitude, Longitude (CALCOFI) ↔ latitude, longitude
+
+```
+
+```{r}
+# Ship_Name ↔ ship
+```
+
+## Old Merge
 ```{r}
 # Load libraries
 library(readr)
