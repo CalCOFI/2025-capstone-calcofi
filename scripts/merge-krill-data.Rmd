@@ -1,5 +1,11 @@
 ```{r}
 library(dplyr)
+library(tidyverse)
+library(ggplot2)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(maps)
 ```
 
 ```{r}
@@ -66,5 +72,89 @@ merged_cc_krill_data <- inner_join(
 
 ```{r}
 head(merged_cc_krill_data)
+```
+
+# New merge
+# Average by month
+
+```{r}
+# create month and year column for krill data
+krill_data$Month_UTC <- as.integer(format(as.Date(krill_data$Date), '%m'))
+krill_data$Year_UTC <- as.integer(format(as.Date(krill_data$Date), '%Y'))
+```
+
+
+```{r}
+# check how many unique combinations of station and month
+unique(krill_data[, c('Station_ID', 'Year_UTC', 'Month_UTC')])
+```
+
+```{r}
+krill_data[, 238:240]
+```
+
+```{r}
+# numeric columns to be averaged
+krill_data_num_cols <- names(select_if(krill_data, is.numeric))
+```
+
+
+```{r}
+# group krill data by month
+krill_data_by_month <- krill_data[, c('Station_ID', krill_data_num_cols)] %>% 
+  group_by(Station_ID, Year_UTC, Month_UTC) %>%
+  summarise(across(everything(), mean), .groups = 'drop')  %>%
+  as.data.frame()
+```
+
+
+```{r}
+# group cc data by month
+cc_data_num_cols <- names(select_if(cc_data, is.numeric))
+
+cc_data_by_month <- cc_data[, c('Station_ID', cc_data_num_cols)] %>%
+  group_by(Station_ID, Year_UTC, Month_UTC) %>%
+  summarise(across(everything(), mean), .groups = 'drop') %>%
+  as.data.frame()
+```
+
+
+```{r}
+merged_krill_data <- inner_join(
+  cc_data_by_month,
+  krill_data_by_month,
+  by = join_by(Station_ID, Year_UTC, Month_UTC)
+)
+
+head(merged_krill_data)
+```
+
+
+```{r}
+# visualize krill data
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+ggplot(data = world) + 
+  geom_sf(fill = 'antiquewhite') +
+  geom_point(data=krill_data, aes(x=Longitude, y=Latitude)) +
+  coord_sf(xlim = c(-135, -115), ylim = c(25, 40), expand=FALSE) +
+  theme(panel.grid.major = element_line(color = gray(0.5), linetype = "dashed", 
+        linewidth = 0.5), panel.background = element_rect(fill = "aliceblue"))
+```
+
+```{r}
+# visualize cc data
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+ggplot(data = world) + 
+  geom_sf(fill = 'antiquewhite') +
+  geom_point(data=cc_data, aes(x=as.numeric(Longitude), y=as.numeric(Latitude))) +
+  coord_sf(xlim = c(-135, -115), ylim = c(25, 40), expand=FALSE) +
+  theme(panel.grid.major = element_line(color = gray(0.5), linetype = "dashed", 
+        linewidth = 0.5), panel.background = element_rect(fill = "aliceblue"))
+```
+
+```{r}
+head(krill_data)
 ```
 
