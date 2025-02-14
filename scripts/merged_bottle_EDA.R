@@ -6,6 +6,7 @@ library(tidyverse)
 library(maps)
 library(ggforce)
 library(scales)
+library(visdat)
 
 # read in merged bottle data
 merged_bottle_data <- read_csv("data/merged_bottle_data.csv")
@@ -16,6 +17,10 @@ merged_bottle_data[,c("Year_UTC","Depth")] %>%
 
 # number of unique stations
 merged_bottle_data$Station_ID %>% unique() %>% length()
+
+# visualize missingnesss
+vis_miss(merged_bottle_data[,c("Year_UTC","Month_UTC","Depth","TA","DIC","T_degC","Salnty","SiO3uM","PO4uM")])
+ggsave("images/merged_bottle_EDA/merged_bottle_missingness.png")
 
 # create plot of number of observations against year
 merged_bottle_data %>%
