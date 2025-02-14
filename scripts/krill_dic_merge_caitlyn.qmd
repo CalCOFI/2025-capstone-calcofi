@@ -1,0 +1,194 @@
+
+## Data Preprocessing
+
+```{r}
+# Libraries
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(sf)
+library(terra)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(maps)
+```
+
+```{r}
+# Load in data
+cc_data <- read_csv(here::here("data/carbonate_chem_bottle.csv"))
+cc_data <- cc_data[2:nrow(cc_data),]
+krill_data <- read_csv(here::here("data/krill_data/BTEDB_Abundances.csv"))
+head(cc_data)
+nrow(cc_data)
+# original cc data has 4391 rows
+head(krill_data)
+nrow(krill_data)
+# original krill data has 7482 rows
+```
+
+```{r}
+# Cleaning
+
+## Make sure values are numeric
+cc_data <- cc_data %>% mutate(DIC = as.numeric(DIC),
+                                  TA = as.numeric(TA),
+                                  Depth = as.numeric(Depth),
+                                  CTDTEMP_ITS90 = as.numeric(CTDTEMP_ITS90),
+                                  Salinity_PSS78 = as.numeric(Salinity_PSS78),
+                                  Longitude = as.numeric(Longitude),
+                                  Latitude = as.numeric(Latitude)
+                                  )
+
+## Create `Station_ID` variable in krill dataset by merging `Line` and `Station`
+krill_data$Station_ID <- paste(
+  sprintf('%05.1f', krill_data$Line),
+  sprintf('%05.1f', as.numeric(krill_data$Station)),
+  sep = ' '
+)
+
+krill_data <- krill_data %>%
+  relocate(Station_ID, .before = Line)
+
+## Separating `Date` into Year, Month, and Day variables
+krill_data <- krill_data %>%
+  mutate(
+    Year_UTC = year(Date),
+    Month_UTC = month(Date),
+    Day_UTC = day(Date),
+    .after = Date
+  )
+
+head(krill_data)
+```
+
+```{r}
+# Count cc data and krill data 
+obs_count <-  cc_data %>% count(Year_UTC, Month_UTC, Station_ID) 
+mean(obs_count$n)
+# on average 4.12 observations of carbochem(dic) data per month per station id
+obs_count <-  krill_data %>% count(Year_UTC, Month_UTC, Station_ID) 
+mean(obs_count$n)
+# on average 1.01 observations of krill data per month per station id 
+```
+
+```{r}
+# Merging cc + krill data
+## Daily cc data
+cc_avg_daily <- read_csv(here::here("data/cc_avg_daily.csv"))
+merged_krill_avg_daily <- inner_join(
+  cc_avg_daily, 
+  krill_data,
+  by = join_by(Date == Date, Station_ID == Station_ID)
+)
+nrow(merged_krill_avg_daily)
+# merged dataset has 31 rows
+
+## Monthly cc data
+cc_avg_monthly <- read_csv(here::here("data/cc_avg_monthly.csv"))
+merged_krill_avg_monthly <- inner_join(
+  cc_avg_monthly, 
+  krill_data,
+  by = join_by(Year_UTC == Year_UTC, Month_UTC == Month_UTC, Station_ID == Station_ID)
+)
+nrow(merged_krill_avg_monthly)
+
+head(merged_krill_avg_monthly)
+# merged dataset has 107 rows
+
+print(colSums(merged_krill_avg_monthly == 0))
+
+```
+
+## EDA
+
+```{r}
+# Barplot of records per station
+station_counts <- merged_krill_avg_monthly %>%
+  group_by(Station_ID) %>%
+  summarise(Record_Count = n()) %>%
+  arrange(desc(Record_Count))
+
+ggplot(station_counts, aes(x = reorder(Station_ID, -Record_Count), y = Record_Count)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Record Count per Station ID", x = "Station ID", y = "Number of Records") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+# incorporates a lot more stations compared to initial merge (27 vs. 7)
+# Station 90 70 still contains the most records
+```
+
+```{r}
+# Geographical representation of number of observations by station
+world <- map_data("world")
+ca_counties <- subset(map_data("county"), region == "california")
+
+ggplot() +
+  geom_polygon(
+    data = world,
+    aes(
+      x = long,
+      y = lat,
+      group = group
+    ),
+    color = "black",
+    fill = "gray90"
+  ) +
+  geom_point(
+    data = merged_krill_avg_monthly %>%
+      group_by(Station_ID) %>%
+      summarize(
+        Latitude = first(Latitude.x),
+        Longitude = first(Longitude.x),
+        Count = n()
+      ),
+    aes(
+      x = Longitude,
+      y = Latitude,
+      size = Count
+    )
+  ) +
+  
+  coord_cartesian(
+    xlim = c(merged_krill_avg_monthly$Longitude.x %>% min() - 1.5, merged_krill_avg_monthly$Longitude.x %>% max() + 3.5),
+    ylim = c(merged_krill_avg_monthly$Latitude.x %>% min() - 1,merged_krill_avg_monthly$Latitude.x %>% max() + 1)
+  ) +
+  theme_minimal() +
+  labs(
+    x = "Longitude",
+    y = "Latitude",
+    title = "Number of Observations by Station in Merged Krill Dataset",
+    size = "Observations"
+  )
+```
+
+```{r}
+# Geographical representation of number of observations by station
+coords_merged <- merged_krill_avg_monthly[, c('Station_ID', 'Latitude.x', 'Longitude.x')] %>%
+  dplyr::count(Station_ID, Latitude.x, Longitude.x) %>%
+  dplyr::rename(Num_Observations = n)
+min_lon <- min(coords_merged[, 'Longitude.x'])
+max_lon <- max(coords_merged[, 'Longitude.x'])
+min_lat <- min(coords_merged[, 'Latitude.x'])
+max_lat <- max(coords_merged[, 'Latitude.x'])
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
+states <- st_as_sf(map("state", plot = FALSE, fill = TRUE))
+
+station_loc_map <- ggplot(data=world) + 
+  geom_sf(fill = "antiquewhite1") + 
+  geom_point(data=coords_merged, aes(x=Longitude.x, y=Latitude.x, size=Num_Observations)) + 
+  coord_sf(xlim = c(min_lon - 2, max_lon + 1), ylim = c(min_lat - 1, max_lat + 2), expand=FALSE) + 
+  theme(panel.grid.major = element_line(color = gray(0.5), linetype = "dashed", 
+        linewidth = 0.5), panel.background = element_rect(fill = "aliceblue")) + 
+  labs(
+    x = "Longitude",
+    y = "Latitude",
+    title = "Number of Observations by Station in Merged Krill Dataset",
+    size = "Observations")
+station_loc_map
+```
+
+
+!!! explore how many 0 values in the merged dataset
+!!! do some EDA on specific species, maybe focus on depth-dependent changes (i.e. depth by krill species volume)
+
