@@ -10,8 +10,8 @@ library(maps)
 ```{r}
 # import data
 zoop_merged <- read.csv('../data/merged_zoop_data.csv')
-oah_bottle <- read.csv('../data/carbonate_chem_bottle.csv')[-1,]
-zoop <- read.csv('../data/zooplankton.csv')
+oah_bottle <- read.csv('../data/carbonate_chem_data/carbonate_chem_bottle.csv')[-1,]
+zoop <- read.csv('../data/zoop_data/zooplankton.csv')
 ```
 
 ```{r}
@@ -50,13 +50,13 @@ coords_merged
 ```{r}
 # plot observed station location with density of observations
 world <- ne_countries(scale = "medium", returnclass = "sf")
-states <- st_as_sf(map("state", plot = FALSE, fill = TRUE))
+# states <- st_as_sf(map("state", plot = FALSE, fill = TRUE))
 
 station_loc_map <- ggplot(data=world) + 
   geom_sf(fill = "antiquewhite1") + 
   geom_point(data=coords_merged, aes(x=Longitude, y=Latitude, size=Num_Observations)) + 
-  coord_sf(xlim = c(min_lon - 2, max_lon + 1), ylim = c(min_lat - 1, max_lat + 2), expand=FALSE) + 
-  theme(panel.grid.major = element_line(color = gray(0.5), linetype = "dashed", 
+  coord_sf(xlim = c(min_lon - 1, max_lon + 4), ylim = c(min_lat - 1, max_lat + 1), expand=FALSE) + 
+  theme(panel.grid.major = element_line(color = gray(0.5), linetype = "solid", 
         linewidth = 0.5), panel.background = element_rect(fill = "aliceblue")) + 
   ggtitle('Station Locations of Merged Zooplankton Data')
 

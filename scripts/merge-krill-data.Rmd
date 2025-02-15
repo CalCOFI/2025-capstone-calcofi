@@ -119,6 +119,7 @@ cc_data_by_month <- cc_data[, c('Station_ID', cc_data_num_cols)] %>%
 ```
 
 
+# Perform Join
 ```{r}
 merged_krill_data <- inner_join(
   cc_data_by_month,
