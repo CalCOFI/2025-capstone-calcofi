@@ -438,6 +438,9 @@ esper_bottle_combined <- esper_bottle_combined %>%
     DIC_all_rel = DIC_all_res/DIC
   )
 
+TA_sd <- sd(esper_bottle_combined$TA, na.rm = TRUE)
+DIC_sd <- sd(esper_bottle_combined$DIC, na.rm = TRUE)
+
 TA_lim_rmse <- sqrt(sum((esper_bottle_combined$TA_lim_res)^2/sum(!is.na(esper_bottle_combined$TA_lim_res)), na.rm = TRUE))
 TA_all_rmse <- sqrt(sum((esper_bottle_combined$TA_all_res)^2/sum(!is.na(esper_bottle_combined$TA_all_res)), na.rm = TRUE))
 DIC_lim_rmse <- sqrt(sum((esper_bottle_combined$DIC_lim_res)^2/sum(!is.na(esper_bottle_combined$DIC_lim_res)), na.rm = TRUE))
@@ -477,6 +480,9 @@ esper_bottle_combined %>%
   tab_footnote(
     footnote = paste("RMSE =", TA_all_rmse),
     location = cells_column_labels(c(TA_all_res,TA_all_rel))
+  ) %>%
+  tab_footnote(
+    footnote = paste("Standard Deviation of Observations: ", TA_sd)
   ) %>%
   gtsave("images/ESPER_comparison/TA_res_table.png")
 
@@ -553,6 +559,9 @@ esper_bottle_combined %>%
   tab_footnote(
     footnote = paste("RMSE =", DIC_all_rmse),
     location = cells_column_labels(c(DIC_all_res,DIC_all_rel))
+  ) %>%
+  tab_footnote(
+    footnote = paste("Standard Deviation of Observations: ", DIC_sd)
   ) %>%
   gtsave("images/ESPER_comparison/DIC_res_table.png")
 
