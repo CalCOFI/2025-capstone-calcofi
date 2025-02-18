@@ -1,0 +1,74 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+## New Merge(new data)
+```{r}
+# Load libraries
+library(readr)
+library(dplyr)
+library(lubridate)
+# Load data
+oah_bottle <- read_csv("~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/carbonate_chem_bottle.csv")
+new_zooplankton <- read_csv("~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/Zooplankton-new.csv")
+
+```
+#### 1.`Year_UTC`, `Month_UTC`, `Day_UTC`, `Time_UTC` ↔ time
+Fix Time_UTC issue → Time_UTC of oah_bottle is all 00:00:00, so just ignore it and join with Date.
+```{r}
+oah_bottle <- oah_bottle %>%
+  mutate(
+    Year_UTC = as.integer(Year_UTC),
+    Month_UTC = as.integer(Month_UTC),
+    Day_UTC = as.integer(Day_UTC)
+  )
+
+# one NA line
+oah_bottle <- oah_bottle %>%
+  filter(!is.na(Year_UTC) & !is.na(Month_UTC) & !is.na(Day_UTC))
+```
+
+```{r}
+# Keep only the date part
+oah_bottle <- oah_bottle %>%
+  mutate(Date = as.Date(paste(Year_UTC, Month_UTC, Day_UTC, sep = "-"), format = "%Y-%m-%d"))
+
+#oah_bottle$Date
+
+new_zooplankton <- new_zooplankton %>%
+  mutate(Date = as.Date(time))
+
+#new_zooplankton$Date
+
+intersect(as.character(unique(oah_bottle$Date)), as.character(unique(new_zooplankton$Date)))
+```
+
+#### 2.Station_ID (CALCOFI)  ↔ 0+ line + 0+ station 
+```{r}
+str(new_zooplankton$line)
+str(new_zooplankton$station)
+
+# they are numeric, not integer. so convert!!!
+new_zooplankton <- new_zooplankton %>%
+  mutate(line = as.integer(line), station = as.integer(station))
+
+```
+
+```{r}
+# clean oah_bottle `Station_ID`
+oah_bottle <- oah_bottle %>%
+  mutate(Station_ID = str_replace_all(Station_ID, "\\s+", ""))  # delete space
+
+# new_zooplankton  `Station_ID`
+new_zooplankton <- new_zooplankton %>%
+  mutate(Station_ID = paste0(
+    str_pad(as.integer(line), 3, pad = "0"), ".",  
+    str_pad(as.integer(station), 4, pad = "0"), ".0"
+  )) %>%
+  select(-line, -station)
+
+intersect(unique(oah_bottle$Station_ID), unique(new_zooplankton$Station_ID))
+
+```
+#### 3.

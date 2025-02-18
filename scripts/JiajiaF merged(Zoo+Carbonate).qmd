@@ -63,7 +63,7 @@ new_zooplankton <- new_zooplankton %>%
     str_pad(as.integer(line), 3, pad = "0"), ".",  #  line is 3-digit integer
     str_pad(as.integer(station), 4, pad = "0"), ".0"  #  station is 4-digit integer
   )) %>%
-  select(-line, -station)  # Remove original columns
+  select(-line, -station)
 
 
 
@@ -77,14 +77,44 @@ head(new_zooplankton$Station_ID)
 
 ```{r}
 # Latitude, Longitude (CALCOFI) ↔ latitude, longitude
+# Latitude in oah_bottle is a character (<chr>), while latitude in new_zooplankton is a numeric (<double>).
+# Convert Latitude & Longitude in both datasets to numeric
+oah_bottle <- oah_bottle %>%
+  mutate(Latitude = as.numeric(Latitude),
+         Longitude = as.numeric(Longitude))
+
+new_zooplankton <- new_zooplankton %>%
+  mutate(latitude = as.numeric(latitude),
+         longitude = as.numeric(longitude))
 
 ```
 
 ```{r}
-# Ship_Name ↔ ship
+# Ship_Name ↔ ship (even if there are no overlapping values) 
+# no preprocessing is required
 ```
 
-## Old Merge
+```{r}
+merged_data <- oah_bottle %>%
+  full_join(new_zooplankton, by = c("Station_ID", 
+                                    "Latitude" = "latitude", 
+                                    "Longitude" = "longitude", 
+                                    "datetime_UTC", 
+                                    "Ship_Name" = "ship"))
+
+
+head(merged_data)
+
+
+write_csv(merged_data, "~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/merged_newzoo_dataset.csv")
+
+```
+```{r}
+unique(merged_data$Station_ID)
+n_distinct(merged_data$Station_ID)
+```
+
+## Old Merge (old zooplankton)
 ```{r}
 # Load libraries
 library(readr)
