@@ -41,10 +41,12 @@ new_zooplankton <- new_zooplankton %>%
 
 #new_zooplankton$Date
 
+# Check matching
 intersect(as.character(unique(oah_bottle$Date)), as.character(unique(new_zooplankton$Date)))
 ```
 
 #### 2.Station_ID (CALCOFI)  ↔ 0+ line + 0+ station 
+Unify Station_ID format and remove spaces in Station_ID in oah_bottle.
 ```{r}
 str(new_zooplankton$line)
 str(new_zooplankton$station)
@@ -68,7 +70,83 @@ new_zooplankton <- new_zooplankton %>%
   )) %>%
   select(-line, -station)
 
+# Check matching
 intersect(unique(oah_bottle$Station_ID), unique(new_zooplankton$Station_ID))
 
 ```
-#### 3.
+#### 3. Latitude, Longitude (CALCOFI) ↔ latitude, longitude
+Make sure Latitude / Longitude are numeric types to prevent join failure.
+```{r}
+# oah_bottle's Latitude and Longitude are object type, convert to num
+oah_bottle <- oah_bottle %>%
+  mutate(Latitude = as.numeric(Latitude),
+         Longitude = as.numeric(Longitude))
+
+new_zooplankton <- new_zooplankton %>%
+  mutate(latitude = round(latitude, 4),
+         longitude = round(longitude, 4))
+
+
+# Check matching
+sum(oah_bottle$Latitude %in% new_zooplankton$latitude)
+sum(oah_bottle$Longitude %in% new_zooplankton$longitude)
+
+```
+
+#### Aggregate oah_bottle by Date
+Because oah_bottle is hourly data and new_zooplankton is daily data, oah_bottle must be aggregated first.
+```{r}
+oah_bottle_daily <- oah_bottle %>%
+  group_by(Station_ID, Latitude, Longitude, Date, Ship_Name) %>%
+  summarise(
+    avg_DIC = mean(as.numeric(DIC), na.rm = TRUE),
+    avg_Salinity = mean(as.numeric(Salinity_PSS78), na.rm = TRUE),
+    avg_Temperature = mean(as.numeric(CTDTEMP_ITS90), na.rm = TRUE),
+    .groups = "drop"
+  )
+
+
+head(oah_bottle_daily)
+```
+
+#### 4.Ship_Name ↔ ship 
+```{r}
+oah_bottle_daily <- oah_bottle_daily %>%
+  mutate(Ship_Name_clean = str_to_upper(Ship_Name) %>% str_replace("^RV\\s+", ""))
+
+new_zooplankton <- new_zooplankton %>%
+  mutate(ship_clean = str_to_upper(ship))
+
+
+intersect(unique(oah_bottle_daily$Ship_Name_clean), unique(new_zooplankton$ship_clean))
+
+```
+
+#### left_join()
+```{r}
+merged_data_1 <- new_zooplankton %>%
+  inner_join(oah_bottle_daily, by = c("Station_ID", 
+                                "latitude" = "Latitude", 
+                                "longitude" = "Longitude", 
+                                "Date",
+                                "ship_clean" = "Ship_Name_clean"))
+
+
+head(merged_data_1)
+```
+
+```{r}
+merged_data_2 <- oah_bottle_daily %>%
+  full_join(new_zooplankton, by = c("Station_ID", 
+                                    "Latitude" = "latitude", 
+                                    "Longitude" = "longitude", 
+                                    "Date",
+                                    "Ship_Name_clean" = "ship_clean"))
+
+filter(merged_data_2, is.na(volume_sampled) & !is.na(avg_DIC))
+
+```
+```{r}
+colSums(is.na(merged_data_2)) 
+```
+
