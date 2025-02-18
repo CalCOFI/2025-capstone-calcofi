@@ -1,0 +1,307 @@
+```{r}
+library(ggplot2)
+library(sf)
+library(rnaturalearth)
+```
+
+
+# Preprocessing
+```{r}
+# load new zooplankton data
+zoop_data <- read.csv('../data/zoop_data/Zooplankton-new.csv')
+
+# load carbonate chem bottle data
+cc_data <- read.csv('../data/carbonate_chem_data/carbonate_chem_bottle.csv')[-1,]
+```
+
+```{r}
+head(zoop_data)
+```
+
+```{r}
+head(cc_data)
+```
+
+
+```{r}
+# format Station_ID column
+zoop_data$Station_ID <- paste(
+  sprintf('%05.1f', zoop_data$line),
+  sprintf('%05.1f', zoop_data$station),
+  sep = ' '
+)
+```
+
+
+```{r}
+# format date in carbonate chem data
+cc_data <- cc_data %>%
+  mutate(
+    Date = as.Date(
+      paste(Month_UTC, Day_UTC, Year_UTC, sep = "/"),
+      tryFormats = c("%m/%d/%Y")
+    ),
+    .before = Year_UTC
+  ) %>%
+  mutate(
+    Depth = as.double(Depth)
+  )
+
+# format date in zooplankton data
+zoop_data$Date = as.Date(zoop_data$time)
+```
+
+
+# Perform Join
+```{r}
+# join data on matching station ID and date
+merged_cc_zoop_data <- inner_join(
+  cc_data,
+  zoop_data,
+  by = join_by(Station_ID, Date)
+)
+
+head(merged_cc_zoop_data)
+```
+
+
+```{r}
+unique(merged_cc_zoop_data$Date)
+```
+
+```{r}
+unique(merged_cc_zoop_data$Station_ID)
+```
+
+
+
+
+
+
+# Updated Merge: Average by month
+```{r}
+zoop_data$Month_UTC <- as.integer(format(zoop_data$Date, '%m'))
+zoop_data$Year_UTC <- as.integer(format(zoop_data$Date, '%Y'))
+```
+
+```{r}
+head(zoop_data)
+```
+
+
+```{r}
+# numeric columns to be averaged
+zoop_data_num_cols <- names(select_if(zoop_data, is.numeric))
+
+# group zoop data by month
+zoop_data_by_month <- zoop_data[, c('Station_ID', zoop_data_num_cols)] %>%
+  group_by(Station_ID, Year_UTC, Month_UTC) %>%
+  summarise(across(everything(), mean), .groups = 'drop')  %>%
+  as.data.frame()
+```
+
+
+```{r}
+# numeric columns to be averaged
+cc_data_num_cols <- names(select_if(cc_data, is.numeric))
+
+# group cc data by month
+cc_data_by_month <- cc_data[, c('Station_ID', cc_data_num_cols)] %>%
+  group_by(Station_ID, Year_UTC, Month_UTC) %>%
+  summarise(across(everything(), mean), .groups = 'drop') %>%
+  as.data.frame()
+```
+
+
+# Perform Join
+```{r}
+merged_cc_zoop_data <- inner_join(
+  cc_data_by_month,
+  zoop_data_by_month,
+  by = join_by(Station_ID, Year_UTC, Month_UTC)
+)
+```
+
+```{r}
+merged_cc_zoop_data[with(merged_cc_zoop_data, order(Year_UTC, Month_UTC)),]
+```
+
+
+# EDA on New Merged Dataset
+```{r}
+# number of unique stations
+length(unique(merged_cc_zoop_data$Station_ID))
+```
+
+```{r}
+# number of unique months
+count(unique(merged_cc_zoop_data[, c('Year_UTC', 'Month_UTC')]))
+```
+50 unique stations, 114 different months
+
+
+```{r}
+# number of observations by station
+count_by_station <- merged_cc_zoop_data %>% 
+  count(Station_ID, sort=TRUE) %>%
+  rename(Count=n)
+
+# bar plot
+bar_count_by_station <- ggplot(data=count_by_station, aes(x=Count, y=reorder(Station_ID, Count))) +
+  geom_bar(stat='identity', fill='steelblue') + 
+  ylab('Station_ID') +
+  ggtitle('Observation Count by Station') +
+  theme_minimal()
+
+# save figure
+ggsave(path='../images/merged_zoop_EDA', filename='obs_count_by_station.png', width=9, height=6)
+
+bar_count_by_station
+```
+
+```{r}
+# create date column
+merged_cc_zoop_data$Date <- as.Date(
+  with(merged_cc_zoop_data, sprintf('%d-%02d-01', Year_UTC, Month_UTC))
+)
+```
+ 
+
+```{r}
+# number of observations by date
+count_by_date <- merged_cc_zoop_data %>%
+  count(Date, sort=TRUE) %>%
+  rename(Count=n)
+
+# bar plot
+bar_count_by_date <- ggplot(data=count_by_date, aes(x=Date, y=Count)) +
+  geom_bar(stat='identity', fill='steelblue', width = 80) + 
+  ggtitle('Observation Count by Date') +
+  theme_minimal()
+  
+# save figure
+ggsave(path='../images/merged_zoop_EDA', filename='obs_count_by_date.png', width=9, height=6)
+  
+bar_count_by_date
+```
+
+
+
+```{r}
+# filter coordinate columns and count observations by station
+coords_merged_zoop <- merged_cc_zoop_data[, c('Station_ID', 'latitude', 'longitude')] %>%
+  count(Station_ID, latitude, longitude) %>%
+  rename(Num_Observations = n)
+
+# find min and max coordinates
+min_lon <- min(coords_merged_zoop[, 'longitude'])
+max_lon <- max(coords_merged_zoop[, 'longitude'])
+
+min_lat <- min(coords_merged_zoop[, 'latitude'])
+max_lat <- max(coords_merged_zoop[, 'latitude'])
+```
+
+```{r}
+# plot observed station location with density of observations
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+station_loc_map_new <- ggplot(data=world) + 
+  geom_sf(fill = "antiquewhite1") + 
+  geom_point(data=coords_merged_zoop, aes(x=longitude, y=latitude, size=Num_Observations)) + 
+  coord_sf(xlim = c(min_lon - 1, max_lon + 4), ylim = c(min_lat - 1, max_lat + 1), expand=FALSE) + 
+  theme(panel.grid.major = element_line(color = gray(0.5), linetype = "solid", 
+        linewidth = 0.5), panel.background = element_rect(fill = "aliceblue")) + 
+  ggtitle('Station Locations of Updated Merged Zooplankton Data')
+
+# save figure
+ggsave(path='../images/merged_zoop_EDA', filename='station_loc_map_new.png')
+
+station_loc_map_new
+```
+
+# Distribution of Observations Across Time
+
+
+```{r}
+# plot each observation by time and station
+timeline_obs_station_new <- ggplot(data=merged_cc_zoop_data, aes(x=Date, y=Station_ID)) +
+  geom_point(size=1, shape=1) + 
+  scale_x_date(name = '', date_breaks = '5 years', expand = expansion(mult = c(0.05, 0.1))) + 
+  theme_minimal() + 
+  ggtitle('Timeline of Observations by Station')
+
+timeline_obs_station_new
+```
+
+
+
+
+
+
+
+# Salinity and Depth
+```{r}
+salinity_depth_scatter <- ggplot(data=merged_cc_zoop_data, aes(x=Salinity_PSS78, y=Depth)) + 
+  geom_point(size=1, shape=1) + 
+  scale_y_reverse() + 
+  ggtitle('Scatterplot of Salinity and Depth') +
+  theme_minimal()
+
+# save figure
+ggsave(path='../images/merged_zoop_EDA', filename='salinity_depth_scatter.png', width=9, height=6)
+
+salinity_depth_scatter
+```
+
+
+# Zooplankton and Depth
+```{r}
+total_plankton_depth_scatter <- ggplot(data=merged_cc_zoop_data, aes(x=total_plankton, y=Depth)) + 
+  geom_point(size=1, shape=1) + 
+  scale_y_reverse() + 
+  ggtitle('Scatterplot of Total Plankton and Depth') +
+  theme_minimal()
+
+# save figure
+ggsave(path='../images/merged_zoop_EDA', filename='total_plankton_depth_scatter.png', width=9, height=6)
+
+zooplankton_depth_scatter
+```
+
+```{r}
+small_plankton_depth_scatter <- ggplot(data=merged_cc_zoop_data, aes(x=small_plankton, y=Depth)) + 
+  geom_point(size=1, shape=1) + 
+  scale_y_reverse() + 
+  ggtitle('Scatterplot of Small Plankton and Depth') + 
+  theme_minimal()
+
+# save figure
+ggsave(path='../images/merged_zoop_EDA', filename='small_plankton_depth_scatter.png', width=9, height=6)
+
+small_plankton_depth_scatter
+```
+
+# Outliers
+Each scatterplot has a group of 4 observations that are measured at a much greater depth
+```{r}
+
+```
+
+
+# Salinity and Plankton
+```{r}
+ggplot(data=merged_cc_zoop_data, aes(x=Salinity_PSS78, y=total_plankton)) + 
+  geom_bin_2d(bins=80) + 
+  theme_minimal()
+```
+
+
+
+```{r}
+unique(merged_cc_zoop_data$Station_ID)
+```
+
+# Time Series of Plankton Data
+
+
+
