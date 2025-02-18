@@ -1,0 +1,486 @@
+
+## Data Preprocessing
+
+```{r}
+# Libraries
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(sf)
+library(terra)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(maps)
+library(ggforce)
+library(scales)
+```
+
+```{r}
+# Load in data
+cc_data <- read_csv(here::here("data/carbonate_chem_data/carbonate_chem_bottle.csv"))
+cc_data <- cc_data[2:nrow(cc_data),]
+krill_data <- read_csv(here::here("data/krill_data/BTEDB_Abundances.csv"))
+head(cc_data)
+nrow(cc_data)
+# original cc data has 4391 rows
+head(krill_data)
+nrow(krill_data)
+# original krill data has 7482 rows
+```
+
+```{r}
+# Cleaning
+
+## Make sure values are numeric
+cc_data <- cc_data %>% mutate(DIC = as.numeric(DIC),
+                                  TA = as.numeric(TA),
+                                  Depth = as.numeric(Depth),
+                                  CTDTEMP_ITS90 = as.numeric(CTDTEMP_ITS90),
+                                  Salinity_PSS78 = as.numeric(Salinity_PSS78),
+                                  Longitude = as.numeric(Longitude),
+                                  Latitude = as.numeric(Latitude)
+                                  )
+
+## Create `Station_ID` variable in krill dataset by merging `Line` and `Station`
+krill_data$Station_ID <- paste(
+  sprintf('%05.1f', krill_data$Line),
+  sprintf('%05.1f', as.numeric(krill_data$Station)),
+  sep = ' '
+)
+
+krill_data <- krill_data %>%
+  relocate(Station_ID, .before = Line)
+
+## Separating `Date` into Year, Month, and Day variables
+krill_data <- krill_data %>%
+  mutate(
+    Year_UTC = year(Date),
+    Month_UTC = month(Date),
+    Day_UTC = day(Date),
+    .after = Date
+  )
+
+head(krill_data)
+```
+
+```{r}
+# Count cc data and krill data 
+obs_count <-  cc_data %>% count(Year_UTC, Month_UTC, Station_ID) 
+mean(obs_count$n)
+# on average 4.12 observations of carbochem(dic) data per month per station id
+obs_count <-  krill_data %>% count(Year_UTC, Month_UTC, Station_ID) 
+mean(obs_count$n)
+# on average 1.01 observations of krill data per month per station id 
+```
+
+```{r}
+# Merging cc + krill data
+## Daily cc data
+cc_avg_daily <- read_csv(here::here("data/carbonate_chem_data/cc_avg_daily.csv"))
+merged_krill_avg_daily <- inner_join(
+  cc_avg_daily, 
+  krill_data,
+  by = join_by(Date == Date, Station_ID == Station_ID)
+)
+nrow(merged_krill_avg_daily)
+# merged dataset has 31 rows
+
+## Monthly cc data
+cc_avg_monthly <- read_csv(here::here("data/carbonate_chem_data/cc_avg_monthly.csv"))
+merged_krill_avg_monthly <- inner_join(
+  cc_avg_monthly, 
+  krill_data,
+  by = join_by(Year_UTC == Year_UTC, Month_UTC == Month_UTC, Station_ID == Station_ID)
+)
+nrow(merged_krill_avg_monthly)
+
+head(merged_krill_avg_monthly)
+# merged dataset has 107 rows
+
+#print(colSums(merged_krill_avg_monthly == 0))
+
+write_csv(merged_krill_avg_monthly, here::here("data/merged_krill_avg_monthly.csv"))
+
+```
+
+## EDA
+
+```{r}
+# Missingness
+merged_krill_avg_monthly %>% vis_miss()
+missing_by_column <- colSums(is.na(merged_krill_data))
+print(missing_by_column[missing_by_column > 0])
+
+# Basic stats
+merged_krill_avg_monthly$Station_ID %>% unique() %>% length()
+nrow(merged_krill_avg_monthly)
+min(merged_krill_avg_monthly$Year_UTC)
+max(merged_krill_avg_monthly$Year_UTC)
+min(merged_krill_avg_monthly$Depth, na.rm = T)
+max(merged_krill_avg_monthly$Depth, na.rm = T)
+min(merged_krill_avg_monthly$MaxDepth)
+max(merged_krill_avg_monthly$MaxDepth)
+```
+
+```{r}
+# Number of observations by year
+# head(merged_krill_avg_monthly)
+year_counts <- merged_krill_avg_monthly %>%
+  count(Year_UTC)
+ggplot(year_counts, aes(x = factor(Year_UTC), y = n)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Number of Observations per Year in Merged Krill Dataset",
+       x = "Year (UTC)",
+       y = "Number of Observations") +
+  theme_minimal()
+
+ggsave(here::here("images/remerged_krill_EDA/obs_by_year.png"))
+```
+
+```{r}
+# Histogram of Depth and MaxDepth in cc and krill data, respectively
+max(cc_data$Depth, na.rm = T)
+max(krill_data$MaxDepth, na.rm = T)
+hist(cc_data$Depth,
+     main = "Histogram of Depth in CalCofi Data",
+     xlab = "Depth",
+     col = "steelblue",
+     border = "black")
+hist(krill_data$MaxDepth,
+     main = "Histogram of MaxDepth in Krill Data",
+     xlab = "Depth",
+     col = "steelblue",
+     border = "black")
+```
+
+```{r}
+krill_counts <- merged_krill_avg_monthly %>%
+  group_by(Year_UTC, Depth) %>%
+  summarize(Count = n(), .groups = "drop") %>%
+  filter(!is.na(Depth))
+
+# Determine appropriate breakpoints dynamically
+max_count <- max(krill_counts$Count, na.rm = TRUE)
+breaks_seq <- seq(1, max_count, length.out = 5)  # Adjusting sequence
+
+# Create the bubble plot (Linear Depth Scale)
+ggplot(krill_counts, aes(x = Year_UTC, y = Depth, size = Count, col = Count)) +
+  geom_point(alpha = 0.8) +  # Adjust transparency to improve visibility
+  scale_y_reverse(breaks = seq(min(krill_counts$Depth), max(krill_counts$Depth), length.out = 5)) +  # Linear scale, reversed
+  scale_size_continuous(limits = c(1, max_count), breaks = breaks_seq, range = c(2, 10)) +  # Adjusted size range
+  scale_color_continuous(limits = c(1, max_count), breaks = breaks_seq) +  # Color mapping
+  guides(col = guide_legend(), size = guide_legend()) +
+  theme_minimal() +
+  labs(
+    x = "Year",
+    y = "Depth (m)",
+    col = "Observations",
+    size = "Observations",
+    title = "Depth vs. Year in Merged Krill Dataset"
+  )
+```
+
+
+```{r}
+# Depth vs. Year in Merged Krill Dataset
+df_filtered <- merged_krill_avg_monthly %>%
+  select(Year_UTC, Depth) %>%
+  filter(!is.na(Depth)) 
+
+df_counts <- df_filtered %>%
+  group_by(Year_UTC, Depth) %>%
+  summarize(Observations = n(), .groups = "drop")
+
+max_count <- max(df_counts$Observations, na.rm = TRUE)
+breaks_seq <- seq(1, max_count, length.out = 5)  
+
+depth_breaks <- c(0, 100, 200)
+
+ggplot(df_counts, aes(x = Year_UTC, y = Depth, size = Observations, col = Observations)) +
+  geom_point(alpha = 0.7) +  
+  scale_y_reverse(breaks = depth_breaks) +  
+  scale_size_continuous(limits = c(1, max_count), breaks = breaks_seq, range = c(2, 10)) +  
+  scale_color_continuous(limits = c(1, max_count), breaks = breaks_seq) +  
+  guides(col = guide_legend(), size = guide_legend()) +
+  theme_minimal() +
+  labs(
+    x = "Year",
+    y = "Depth (m)",
+    col = "Observations",
+    size = "Observations",
+    title = "Depth vs. Year in Merged Krill Dataset"
+  )
+ggsave(here::here("images/remerged_krill_EDA/depth_vs_yr.png"))
+```
+
+```{r}
+# MaxDepth vs. Year in Merged Krill Dataset
+krill_counts <- merged_krill_avg_monthly %>%
+  group_by(Year_UTC, MaxDepth) %>%
+  summarize(Count = n(), .groups = "drop") %>%
+  filter(!is.na(MaxDepth))  
+
+krill_counts <- krill_counts %>%
+  mutate(Count = ifelse(Count >= 3, 3, Count))  
+
+depth_breaks <- seq(0, 250, by = 50)
+
+ggplot(krill_counts, aes(x = Year_UTC, y = MaxDepth, size = Count, col = Count)) +
+  geom_point(alpha = 0.8) +  
+  scale_y_reverse(breaks = depth_breaks, limits = c(250, 0)) +  
+  scale_size_continuous(breaks = c(1, 2, 3), limits = c(1, 3), range = c(2, 10)) +
+  scale_color_continuous(breaks = c(1, 2, 3), limits = c(1, 3)) +  
+  guides(col = guide_legend(), size = guide_legend()) +
+  theme_minimal() +
+  labs(
+    x = "Year",
+    y = "Maximum Depth (m)",
+    col = "Observations",
+    size = "Observations",
+    title = "Maximum Depth vs. Year in Merged Krill Dataset"
+  )
+ggsave(here::here("images/remerged_krill_EDA/maxdepth_vs_year.png"))
+```
+
+```{r}
+# MaxDepth vs. Year in Merged Krill Dataset
+krill_counts <- merged_krill_avg_monthly %>%
+  group_by(Year_UTC, MaxDepth) %>%
+  summarize(Count = n(), .groups = "drop") %>%
+  filter(!is.na(MaxDepth))
+
+# Determine appropriate breakpoints dynamically
+max_count <- max(krill_counts$Count, na.rm = TRUE)
+breaks_seq <- seq(1, max_count, length.out = 5)  # Adjusting sequence
+
+# Create the bubble plot (Linear Depth Scale)
+ggplot(krill_counts, aes(x = Year_UTC, y = MaxDepth, size = Count, col = Count)) +
+  geom_point(alpha = 0.8) +  # Adjust transparency to improve visibility
+  scale_y_reverse(breaks = seq(min(krill_counts$MaxDepth), max(krill_counts$MaxDepth), length.out = 5)) +  # Linear scale, reversed
+  scale_size_continuous(limits = c(1, max_count), breaks = breaks_seq, range = c(2, 10)) +  # Adjusted size range
+  scale_color_continuous(limits = c(1, max_count), breaks = breaks_seq) +  # Color mapping
+  guides(col = guide_legend(), size = guide_legend()) +
+  theme_minimal() +
+  labs(
+    x = "Year",
+    y = "Maximum Depth (m)",
+    col = "Observations",
+    size = "Observations",
+    title = "Maximum Depth vs. Year in Merged Krill Dataset"
+  )
+```
+
+```{r}
+df_filtered <- merged_krill_avg_monthly %>%
+  select(Year_UTC, MaxDepth) %>%
+  filter(!is.na(MaxDepth)) 
+
+df_counts <- df_filtered %>%
+  group_by(Year_UTC, MaxDepth) %>%
+  summarize(Observations = n(), .groups = "drop")
+
+max_count <- max(df_counts$Observations, na.rm = TRUE)
+breaks_seq <- seq(1, max_count, length.out = 5)  
+
+depth_breaks <- c(0, 50, 100, 150, 200, 250)
+
+ggplot(df_counts, aes(x = Year_UTC, y = MaxDepth, size = Observations, col = Observations)) +
+  geom_point(alpha = 0.7) +  
+  scale_y_reverse(breaks = depth_breaks) +  
+  scale_size_continuous(limits = c(1, max_count), breaks = breaks_seq, range = c(2, 10)) +  
+  scale_color_continuous(limits = c(1, max_count), breaks = breaks_seq) +  
+  guides(col = guide_legend(), size = guide_legend()) +
+  theme_minimal() +
+  labs(
+    x = "Year",
+    y = "Maximum Depth (m)",
+    col = "Observations",
+    size = "Observations",
+    title = "Maximum Depth vs. Year in Merged Krill Dataset"
+  )
+```
+
+```{r}
+# Depth vs. year
+merged_krill_avg_monthly %>%
+  group_by(Year_UTC, Depth) %>%
+  summarize(Count = n()) %>%
+  ggplot(
+    aes(
+      x = Year_UTC,
+      y = Depth,
+      size = Count,
+      col = Count
+    )
+  ) +
+  geom_point() +
+  scale_y_reverse() +
+  scale_y_continuous(
+    transform = trans_reverser("pseudo_log"),
+    breaks = c(1,10,100,1000)
+  ) +
+  scale_size_continuous(limits=c(1, 75), breaks=seq(0,75, by=20)) +
+  guides(col=guide_legend(), size=guide_legend()) +
+  scale_color_continuous(limits=c(1, 75), breaks=seq(0,75, by=20)) +
+  theme_minimal() +
+  labs(
+    x = "Year",
+    y = "Depth (m)",
+    col = "Observations",
+    size = "Observations",
+    title = "Depth vs. Year in Merged Bottle Dataset"
+  )
+
+# Max depth vs. year
+merged_krill_avg_monthly %>%
+  group_by(Year_UTC, MaxDepth) %>%
+  summarize(Count = n()) %>%
+  ggplot(
+    aes(
+      x = Year_UTC,
+      y = MaxDepth,
+      size = Count,
+      col = Count
+    )
+  ) +
+  geom_point() +
+  scale_y_reverse() +
+  scale_y_continuous(
+    transform = trans_reverser("pseudo_log"),
+    breaks = c(1,10,100,1000)
+  ) +
+  scale_size_continuous(limits=c(1, 75), breaks=seq(0,75, by=20)) +
+  guides(col=guide_legend(), size=guide_legend()) +
+  scale_color_continuous(limits=c(1, 75), breaks=seq(0,75, by=20)) +
+  theme_minimal() +
+  labs(
+    x = "Year",
+    y = "Max Depth (m)",
+    col = "Observations",
+    size = "Observations",
+    title = "Max Depth vs. Year in Merged Bottle Dataset"
+  )
+```
+
+
+```{r}
+# Barplot of records per station
+station_counts <- merged_krill_avg_monthly %>%
+  group_by(Station_ID) %>%
+  summarise(Record_Count = n()) %>%
+  arrange(desc(Record_Count))
+
+ggplot(station_counts, aes(x = reorder(Station_ID, -Record_Count), y = Record_Count)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Record Count per Station ID", x = "Station ID", y = "Number of Records") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+# incorporates a lot more stations compared to initial merge (27 vs. 7)
+# Station 90 70 still contains the most records
+
+ggsave(here::here("images/remerged_krill_EDA/obs_by_station.png"))
+```
+
+```{r}
+# Geographical representation of number of observations by station
+world <- map_data("world")
+ca_counties <- subset(map_data("county"), region == "california")
+
+ggplot() +
+  geom_polygon(
+    data = world,
+    aes(
+      x = long,
+      y = lat,
+      group = group
+    ),
+    color = "black",
+    fill = "gray90"
+  ) +
+  geom_point(
+    data = merged_krill_avg_monthly %>%
+      group_by(Station_ID) %>%
+      summarize(
+        Latitude = first(Latitude.x),
+        Longitude = first(Longitude.x),
+        Count = n()
+      ),
+    aes(
+      x = Longitude,
+      y = Latitude,
+      size = Count
+    )
+  ) +
+  
+  coord_cartesian(
+    xlim = c(merged_krill_avg_monthly$Longitude.x %>% min() - 1.5, merged_krill_avg_monthly$Longitude.x %>% max() + 3.5),
+    ylim = c(merged_krill_avg_monthly$Latitude.x %>% min() - 1,merged_krill_avg_monthly$Latitude.x %>% max() + 1)
+  ) +
+  theme_minimal() +
+  labs(
+    x = "Longitude",
+    y = "Latitude",
+    title = "Number of Observations by Station in Merged Krill Dataset",
+    size = "Observations"
+  )
+ggsave(here::here("images/remerged_krill_EDA/station_loc_map_bw.png"))
+```
+
+```{r}
+# Geographical representation of number of observations by station
+coords_merged <- merged_krill_avg_monthly[, c('Station_ID', 'Latitude.x', 'Longitude.x')] %>%
+  dplyr::count(Station_ID, Latitude.x, Longitude.x) %>%
+  dplyr::rename(Num_Observations = n)
+min_lon <- min(coords_merged[, 'Longitude.x'])
+max_lon <- max(coords_merged[, 'Longitude.x'])
+min_lat <- min(coords_merged[, 'Latitude.x'])
+max_lat <- max(coords_merged[, 'Latitude.x'])
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
+states <- st_as_sf(map("state", plot = FALSE, fill = TRUE))
+
+station_loc_map <- ggplot(data=world) + 
+  geom_sf(fill = "antiquewhite1") + 
+  geom_point(data=coords_merged, aes(x=Longitude.x, y=Latitude.x, size=Num_Observations)) + 
+  coord_sf(xlim = c(min_lon - 2, max_lon + 1), ylim = c(min_lat - 1, max_lat + 2), expand=FALSE) + 
+  theme(panel.grid.major = element_line(color = gray(0.5), linetype = "dashed", 
+        linewidth = 0.5), panel.background = element_rect(fill = "aliceblue")) + 
+  labs(
+    x = "Longitude",
+    y = "Latitude",
+    title = "Number of Observations by Station in Merged Krill Dataset",
+    size = "Observations")
+station_loc_map
+ggsave(here::here("images/remerged_krill_EDA/station_loc_map.png"))
+```
+
+```{r}
+head(merged_krill_avg_monthly)
+
+merged_krill_90_70 <- merged_krill_avg_monthly %>% filter(Station_ID == "090.0 070.0")
+merged_krill_90_90 <- merged_krill_avg_monthly %>% filter(Station_ID == "090.0 090.0")
+
+# Calculate how much of the krill data in the merged dataset is 0
+start_col <- which(colnames(merged_krill_avg_monthly) == "Euphausia_brevis_adult_Abundance")
+df_subset <- merged_krill_avg_monthly[, start_col:ncol(merged_krill_avg_monthly)]
+zero_percentage <- sum(df_subset == 0, na.rm = TRUE) / (nrow(df_subset) * ncol(df_subset)) * 100
+print(zero_percentage)
+
+# Calculate how much of the krill data in the merged dataset for Station 90 70 is 0
+start_col <- which(colnames(merged_krill_90_70) == "Euphausia_brevis_adult_Abundance")
+df_subset <- merged_krill_90_70[, start_col:ncol(merged_krill_90_70)]
+zero_percentage <- sum(df_subset == 0, na.rm = TRUE) / (nrow(df_subset) * ncol(df_subset)) * 100
+print(zero_percentage)
+
+# Calculate how much of the krill data in the merged dataset for Station 90 90 is 0
+start_col <- which(colnames(merged_krill_90_90) == "Euphausia_brevis_adult_Abundance")
+df_subset <- merged_krill_90_90[, start_col:ncol(merged_krill_90_90)]
+zero_percentage <- sum(df_subset == 0, na.rm = TRUE) / (nrow(df_subset) * ncol(df_subset)) * 100
+print(zero_percentage)
+
+```
+
+
+!!! explore how many 0 values in the merged dataset
+!!! do some EDA on specific species, maybe focus on depth-dependent changes (i.e. depth by krill species volume)
+

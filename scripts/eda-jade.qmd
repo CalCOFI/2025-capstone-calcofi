@@ -214,6 +214,11 @@ cc_bottle |>
 
 cc_bottle |> 
   filter(!(Depth %in% unique(hydro_bottle$Depthm))) |> nrow()
+
+cc_bottle |> group_by()
+
+cc_bottle <- read_csv(here::here("data/merged_bottle_co2sys.csv"))
+
 ```
 
 
