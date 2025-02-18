@@ -4,6 +4,7 @@
 
 library(tidyverse)
 library(lme4)
+library(lmerTest)
 
 # PREPROCESSING
 
@@ -17,6 +18,12 @@ esper_bottle_combined <- esper_bottle_combined %>%
     Date_Dec = decimal_date(Date.cc)
   )
 
+# filter out observations with anomalous salinity
+esper_bottle_combined <- esper_bottle_combined %>%
+  filter(
+    Salnty > 30
+  )
+
 # filter out stations that have less than 20 observations
 keep_stations <- esper_bottle_combined %>%
   group_by(
@@ -26,7 +33,7 @@ keep_stations <- esper_bottle_combined %>%
     n = n()
   ) %>%
   filter(
-    n < 30
+    n < 20
   ) %>%
   pull(
     Station_ID
@@ -39,19 +46,26 @@ esper_bottle_combined <- esper_bottle_combined %>%
     Station_ID %in% keep_stations
   )
 
-# FITTING
-TA_lim_model <- lmer(TA_lim_res ~ Date_Dec + Depth + (1 | Station_ID),
-                     data = esper_bottle_combined)
+# log(1+x) transform depths
+esper_bottle_combined <- esper_bottle_combined %>%
+  mutate(
+    Depth_Trans = log(Depth + 1)
+  )
+
+# FIT MIXED-EFFECTS MODEL
+TA_lim_model <- lmer(TA_lim_res ~ Date_Dec + Depth_Trans + (Depth_Trans | Station_ID),
+                    data = esper_bottle_combined,
+                    control = lmerControl(optimizer = "bobyqa"))
 summary(TA_lim_model)
 
-TA_all_model <- lmer(TA_all_res ~ Date_Dec + Depth + (1 | Station_ID),
+TA_all_model <- lmer(TA_all_res ~ Date_Dec + Depth_Trans + (Depth_Trans | Station_ID),
                      data = esper_bottle_combined)
 summary(TA_all_model)
 
-DIC_lim_model <- lmer(DIC_lim_res ~ Date_Dec + Depth + (1 | Station_ID),
+DIC_lim_model <- lmer(DIC_lim_res ~ Date_Dec + Depth_Trans + (Depth_Trans | Station_ID),
                      data = esper_bottle_combined)
 summary(DIC_lim_model)
 
-DIC_all_model <- lmer(DIC_all_res ~ Date_Dec + Depth + (1 | Station_ID),
+DIC_all_model <- lmer(DIC_all_res ~ Date_Dec + Depth_Trans + (Depth_Trans | Station_ID),
                      data = esper_bottle_combined)
 summary(DIC_all_model)

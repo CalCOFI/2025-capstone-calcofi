@@ -6,6 +6,7 @@ library(tidyverse)
 library(ggforce)
 library(scales)
 library(ModelMetrics)
+library(gt)
 
 ### READ IN DATA ###
 source("scripts/ESPER_analysis/ESPER_out_proc.R")
@@ -202,7 +203,8 @@ esper_bottle_combined %>%
   geom_boxplot(na.rm = TRUE) +
   theme_minimal() +
   labs(
-    x = NULL
+    x = NULL,
+    y = "Salinity"
   ) +
   scale_x_discrete(
     labels = c("Normal Predictions", "Anomalous Predictions")
@@ -334,4 +336,253 @@ esper_bottle_combined %>%
   )
 ggsave("images/ESPER_comparison/DIC_all_res_v_input.png")
 
+### COMPARE RESIDUALS AGAINST DEPTH, TIME
+esper_bottle_combined %>%
+  filter(
+    Salnty > 30
+  ) %>%
+  ggplot(
+    aes(
+      x = Depth,
+      y = abs(DIC_all_res)
+    )
+  ) +
+  geom_point(
+    na.rm = TRUE
+  ) +
+  scale_x_continuous(
+    transform = "pseudo_log",
+    breaks = c(1,10,100,1000)
+  ) +
+  theme_minimal() +
+  labs(
+    x = "Depth",
+    y = "Absolute DIC Residuals",
+    caption = "ESPER calculations performed using all input variables"
+  )
+ggsave("images/ESPER_comparison/DIC_all_res_v_depth.png")
+
+esper_bottle_combined %>%
+  filter(
+    Salnty > 30
+  ) %>%
+  ggplot(
+    aes(
+      x = Depth,
+      y = abs(TA_all_res)
+    )
+  ) +
+  geom_point(
+    na.rm = TRUE
+  ) +
+  scale_x_continuous(
+    transform = "pseudo_log",
+    breaks = c(1,10,100,1000)
+  ) +
+  theme_minimal() +
+  labs(
+    x = "Depth",
+    y = "Absolute TA Residuals",
+    caption = "ESPER calculations performed using all input variables"
+  )
+ggsave("images/ESPER_comparison/TA_all_res_v_depth.png")
+
+esper_bottle_combined %>%
+  filter(
+    Salnty > 30
+  ) %>%
+  ggplot(
+    aes(
+      x = Date.cc,
+      y = abs(DIC_all_res)
+    )
+  ) +
+  geom_point(
+    na.rm = TRUE
+  ) +
+  theme_minimal() +
+  labs(
+    x = "Date",
+    y = "Absolute DIC Residuals",
+    caption = "ESPER calculations performed using all input variables"
+  )
+ggsave("images/ESPER_comparison/DIC_all_res_v_date.png")
+
+esper_bottle_combined %>%
+  filter(
+    Salnty > 30
+  ) %>%
+  ggplot(
+    aes(
+      x = Date.cc,
+      y = abs(TA_all_res)
+    )
+  ) +
+  geom_point(
+    na.rm = TRUE
+  ) +
+  theme_minimal() +
+  labs(
+    x = "Date",
+    y = "Absolute TA Residuals",
+    caption = "ESPER calculations performed using all input variables"
+  )
+ggsave("images/ESPER_comparison/TA_all_res_v_date.png")
+
 ### METRICS ###
+esper_bottle_combined <- esper_bottle_combined %>%
+  mutate(
+    TA_lim_rel = TA_lim_res/TA,
+    TA_all_rel = TA_all_res/TA,
+    DIC_lim_rel = DIC_lim_res/DIC,
+    DIC_all_rel = DIC_all_res/DIC
+  )
+
+TA_lim_rmse <- sqrt(sum((esper_bottle_combined$TA_lim_res)^2/sum(!is.na(esper_bottle_combined$TA_lim_res)), na.rm = TRUE))
+TA_all_rmse <- sqrt(sum((esper_bottle_combined$TA_all_res)^2/sum(!is.na(esper_bottle_combined$TA_all_res)), na.rm = TRUE))
+DIC_lim_rmse <- sqrt(sum((esper_bottle_combined$DIC_lim_res)^2/sum(!is.na(esper_bottle_combined$DIC_lim_res)), na.rm = TRUE))
+DIC_all_rmse <- sqrt(sum((esper_bottle_combined$DIC_all_res)^2/sum(!is.na(esper_bottle_combined$DIC_all_res)), na.rm = TRUE))
+
+esper_bottle_combined %>%
+  select(
+    TA_lim_res, TA_all_res,
+    TA_lim_rel, TA_all_rel
+  ) %>%
+  apply(2, summary) %>%
+  as.data.frame() %>%
+  rownames_to_column() %>%
+  `[`(-7,) %>%
+  gt() %>%
+  tab_header(
+    title = "Total Alkalinity Residuals"
+  ) %>%
+  tab_spanner(
+    label = "Absolute",
+    columns = c(TA_lim_res, TA_all_res)
+  ) %>%
+  tab_spanner(
+    label = "Relative",
+    columns = c(TA_lim_rel, TA_all_rel)
+  ) %>%
+  cols_label(
+    TA_lim_res = html("Limited"),
+    TA_all_res = html("All"),
+    TA_lim_rel = html("Limited"),
+    TA_all_rel = html("All")
+  ) %>% 
+  tab_footnote(
+    footnote = paste("RMSE =", TA_lim_rmse),
+    location = cells_column_labels(c(TA_lim_res,TA_lim_rel))
+  ) %>% 
+  tab_footnote(
+    footnote = paste("RMSE =", TA_all_rmse),
+    location = cells_column_labels(c(TA_all_res,TA_all_rel))
+  ) %>%
+  gtsave("images/ESPER_comparison/TA_res_table.png")
+
+esper_bottle_combined %>%
+  select(
+    TA_lim_res, TA_all_res,
+    TA_lim_rel, TA_all_rel
+  ) %>%
+  mutate(
+    across(everything(), abs)
+  ) %>%
+  apply(2, summary) %>%
+  as.data.frame() %>%
+  rownames_to_column() %>%
+  `[`(-7,) %>%
+  gt() %>%
+  tab_header(
+    title = "Total Alkalinity Residuals"
+  ) %>%
+  tab_spanner(
+    label = "Absolute",
+    columns = c(TA_lim_res, TA_all_res)
+  ) %>%
+  tab_spanner(
+    label = "Relative",
+    columns = c(TA_lim_rel, TA_all_rel)
+  ) %>%
+  cols_label(
+    TA_lim_res = html("Limited"),
+    TA_all_res = html("All"),
+    TA_lim_rel = html("Limited"),
+    TA_all_rel = html("All")
+  ) %>% 
+  tab_footnote(
+    footnote = paste("RMSE =", TA_lim_rmse),
+    location = cells_column_labels(c(TA_lim_res,TA_lim_rel))
+  ) %>% 
+  tab_footnote(
+    footnote = paste("RMSE =", TA_all_rmse),
+    location = cells_column_labels(c(TA_all_res,TA_all_rel))
+  )
+
+esper_bottle_combined %>%
+  select(
+    DIC_lim_res, DIC_all_res,
+    DIC_lim_rel, DIC_all_rel
+  ) %>%
+  apply(2, summary) %>%
+  as.data.frame() %>%
+  rownames_to_column() %>%
+  `[`(-7,) %>%
+  gt() %>%
+  tab_header(
+    title = "Total Dissolved Inorganic Carbon Residuals"
+  ) %>%
+  tab_spanner(
+    label = "Absolute",
+    columns = c(DIC_lim_res, DIC_all_res)
+  ) %>%
+  tab_spanner(
+    label = "Relative",
+    columns = c(DIC_lim_rel, DIC_all_rel)
+  ) %>%
+  cols_label(
+    DIC_lim_res = html("Limited"),
+    DIC_all_res = html("All"),
+    DIC_lim_rel = html("Limited"),
+    DIC_all_rel = html("All")
+  ) %>% 
+  tab_footnote(
+    footnote = paste("RMSE =", DIC_lim_rmse),
+    location = cells_column_labels(c(DIC_lim_res,DIC_lim_rel))
+  ) %>% 
+  tab_footnote(
+    footnote = paste("RMSE =", DIC_all_rmse),
+    location = cells_column_labels(c(DIC_all_res,DIC_all_rel))
+  ) %>%
+  gtsave("images/ESPER_comparison/DIC_res_table.png")
+
+esper_bottle_combined %>%
+  select(
+    DIC_lim_res, DIC_all_res,
+    DIC_lim_rel, DIC_all_rel
+  ) %>%
+  mutate(
+    across(everything(), abs)
+  ) %>%
+  apply(2, summary) %>%
+  as.data.frame() %>%
+  rownames_to_column() %>%
+  `[`(-7,) %>%
+  gt() %>%
+  tab_header(
+    title = "Total Dissolved Inorganic Carbon Residuals"
+  ) %>%
+  tab_spanner(
+    label = "Absolute",
+    columns = c(DIC_lim_res, DIC_all_res)
+  ) %>%
+  tab_spanner(
+    label = "Relative",
+    columns = c(DIC_lim_rel, DIC_all_rel)
+  ) %>%
+  cols_label(
+    DIC_lim_res = html("Limited"),
+    DIC_all_res = html("All"),
+    DIC_lim_rel = html("Limited"),
+    DIC_all_rel = html("All")
+  )
