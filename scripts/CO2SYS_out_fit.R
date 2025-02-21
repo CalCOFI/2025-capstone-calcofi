@@ -1,4 +1,4 @@
-# CO2SYS_out_analysis.R
+# CO2SYS_out_fit.R
 
 library(tidyverse)
 library(lme4)
@@ -55,10 +55,8 @@ bottle_co2sys <- bottle_co2sys %>%
 models <- lapply(
   qty,
   function(x) {
-    lmer(get(paste0(x,"_dtd")) ~ Date_Dec + Depth_Trans + (0 + Date_Dec | Station_ID),
+    lmer(get(paste0(x,"_dtd")) ~  Date_Dec + Depth_Trans + (Depth_Trans | Station_ID),
          data = bottle_co2sys,
-         control = lmerControl(optimizer = "nlminbwrap"))
+         control = lmerControl(optimizer = "nloptwrap"))
   }
 )
-
-summary(models[[1]])
