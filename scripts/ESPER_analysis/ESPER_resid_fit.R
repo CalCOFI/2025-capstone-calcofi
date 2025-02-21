@@ -49,7 +49,7 @@ esper_bottle_combined <- esper_bottle_combined %>%
 # log(1+x) transform depths
 esper_bottle_combined <- esper_bottle_combined %>%
   mutate(
-    Depth_Trans = log(Depth + 1)
+    Depth_Trans = log(Depth + 1, base = 10)
   )
 
 # RESIDUALS AGAINST INPUT

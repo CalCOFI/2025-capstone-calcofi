@@ -5,7 +5,6 @@
 library(tidyverse)
 
 ### Function to average ESPER output weighted by uncertainties
-
 esper_out_avg <- function(est_df, unc_df, suffix = NA) {
   
   # pivot dataframes to long format
@@ -93,10 +92,10 @@ esper_out_proc <- function() {
   merged_bottle_data <- read_csv("data/merged_bottle_data.csv")
   
   # read in ESPER output
-  esper_estimates_lim <- read_csv("data/ESPER_output/ESPER_estimates_lim.csv")
-  esper_estimates_all <- read_csv("data/ESPER_output/ESPER_estimates_all.csv")
-  esper_uncertainties_lim <- read_csv("data/ESPER_output/ESPER_uncertainties_lim.csv")
-  esper_uncertainties_all <- read_csv("data/ESPER_output/ESPER_uncertainties_all.csv")
+  esper_estimates_lim <- read_csv("data/ESPER_output/ESPER_Mixed_est_lim.csv")
+  esper_estimates_all <- read_csv("data/ESPER_output/ESPER_Mixed_est_all.csv")
+  esper_uncertainties_lim <- read_csv("data/ESPER_output/ESPER_Mixed_unc_lim.csv")
+  esper_uncertainties_all <- read_csv("data/ESPER_output/ESPER_Mixed_unc_all.csv")
   
   ### DATA CLEANING/MANIPULATION ###
   
