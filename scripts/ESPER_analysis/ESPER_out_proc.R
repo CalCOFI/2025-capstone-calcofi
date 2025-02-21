@@ -4,6 +4,47 @@
 
 library(tidyverse)
 
+# Main ESPER output processing function; obtains output from selected models, 
+# combines output with merged bottle data, and calculates residuals for selected
+# variables
+
+esper_out_proc <- function(models = c("Mixed","LIR","NN"), in_vars = c("lim","all"), res_vars = c("TA","DIC")) {
+  # Read in ESPER output files and process using esper_out_avg
+  esper_out_dfs <- lapply(
+    1:(length(models)*length(in_vars)),
+    function(x) {
+      a <- length(models)
+      b <- length(in_vars)
+      est_path <- paste0(paste("data/ESPER_output/ESPER",models[x%%a+1],"est",in_vars[x%%b+1],sep="_"),".csv")
+      unc_path <- paste0(paste("data/ESPER_output/ESPER",models[x%%a+1],"unc",in_vars[x%%b+1],sep="_"),".csv")
+      est_df <- read_csv(est_path, show_col_types = FALSE)
+      unc_df <- read_csv(unc_path, show_col_types = FALSE)
+      esper_out_avg(est_df, unc_df, suffix = paste(models[x%%a+1],in_vars[x%%b+1],sep="_"))
+    }
+  )
+  
+  # Read in combined bottle dataset
+  merged_bottle_data <- read_csv("data/merged_bottle_data.csv")
+  
+  # Combine processed ESPER output with merged bottle data
+  esper_bottle_combined <- bind_cols(merged_bottle_data, esper_out_dfs)
+  
+  # Calculate residuals for desired variables
+  for (i in res_vars) {
+    esper_bottle_combined <- esper_bottle_combined %>%
+      mutate(
+        across(starts_with(paste0(i,"_est")), ~ get(i) - .x, .names = "{.col}_res")
+      )
+  }
+  
+  return(esper_bottle_combined)
+}
+
+esper_bottle_combined %>%
+  `[`(,224:235) %>%
+  View()
+
+
 ### Function to average ESPER output weighted by uncertainties
 esper_out_avg <- function(est_df, unc_df, suffix = NA) {
   
@@ -51,10 +92,6 @@ esper_out_avg <- function(est_df, unc_df, suffix = NA) {
     by = join_by(id, qty, eqn)
   )
   
-  # check that number of rows matches original dataframes
-  nrow(df) == nrow(est_df)
-  nrow(df) == nrow(unc_df)
-  
   # compute weighted average of estimates
   df <- df %>%
     group_by(
@@ -62,9 +99,9 @@ esper_out_avg <- function(est_df, unc_df, suffix = NA) {
     ) %>%
     summarize(
       est = weighted.mean(est, unc^2, na.rm = TRUE),
-      unc = 1/sqrt(sum(1/unc^2, na.rm = TRUE))
-    ) %>%
-    ungroup()
+      unc = 1/sqrt(sum(1/unc^2, na.rm = TRUE)),
+      .groups = "drop"
+    )
   
   # pivot to wide format
   df <- df %>%
@@ -85,6 +122,7 @@ esper_out_avg <- function(est_df, unc_df, suffix = NA) {
   return(df)
 }
 
+if (FALSE) {
 esper_out_proc <- function() {
   ### READ IN DATA ###
   
@@ -201,4 +239,5 @@ esper_out_proc <- function() {
   
   # return combined ESPER output and bottle data
   return(esper_bottle_combined)
+}
 }
