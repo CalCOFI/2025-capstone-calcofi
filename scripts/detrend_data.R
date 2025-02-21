@@ -1,4 +1,4 @@
-# detrend.R
+# detrend_data.R
 
 ### FUNCTION TO SEASONALLY DETREND OCEANOGRAPHIC DATA
 
