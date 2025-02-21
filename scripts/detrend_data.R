@@ -1,6 +1,6 @@
-# detrend_data.R
+# detrend.R
 
-### SEASONALLY DETREND OCEANOGRAPHIC DATA
+### FUNCTION TO SEASONALLY DETREND OCEANOGRAPHIC DATA
 
 library(tidyverse)
 
