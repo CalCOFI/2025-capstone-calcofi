@@ -5,10 +5,11 @@
 library(tidyverse)
 
 sea_dtd_data <- function(qty, df, date_col) {
-  ### Seasonally detrend selected columns in a dataframe based on Sutton, A. J. et al. (2022)
-  ### qty: vector of column names of variables to be detrended
-  ### df: dataframe with observations to be detrended
-  ### date_col: date column to be used for fitting
+  # Seasonally detrend selected columns in a dataframe based on Sutton, A. J. et al. (2022)
+  #   qty: vector of column names of variables to be detrended
+  #   df: dataframe with observations to be detrended
+  #   date_col: date column to be used for fitting
+  # Outputs original dataframe with appended columns of detrended data with name format qty_dtd
   
   # Check if date_col is in decimal format and convert if not
   if (!is.double(date_col)) {
