@@ -320,7 +320,7 @@ esper_bottle_combined %>%
   ggplot(
     aes(
       x = input_var_val,
-      y = abs(DIC_all_res)
+      y = DIC_all_res
     )
   ) + 
   geom_point(na.rm = TRUE) +

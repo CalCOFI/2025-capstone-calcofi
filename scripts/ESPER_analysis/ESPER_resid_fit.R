@@ -52,6 +52,15 @@ esper_bottle_combined <- esper_bottle_combined %>%
     Depth_Trans = log(Depth + 1)
   )
 
+# RESIDUALS AGAINST INPUT
+TA_all_input_model <- lm(TA_all_res ~ Salnty + T_degC + PO4uM + NO3uM + SiO3uM + `Oxy_µmol/Kg`,
+                          data = esper_bottle_combined)
+summary(TA_all_input_model)
+
+DIC_all_input_model <- lm(DIC_all_res ~ Salnty + T_degC + PO4uM + NO3uM + SiO3uM + `Oxy_µmol/Kg`,
+                          data = esper_bottle_combined)
+summary(DIC_all_input_model)
+
 # FIT MIXED-EFFECTS MODEL
 TA_lim_model <- lmer(TA_lim_res ~ Date_Dec + Depth_Trans + (Depth_Trans | Station_ID),
                     data = esper_bottle_combined,

@@ -1,11 +1,90 @@
 # ESPER_out_proc.R
 
-### FUNCTION TO PROCESS ESPER OUTPUT AND MERGE WITH COMBINED BOTTLE DATA
-
-### Computes weighted average ESPER estimates by uncertainties, combines
-### result with merged bottle data, and calculates residuals
+### ESPER OUTPUT PROCESSING FUNCTIONS
 
 library(tidyverse)
+
+### Function to average ESPER output weighted by uncertainties
+
+esper_out_avg <- function(est_df, unc_df, suffix = NA) {
+  
+  # pivot dataframes to long format
+  est_df <- est_df %>%
+    # add row id column before pivoting
+    mutate(
+      id = row_number()
+    ) %>%
+    pivot_longer(
+      -id,
+      names_to = "qty_eqn",
+      values_to = "est"
+    ) %>%
+    # create quantity and equation columns
+    mutate(
+      qty = sub("([a-zA-Z]+)_[0-9]+", "\\1", qty_eqn),
+      eqn = sub("[a-zA-Z]+_([0-9]+)", "\\1", qty_eqn),
+      .keep = "unused",
+      .before = "est"
+    )
+  
+  unc_df <- unc_df %>%
+    # add row id column before pivoting
+    mutate(
+      id = row_number()
+    ) %>%
+    pivot_longer(
+      -id,
+      names_to = "qty_eqn",
+      values_to = "unc"
+    ) %>%
+    # create quantity and equation columns
+    mutate(
+      qty = sub("([a-zA-Z]+)_[0-9]+", "\\1", qty_eqn),
+      eqn = sub("[a-zA-Z]+_([0-9]+)", "\\1", qty_eqn),
+      .keep = "unused",
+      .before = "unc"
+    )
+  
+  # combine estimate and uncertainty dataframes
+  df <- inner_join(
+    est_df,
+    unc_df,
+    by = join_by(id, qty, eqn)
+  )
+  
+  # check that number of rows matches original dataframes
+  nrow(df) == nrow(est_df)
+  nrow(df) == nrow(unc_df)
+  
+  # compute weighted average of estimates
+  df <- df %>%
+    group_by(
+      id, qty
+    ) %>%
+    summarize(
+      est = weighted.mean(est, unc^2, na.rm = TRUE),
+      unc = 1/sqrt(sum(1/unc^2, na.rm = TRUE))
+    ) %>%
+    ungroup()
+  
+  # pivot to wide format
+  df <- df %>%
+    pivot_wider(
+      id_cols = id,
+      names_from = qty,
+      values_from = c(est, unc),
+      names_glue = paste0("{qty}_{.value}",if(is.na(suffix)) NULL else paste0("_",suffix))
+    )
+  
+  # drop id column
+  df <- df %>%
+    select(
+      -id
+    )
+  
+  # return dataframe of averaged estimates and uncertainties
+  return(df)
+}
 
 esper_out_proc <- function() {
   ### READ IN DATA ###
@@ -21,7 +100,7 @@ esper_out_proc <- function() {
   
   ### DATA CLEANING/MANIPULATION ###
   
-  # pivot ESPER output to long format for easier manipulation
+  # pivot ESPER output to long format
   esper_estimates_lim <- esper_estimates_lim %>%
     # add id column to keep track of output groupings
     mutate(
@@ -123,6 +202,4 @@ esper_out_proc <- function() {
   
   # return combined ESPER output and bottle data
   return(esper_bottle_combined)
-  
-  
 }
