@@ -76,3 +76,6 @@ merged_zoop_avg_monthly <- inner_join(
   by = join_by(Year_UTC == Year_UTC, Month_UTC == Month_UTC, Station_ID == Station_ID)
 )
 write_csv(merged_zoop_avg_monthly, "data/merged_zoop_avg_monthly.csv")
+
+# subtract the small plankton from total plankton to get large plankton
+merged_zoop_avg_monthly <- merged_zoop_avg_monthly %>% mutate(large_plankton = total_plankton - small_plankton)
