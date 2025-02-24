@@ -18,6 +18,12 @@ esper_bottle_combined <- esper_bottle_combined %>%
     Date_Dec = decimal_date(Date.cc)
   )
 
+# filter for ESPER Mixed output
+esper_bottle_combined <- esper_bottle_combined %>%
+  filter(
+    ESPER_model == "Mixed"
+  )
+
 # filter out observations with anomalous salinity
 esper_bottle_combined <- esper_bottle_combined %>%
   filter(
@@ -49,23 +55,32 @@ esper_bottle_combined <- esper_bottle_combined %>%
 # log(1+x) transform depths
 esper_bottle_combined <- esper_bottle_combined %>%
   mutate(
-    Depth_Trans = log(Depth + 1)
+    Depth_Trans = log(Depth + 1, base = 10)
   )
 
+# RESIDUALS AGAINST INPUT
+TA_all_input_model <- lm(TA_res ~ Salnty + T_degC + PO4uM + NO3uM + SiO3uM + `Oxy_µmol/Kg`,
+                          data = esper_bottle_combined %>% filter(ESPER_input == "all"))
+summary(TA_all_input_model)
+
+DIC_all_input_model <- lm(DIC_res ~ Salnty + T_degC + PO4uM + NO3uM + SiO3uM + `Oxy_µmol/Kg`,
+                          data = esper_bottle_combined %>% filter(ESPER_input == "all"))
+summary(DIC_all_input_model)
+
 # FIT MIXED-EFFECTS MODEL
-TA_lim_model <- lmer(TA_lim_res ~ Date_Dec + Depth_Trans + (Depth_Trans | Station_ID),
-                    data = esper_bottle_combined,
+TA_lim_model <- lmer(TA_res ~ Date_Dec + Depth_Trans + (Depth_Trans | Station_ID),
+                    data = esper_bottle_combined %>% filter(ESPER_input == "lim"),
                     control = lmerControl(optimizer = "bobyqa"))
 summary(TA_lim_model)
 
-TA_all_model <- lmer(TA_all_res ~ Date_Dec + Depth_Trans + (Depth_Trans | Station_ID),
-                     data = esper_bottle_combined)
+TA_all_model <- lmer(TA_res ~ Date_Dec + Depth_Trans + (Depth_Trans | Station_ID),
+                     data = esper_bottle_combined %>% filter(ESPER_input == "all"))
 summary(TA_all_model)
 
-DIC_lim_model <- lmer(DIC_lim_res ~ Date_Dec + Depth_Trans + (Depth_Trans | Station_ID),
-                     data = esper_bottle_combined)
+DIC_lim_model <- lmer(DIC_res ~ Date_Dec + Depth_Trans + (Depth_Trans | Station_ID),
+                     data = esper_bottle_combined %>% filter(ESPER_input == "lim"))
 summary(DIC_lim_model)
 
-DIC_all_model <- lmer(DIC_all_res ~ Date_Dec + Depth_Trans + (Depth_Trans | Station_ID),
-                     data = esper_bottle_combined)
+DIC_all_model <- lmer(DIC_res ~ Date_Dec + Depth_Trans + (Depth_Trans | Station_ID),
+                     data = esper_bottle_combined %>% filter(ESPER_input == "all"))
 summary(DIC_all_model)

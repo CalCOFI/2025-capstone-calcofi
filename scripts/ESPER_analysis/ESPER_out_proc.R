@@ -1,12 +1,144 @@
 # ESPER_out_proc.R
 
-### FUNCTION TO PROCESS ESPER OUTPUT AND MERGE WITH COMBINED BOTTLE DATA
-
-### Computes weighted average ESPER estimates by uncertainties, combines
-### result with merged bottle data, and calculates residuals
+### ESPER OUTPUT PROCESSING FUNCTIONS
 
 library(tidyverse)
 
+# Main ESPER output processing function; obtains output from selected models, 
+# combines output with merged bottle data, and calculates residuals for selected
+# variables
+
+### Function to average ESPER output weighted by uncertainties
+esper_out_avg <- function(est_df, unc_df, suffix = NA) {
+  
+  # pivot dataframes to long format
+  est_df <- est_df %>%
+    # add row id column before pivoting
+    mutate(
+      id = row_number()
+    ) %>%
+    pivot_longer(
+      -id,
+      names_to = "qty_eqn",
+      values_to = "est"
+    ) %>%
+    # create quantity and equation columns
+    mutate(
+      qty = sub("([a-zA-Z]+)_[0-9]+", "\\1", qty_eqn),
+      eqn = sub("[a-zA-Z]+_([0-9]+)", "\\1", qty_eqn),
+      .keep = "unused",
+      .before = "est"
+    )
+  
+  unc_df <- unc_df %>%
+    # add row id column before pivoting
+    mutate(
+      id = row_number()
+    ) %>%
+    pivot_longer(
+      -id,
+      names_to = "qty_eqn",
+      values_to = "unc"
+    ) %>%
+    # create quantity and equation columns
+    mutate(
+      qty = sub("([a-zA-Z]+)_[0-9]+", "\\1", qty_eqn),
+      eqn = sub("[a-zA-Z]+_([0-9]+)", "\\1", qty_eqn),
+      .keep = "unused",
+      .before = "unc"
+    )
+  
+  # combine estimate and uncertainty dataframes
+  df <- inner_join(
+    est_df,
+    unc_df,
+    by = join_by(id, qty, eqn)
+  )
+  
+  # compute weighted average of estimates
+  df <- df %>%
+    group_by(
+      id, qty
+    ) %>%
+    summarize(
+      est = weighted.mean(est, unc^2, na.rm = TRUE),
+      unc = 1/sqrt(sum(1/unc^2, na.rm = TRUE)),
+      .groups = "drop"
+    )
+  
+  # pivot to wide format
+  df <- df %>%
+    pivot_wider(
+      id_cols = id,
+      names_from = qty,
+      values_from = c(est, unc),
+      names_glue = paste0("{qty}_{.value}",if(is.na(suffix)) NULL else paste0("_",suffix))
+    )
+  
+  # drop id column
+  df <- df %>%
+    select(
+      -id
+    )
+  
+  # return dataframe of averaged estimates and uncertainties
+  return(df)
+}
+
+esper_out_proc <- function(models = c("Mixed","LIR","NN"), in_vars = c("lim","all"), res_vars = c("TA","DIC")) {
+  # Read in ESPER output files and process using esper_out_avg
+  esper_out_dfs <- lapply(
+    1:(length(models)*length(in_vars)),
+    function(x) {
+      a <- length(models)
+      b <- length(in_vars)
+      est_path <- paste0(paste("data/ESPER_output/ESPER",models[x%%a+1],"est",in_vars[x%%b+1],sep="_"),".csv")
+      unc_path <- paste0(paste("data/ESPER_output/ESPER",models[x%%a+1],"unc",in_vars[x%%b+1],sep="_"),".csv")
+      est_df <- read_csv(est_path, show_col_types = FALSE)
+      unc_df <- read_csv(unc_path, show_col_types = FALSE)
+      esper_out_avg(est_df, unc_df, suffix = paste(models[x%%a+1],in_vars[x%%b+1],sep="_"))
+    }
+  )
+  
+  # Read in combined bottle dataset
+  merged_bottle_data <- read_csv("data/merged_bottle_data.csv",show_col_types=FALSE)
+  
+  # Combine processed ESPER output with merged bottle data
+  esper_bottle_combined <- bind_cols(merged_bottle_data, esper_out_dfs)
+  
+  # Reformate combined dataframe
+  esper_bottle_combined <- esper_bottle_combined %>%
+    pivot_longer(
+      cols = ends_with(c("_lim","_all")),
+      names_to = c("qty", "out_type", "ESPER_model", "ESPER_input"),
+      values_to = "value",
+      names_pattern = "(.+)_(.+)_(.+)_(.+)"
+    ) %>%
+    pivot_wider(
+      names_from = c("qty","out_type"),
+      values_from = "value",
+      names_sep = "_",
+      values_fn = list
+    ) %>%
+    unnest(
+      cols = c(DIC_est, TA_est, nitrate_est, oxygen_est, pH_est, phosphate_est,
+               silicate_est, DIC_unc, TA_unc, nitrate_unc, oxygen_unc, pH_unc, 
+               phosphate_unc, silicate_unc)
+    )
+  
+  # Calculate residuals for desired variables
+  for (i in res_vars) {
+    esper_bottle_combined <- esper_bottle_combined %>%
+      mutate(
+        across(starts_with(paste0(i,"_est")), ~ get(i) - .x, .names = paste0(i,"_res"))
+      )
+  }
+  
+  # Return dataframe
+  return(esper_bottle_combined)
+}
+
+if (FALSE) {
 esper_out_proc <- function() {
   ### READ IN DATA ###
   
@@ -14,14 +146,14 @@ esper_out_proc <- function() {
   merged_bottle_data <- read_csv("data/merged_bottle_data.csv")
   
   # read in ESPER output
-  esper_estimates_lim <- read_csv("data/ESPER_output/ESPER_estimates_lim.csv")
-  esper_estimates_all <- read_csv("data/ESPER_output/ESPER_estimates_all.csv")
-  esper_uncertainties_lim <- read_csv("data/ESPER_output/ESPER_uncertainties_lim.csv")
-  esper_uncertainties_all <- read_csv("data/ESPER_output/ESPER_uncertainties_all.csv")
+  esper_estimates_lim <- read_csv("data/ESPER_output/ESPER_Mixed_est_lim.csv")
+  esper_estimates_all <- read_csv("data/ESPER_output/ESPER_Mixed_est_all.csv")
+  esper_uncertainties_lim <- read_csv("data/ESPER_output/ESPER_Mixed_unc_lim.csv")
+  esper_uncertainties_all <- read_csv("data/ESPER_output/ESPER_Mixed_unc_all.csv")
   
   ### DATA CLEANING/MANIPULATION ###
   
-  # pivot ESPER output to long format for easier manipulation
+  # pivot ESPER output to long format
   esper_estimates_lim <- esper_estimates_lim %>%
     # add id column to keep track of output groupings
     mutate(
@@ -123,6 +255,5 @@ esper_out_proc <- function() {
   
   # return combined ESPER output and bottle data
   return(esper_bottle_combined)
-  
-  
+}
 }
