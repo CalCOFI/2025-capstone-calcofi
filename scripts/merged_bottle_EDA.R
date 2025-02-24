@@ -20,7 +20,7 @@ merged_bottle_data$Station_ID %>% unique() %>% length()
 
 # visualize missingnesss
 vis_miss(merged_bottle_data[,c("Year_UTC","Month_UTC","Depth","TA","DIC","T_degC","Salnty","SiO3uM","PO4uM")])
-ggsave("images/merged_bottle_EDA/merged_bottle_missingness.png")
+ggsave("images/merged_bottle_EDA/merged_bottle_missingness.png", bg = "white")
 
 # create plot of number of observations against year
 merged_bottle_data %>%
@@ -29,6 +29,9 @@ merged_bottle_data %>%
   ) %>%
   summarize(
     N = n()
+  ) %>%
+  add_row(
+    Year_UTC = 2002:2007, N = 0
   ) %>%
   ggplot(
     aes(
@@ -46,7 +49,7 @@ merged_bottle_data %>%
   theme(
     axis.text.x = element_text(angle = 45)
   )
-ggsave("images/merged_bottle_EDA/obs_by_year.png")
+ggsave("images/merged_bottle_EDA/obs_by_year.png", bg = "white")
 
 # create plot of depth against year, with size and color indicating number of observations
 merged_bottle_data %>%
@@ -81,7 +84,7 @@ merged_bottle_data %>%
     size = "Observations",
     title = "Depth vs. Year in Merged Bottle Dataset"
   )
-ggsave("images/merged_bottle_EDA/depth_vs_yr.png")
+ggsave("images/merged_bottle_EDA/depth_vs_yr.png", bg = "white")
 
 # plot map of stations and number of observations at stations
 world <- map_data("world")
@@ -125,4 +128,4 @@ ggplot() +
     title = "Number of Observations by Station in Merged Bottle Dataset",
     size = "Observations"
   )
-ggsave("images/merged_bottle_EDA/obs_by_station.png")
+ggsave("images/merged_bottle_EDA/obs_by_station.png", bg = "white")
