@@ -463,7 +463,7 @@ esper_bottle_combined <- esper_bottle_combined %>%
     DIC_rel = DIC_res/DIC
   )
 
-# calcualte standard deviation of observed values
+# calculate standard deviation of observed values
 TA_sd <- esper_bottle_combined$TA %>% sd(na.rm = TRUE)
 DIC_sd <- esper_bottle_combined$DIC %>% sd(na.rm = TRUE)
 
@@ -565,7 +565,8 @@ esper_bottle_combined %>%
   ) %>%
   opt_stylize(
     style = 3
-  )
+  ) %>% 
+  gtsave("images/ESPER_comparison/rmse_by_depth_table.png")
 
 # RMSE by year
 esper_bottle_combined %>%
@@ -590,7 +591,7 @@ esper_bottle_combined %>%
     Year_UTC = rep(2002:2007,6), 
     DIC_rmse_sd = rep(NA, 36),
     TA_rmse_sd = rep(NA, 36)
-  ) %>% View()
+  ) %>% 
   pivot_longer(
     cols = c(TA_rmse_sd, DIC_rmse_sd),
     names_to = "qty",
@@ -600,6 +601,10 @@ esper_bottle_combined %>%
     aes(
       x = Year_UTC,
     )
+  ) +
+  geom_hline(
+    yintercept = 1,
+    lty = 2
   ) +
   geom_line(
     aes(
@@ -621,7 +626,7 @@ esper_bottle_combined %>%
     x = "Year",
     col = "Quantity"
   )
-ggsave("images/ESPER_comparison/rmse_by_year.png")
+ggsave("images/ESPER_comparison/rmse_by_year.png", bg = "white")
 
 # generate table of TA residuals summary statistics 
 esper_bottle_combined %>%
