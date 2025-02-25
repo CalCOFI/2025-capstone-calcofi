@@ -1,0 +1,24 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+```{r}
+library(visdat)
+krill <- read.csv("~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/krill_data/BTEDB_Abundances.csv")
+```
+
+```{r}
+library(dplyr)
+library(naniar)
+
+df_sampled <- df %>% slice_sample(n = 1000)
+vis_miss(krill)
+
+library(naniar)
+
+vis_miss(df, warn_large_data = FALSE)
+
+
+```
+
