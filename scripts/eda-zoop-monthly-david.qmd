@@ -1,0 +1,45 @@
+```{r}
+library(ggplot2)
+```
+
+
+```{r}
+zoop <- read.csv('../data/merged_zoop_avg_monthly.csv')
+head(zoop)
+```
+
+# DIC Time Series 
+```{r}
+# Create date column
+zoop$Date <- as.Date(with(zoop, sprintf('%d-%02d-01', Year_UTC, Month_UTC)))
+```
+
+
+```{r}
+dic_ts <- as.ts(zoop$DIC, zoop$Date)
+plot.ts(dic_ts)
+```
+
+# Effect of DIC and Salinity on Zooplankton
+```{r}
+ggplot(data=zoop, aes(x=Salinity_PSS78, y=total_plankton)) + 
+  geom_point(size=1, shape=1) +
+  theme_minimal()
+```
+
+```{r}
+ggplot(data=zoop, aes(x=DIC, y=total_plankton)) + 
+  geom_point(size=1, shape=1) +
+  theme_minimal()
+```
+
+```{r}
+ggplot(data=zoop, aes(x=Salinity_PSS78, y=DIC)) + 
+  geom_point(size=1, shape=1) +
+  theme_minimal()
+```
+
+```{r}
+
+```
+

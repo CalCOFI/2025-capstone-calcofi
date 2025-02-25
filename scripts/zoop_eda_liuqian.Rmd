@@ -1,0 +1,102 @@
+---
+title: "zoop_eda_liuqian"
+author: "Liuqian Bao"
+date: "2025-02-12"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# Load necessary libraries
+library(ggplot2)
+library(readr)
+# read in merged bottle data
+merged_zoop_avg_monthly <- read_csv("../data/merged_zoop_avg_monthly.csv")
+# First plot: Date vs Station ID
+ggplot(merged_zoop_avg_monthly, aes(x = Date.x, y = Station_ID)) +
+  geom_point(alpha = 0.5, size = 1) +
+  labs(title = "Visualization of Date vs Station ID", x = "Date.x", y = "Station ID") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+merged_zoop_avg_monthly <- merged_zoop_avg_monthly %>%
+  mutate(YearMonth = as.Date(paste(Year_UTC, Month_UTC, "01", sep = "-"), 
+                             format = "%Y-%m-%d"))
+ggplot(merged_zoop_avg_monthly, aes(x = YearMonth, y = Station_ID, size = total_plankton, color = total_plankton)) +
+  geom_point(alpha = 0.7) +
+  scale_color_viridis_c() +          
+  scale_size(range = c(5, 10)) +     # control the size range of the points
+  labs(title = "Scatter Plot with Size and Color Representing total_plankton",
+       x = "Year-Month",
+       y = "Station",
+       color = "total_plankton",
+       size = "total_plankton") +
+  theme_minimal()
+```
+
+```{r}
+# time series for one station 
+library(dplyr)
+zmerged_zoop_avg_monthly_filtered <- merged_zoop_avg_monthly %>%
+  filter(Station_ID == "083.3 042.0")
+ggplot(zmerged_zoop_avg_monthly_filtered, aes(x = YearMonth, y = total_plankton)) +
+  geom_line() +
+  labs(
+    title = "Time Series for station 083.3 042.0",
+    x = "Year-Month",
+    y = "total_plankton"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+# time series for one station 
+library(dplyr)
+zmerged_zoop_avg_monthly_filtered <- merged_zoop_avg_monthly %>%
+  filter(Station_ID == "086.7 035.0")
+ggplot(zmerged_zoop_avg_monthly_filtered, aes(x = YearMonth, y = total_plankton)) +
+  geom_line() +
+  labs(
+    title = "Time Series for station 086.7 035.0",
+    x = "Year-Month",
+    y = "total_plankton"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+# time series for one station 
+library(dplyr)
+zmerged_zoop_avg_monthly_filtered <- merged_zoop_avg_monthly %>%
+  filter(Station_ID == "093.3 030.0")
+ggplot(zmerged_zoop_avg_monthly_filtered, aes(x = YearMonth, y = total_plankton)) +
+  geom_line() +
+  labs(
+    title = "Time Series for station 093.3 030.0",
+    x = "Year-Month",
+    y = "total_plankton"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+# remove outliers
+zmerged_zoop_avg_monthly_filtered <- merged_zoop_avg_monthly %>%
+  filter(total_plankton <= 2000, Year_UTC >= 2005)
+ggplot(zmerged_zoop_avg_monthly_filtered, aes(x = YearMonth, y = Station_ID, size = total_plankton, color = total_plankton)) +
+  geom_point(alpha = 0.7) +
+  scale_color_viridis_c() +          
+  scale_size(range = c(5, 10)) +     # control the size range of the points
+  labs(title = "Scatter Plot with Size and Color Representing total_plankton",
+       x = "Year-Month",
+       y = "Station",
+       color = "total_plankton",
+       size = "total_plankton") +
+  theme_minimal()
+```
+

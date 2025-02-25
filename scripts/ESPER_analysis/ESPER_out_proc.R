@@ -8,43 +8,6 @@ library(tidyverse)
 # combines output with merged bottle data, and calculates residuals for selected
 # variables
 
-esper_out_proc <- function(models = c("Mixed","LIR","NN"), in_vars = c("lim","all"), res_vars = c("TA","DIC")) {
-  # Read in ESPER output files and process using esper_out_avg
-  esper_out_dfs <- lapply(
-    1:(length(models)*length(in_vars)),
-    function(x) {
-      a <- length(models)
-      b <- length(in_vars)
-      est_path <- paste0(paste("data/ESPER_output/ESPER",models[x%%a+1],"est",in_vars[x%%b+1],sep="_"),".csv")
-      unc_path <- paste0(paste("data/ESPER_output/ESPER",models[x%%a+1],"unc",in_vars[x%%b+1],sep="_"),".csv")
-      est_df <- read_csv(est_path, show_col_types = FALSE)
-      unc_df <- read_csv(unc_path, show_col_types = FALSE)
-      esper_out_avg(est_df, unc_df, suffix = paste(models[x%%a+1],in_vars[x%%b+1],sep="_"))
-    }
-  )
-  
-  # Read in combined bottle dataset
-  merged_bottle_data <- read_csv("data/merged_bottle_data.csv")
-  
-  # Combine processed ESPER output with merged bottle data
-  esper_bottle_combined <- bind_cols(merged_bottle_data, esper_out_dfs)
-  
-  # Calculate residuals for desired variables
-  for (i in res_vars) {
-    esper_bottle_combined <- esper_bottle_combined %>%
-      mutate(
-        across(starts_with(paste0(i,"_est")), ~ get(i) - .x, .names = "{.col}_res")
-      )
-  }
-  
-  return(esper_bottle_combined)
-}
-
-esper_bottle_combined %>%
-  `[`(,224:235) %>%
-  View()
-
-
 ### Function to average ESPER output weighted by uncertainties
 esper_out_avg <- function(est_df, unc_df, suffix = NA) {
   
@@ -120,6 +83,69 @@ esper_out_avg <- function(est_df, unc_df, suffix = NA) {
   
   # return dataframe of averaged estimates and uncertainties
   return(df)
+}
+
+esper_out_proc <- function(models = c("Mixed","LIR","NN"), 
+                           in_vars = c("lim","all"), res_vars = c("TA","DIC"),
+                           rel_vars = c("TA","DIC")) {
+  # Read in ESPER output files and process using esper_out_avg
+  esper_out_dfs <- lapply(
+    1:(length(models)*length(in_vars)),
+    function(x) {
+      a <- length(models)
+      b <- length(in_vars)
+      est_path <- paste0(paste("data/ESPER_output/ESPER",models[x%%a+1],"est",in_vars[x%%b+1],sep="_"),".csv")
+      unc_path <- paste0(paste("data/ESPER_output/ESPER",models[x%%a+1],"unc",in_vars[x%%b+1],sep="_"),".csv")
+      est_df <- read_csv(est_path, show_col_types = FALSE)
+      unc_df <- read_csv(unc_path, show_col_types = FALSE)
+      esper_out_avg(est_df, unc_df, suffix = paste(models[x%%a+1],in_vars[x%%b+1],sep="_"))
+    }
+  )
+  
+  # Read in combined bottle dataset
+  merged_bottle_data <- read_csv("data/merged_bottle_data.csv",show_col_types=FALSE)
+  
+  # Combine processed ESPER output with merged bottle data
+  esper_bottle_combined <- bind_cols(merged_bottle_data, esper_out_dfs)
+  
+  # Reformate combined dataframe
+  esper_bottle_combined <- esper_bottle_combined %>%
+    pivot_longer(
+      cols = ends_with(c("_lim","_all")),
+      names_to = c("qty", "out_type", "ESPER_model", "ESPER_input"),
+      values_to = "value",
+      names_pattern = "(.+)_(.+)_(.+)_(.+)"
+    ) %>%
+    pivot_wider(
+      names_from = c("qty","out_type"),
+      values_from = "value",
+      names_sep = "_",
+      values_fn = list
+    ) %>%
+    unnest(
+      cols = c(DIC_est, TA_est, nitrate_est, oxygen_est, pH_est, phosphate_est,
+               silicate_est, DIC_unc, TA_unc, nitrate_unc, oxygen_unc, pH_unc, 
+               phosphate_unc, silicate_unc)
+    )
+  
+  # Calculate residuals for desired variables
+  for (i in res_vars) {
+    esper_bottle_combined <- esper_bottle_combined %>%
+      mutate(
+        across(starts_with(paste0(i,"_est")), ~ get(i) - .x, .names = paste0(i,"_res"))
+      )
+  }
+  
+  # Calculate relative residuals for desired variables
+  for (i in rel_vars) {
+    esper_bottle_combined <- esper_bottle_combined %>%
+      mutate(
+        across(starts_with(paste0(i,"_res")), ~ .x/get(i), .names = paste0(i,"_rel"))
+      )
+  }
+  
+  # Return dataframe
+  return(esper_bottle_combined)
 }
 
 if (FALSE) {
