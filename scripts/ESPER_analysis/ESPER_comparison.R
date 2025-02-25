@@ -11,7 +11,10 @@ library(cowplot)
 
 ### READ IN DATA ###
 source("scripts/ESPER_analysis/ESPER_out_proc.R")
-esper_bottle_combined <- esper_out_proc()
+esper_bottle_combined <- esper_out_proc() %>%
+  mutate(
+    ESPER_input = factor(ESPER_input, levels = c("lim", "all"), ordered = TRUE)
+  )
 
 models <- c("Mixed", "LIR", "NN")
 inputs <- c("lim", "all")
@@ -33,7 +36,7 @@ esper_bottle_combined %>%
   ) +
   geom_point(
     na.rm = TRUE,
-    alpha = 0.3
+    alpha = 0.5
   ) + 
   geom_abline(
     slope = 1,
@@ -67,7 +70,7 @@ esper_bottle_combined %>%
   ) +
   geom_point(
     na.rm = TRUE,
-    alpha = 0.3
+    alpha = 0.5
   ) + 
   geom_abline(
     slope = 1,
@@ -86,6 +89,60 @@ esper_bottle_combined %>%
     y = "Predicted TA",
   )
 ggsave("images/ESPER_comparison/TA_pred_vs_obs.png", bg = "white")
+
+# NN-all plots
+esper_bottle_combined %>%
+  filter(
+    (Salnty > 30) & (ESPER_model == "NN") & (ESPER_input == "all")
+  ) %>%
+  rename(
+    DIC_obs = DIC,
+    TA_obs = TA
+  ) %>%
+  pivot_longer(
+    cols = c(DIC_obs, TA_obs, DIC_est, TA_est),
+    names_to = c("qty", "type"),
+    values_to = "value",
+    names_sep = "_"
+  ) %>%
+  pivot_wider(
+    names_from = type,
+    values_from = value,
+    values_fn = list
+  ) %>%
+  unnest(
+    c = c(obs, est)
+  ) %>%
+  ggplot(
+    aes(
+      x = obs,
+      y = est,
+      col = Depth
+    )
+  ) +
+  geom_point(
+    na.rm = TRUE,
+    alpha = 0.5
+  ) + 
+  geom_abline(
+    slope = 1,
+    intercept = 0
+  ) +
+  scale_color_gradient(
+    trans = trans_reverser("pseudo_log"),
+    breaks = c(1,10,100,1000)
+  ) + 
+  facet_wrap(
+    vars(qty),
+    scales = "free"
+  ) +
+  theme_minimal() +
+  labs(
+    x = "Observed",
+    y = "Predicted",
+    title = "ESPER NN Predictions Using All Input Variables vs. Observed Values"
+  )
+ggsave("images/ESPER_comparison/ESPER_NN_all_preds_v_obs.png", bg = "white")
 
 ### INVESTIGATE ANOMALOUS PREDICTIONS ###
 
@@ -273,13 +330,13 @@ for (i in 1:6) {
     ggplot(
       aes(
         x = input_var_val,
-        y = DIC_res,
+        y = DIC_rel,
         col = input_var
       )
     ) +
     geom_point(
       na.rm = TRUE,
-      alpha = 0.2
+      alpha = 0.3
     ) +
     theme_minimal() +
     facet_wrap(
@@ -317,13 +374,13 @@ for (i in 1:6) {
     ggplot(
       aes(
         x = input_var_val,
-        y = TA_res,
+        y = TA_rel,
         col = input_var
       )
     ) +
     geom_point(
       na.rm = TRUE,
-      alpha = 0.2
+      alpha = 0.3
     ) +
     theme_minimal() +
     facet_wrap(
@@ -342,6 +399,19 @@ for (i in 1:6) {
 }
 plot_grid(TA_input_plots[[1]], TA_input_plots[[5]], TA_input_plots[[3]], TA_input_plots[[4]], TA_input_plots[[2]], TA_input_plots[[6]], nrow = 2)
 ggsave("images/ESPER_comparison/TA_res_v_input.png", scale = 2, bg = "white")
+
+
+# ESPER NN specific plots
+DIC_input_plots[[5]] +
+  labs(
+    title = "ESPER NN Relative DIC Residuals against Input Variables"
+  )
+ggsave("images/ESPER_comparison/ESPER_NN_DIC_res_v_input.png", bg = "white")
+TA_input_plots[[5]] +
+  labs(
+    title = "ESPER NN Relative TA Residuals against Input Variables"
+  )
+ggsave("images/ESPER_comparison/ESPER_NN_TA_res_v_input.png", bg = "white")
 
 
 ### COMPARE RESIDUALS AGAINST DEPTH, TIME
@@ -456,31 +526,33 @@ ggsave("images/ESPER_comparison/TA_res_v_date.png", bg = "white")
 
 ### METRICS ###
 
-# calculate relative residuals
-esper_bottle_combined <- esper_bottle_combined %>%
-  mutate(
-    TA_rel = TA_res/TA,
-    DIC_rel = DIC_res/DIC
-  )
-
 # calculate standard deviation of observed values
 TA_sd <- esper_bottle_combined$TA %>% sd(na.rm = TRUE)
 DIC_sd <- esper_bottle_combined$DIC %>% sd(na.rm = TRUE)
 
 # generate table of RMSE values by model and input
 esper_bottle_combined %>%
+  mutate(
+    ESPER_input = factor(ESPER_input, levels = c("lim", "all"), ordered = TRUE)
+  ) %>%
   group_by(
     ESPER_model, ESPER_input
   ) %>%
   summarize(
     TA_rmse = sqrt(sum(TA_res^2/sum(!is.na(TA_res)), na.rm = TRUE)),
     DIC_rmse = sqrt(sum(DIC_res^2/sum(!is.na(DIC_res)), na.rm = TRUE)),
+    TA_median = median(TA_rel, na.rm = TRUE),
+    DIC_median = median(DIC_rel, na.rm = TRUE),
+    TA_mean = mean(TA_rel, na.rm = TRUE),
+    DIC_mean = mean(DIC_rel, na.rm = TRUE),
+    TA_sd = sd(TA_rel, na.rm = TRUE),
+    DIC_sd = sd(DIC_rel, na.rm = TRUE)
   ) %>%
   gt(
     row_group_as_column = TRUE
   ) %>%
   tab_header(
-    title = "ESPERs RMSE"
+    title = "ESPERs Error Metrics"
   ) %>%
   tab_stubhead(
     label = "Model"
@@ -488,24 +560,53 @@ esper_bottle_combined %>%
   cols_label(
     ESPER_input = "Input",
     TA_rmse = "TA",
-    DIC_rmse = "DIC"
+    DIC_rmse = "DIC",
+    TA_median = "TA",
+    DIC_median = "DIC",
+    TA_mean = "TA",
+    DIC_mean = "DIC",
+    TA_sd = "TA",
+    DIC_sd = "DIC"
+  ) %>%
+  tab_spanner(
+    label = "RMSE",
+    columns = c(TA_rmse, DIC_rmse)
+  ) %>%
+  tab_spanner(
+    label = "Median Error",
+    columns = c(TA_median, DIC_median)
+  ) %>%
+  tab_spanner(
+    label = "Mean Error",
+    columns = c(TA_mean, DIC_mean)
+  ) %>%
+  tab_spanner(
+    label = "Error SD",
+    columns = c(TA_sd, DIC_sd)
   ) %>%
   tab_footnote(
     footnote = "lim refers to ESPER calculations performed using only temperature and salinity as predictors; all refers to calculations using all six input variables",
     locations = cells_column_labels(ESPER_input)
   ) %>%
   tab_footnote(
-    footnote = paste("SD =", signif(TA_sd,7)),
-    locations = cells_column_labels(TA_rmse)
+    footnote = paste0("TA SD = ", signif(TA_sd,7), "; DIC SD = ", signif(DIC_sd, 8)),
+    locations = cells_column_labels(c(TA_rmse, DIC_rmse))
   ) %>%
   tab_footnote(
-    footnote = paste("SD =", signif(DIC_sd, 8)),
-    locations = cells_column_labels(DIC_rmse)
+    footnote = "Relative error, i.e. (Predicted - Observed)/Observed",
+    locations = cells_column_spanners()
   ) %>%
   opt_stylize(
     style = 3
   ) %>%
-  gtsave("images/ESPER_comparison/rmse_table.png")
+  fmt_number(
+    columns = c(TA_rmse, DIC_rmse),
+    decimals = 2
+  ) %>%
+  fmt_percent(
+    columns = c(TA_median, DIC_median, TA_mean, DIC_mean, TA_sd, DIC_sd),
+    decimals = 2
+  ) %>% gtsave("images/ESPER_comparison/error_metrics_table.png")
 
 
 # RMSE by depths

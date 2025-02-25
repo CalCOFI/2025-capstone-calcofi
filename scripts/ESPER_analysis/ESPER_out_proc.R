@@ -85,7 +85,9 @@ esper_out_avg <- function(est_df, unc_df, suffix = NA) {
   return(df)
 }
 
-esper_out_proc <- function(models = c("Mixed","LIR","NN"), in_vars = c("lim","all"), res_vars = c("TA","DIC")) {
+esper_out_proc <- function(models = c("Mixed","LIR","NN"), 
+                           in_vars = c("lim","all"), res_vars = c("TA","DIC"),
+                           rel_vars = c("TA","DIC")) {
   # Read in ESPER output files and process using esper_out_avg
   esper_out_dfs <- lapply(
     1:(length(models)*length(in_vars)),
@@ -131,6 +133,14 @@ esper_out_proc <- function(models = c("Mixed","LIR","NN"), in_vars = c("lim","al
     esper_bottle_combined <- esper_bottle_combined %>%
       mutate(
         across(starts_with(paste0(i,"_est")), ~ get(i) - .x, .names = paste0(i,"_res"))
+      )
+  }
+  
+  # Calculate relative residuals for desired variables
+  for (i in rel_vars) {
+    esper_bottle_combined <- esper_bottle_combined %>%
+      mutate(
+        across(starts_with(paste0(i,"_res")), ~ .x/get(i), .names = paste0(i,"_rel"))
       )
   }
   
