@@ -3,22 +3,114 @@ title: "Untitled"
 format: html
 editor: visual
 ---
-```{r}
-library(visdat)
-krill <- read.csv("~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/krill_data/BTEDB_Abundances.csv")
-```
 
 ```{r}
 library(dplyr)
 library(naniar)
 
-df_sampled <- df %>% slice_sample(n = 1000)
-vis_miss(krill)
+krill <- read.csv("~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/krill_data/BTEDB_Abundances.csv")
 
+oah_bottle <- read_csv("~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/carbonate_chem_data/carbonate_chem_bottle.csv")
+```
+
+## Check Missing for Krill
+```{r}
+library(dplyr)
 library(naniar)
 
-vis_miss(df, warn_large_data = FALSE)
+# convert 0 to NA
+krill_na <- krill %>% mutate(across(where(is.numeric), ~ na_if(., 0)))
 
+# Missing Plot
+vis_miss(krill_na, warn_large_data = FALSE, show_perc = FALSE)
+
+
+png("krill_missing_plot.png", width = 12, height = 8, units = "in", res = 300)
+
+vis_miss(krill_na, warn_large_data = FALSE, show_perc = FALSE)
+
+dev.off()
+
+
+
+```
+
+```{r}
+# select 10 columns for species check missing
+library(dplyr)
+library(naniar)
+
+selected_cols <- c(
+  
+  "Euphausia_eximia_furcilia_F4_Abundance",
+  "Stylocheiron_maximum_calyptopis_Abundance",
+  "Nyctiphanes_simplex_calyptopis_C3_Abundance",
+  "Euphausia_pacifica_furcilia_F4_Abundance",
+  "Euphausia_recurva_calyptopis_C2_Abundance",
+  "Thysanoessa_gregaria_adult_Abundance",
+  "Euphausia_recurva_damaged_Abundance",
+  "Thysanoessa_spinifera_larvae_Abundance",
+  "Nematoscelis_difficilis_larvae_Abundance",
+  "Thysanoessa_gregaria_juvenile_Abundance"
+)
+
+krill_selected <- krill %>%
+  select(all_of(selected_cols)) %>%
+  mutate(across(everything(), ~ na_if(., 0)))
+
+#png("krill_missing_10_plot.png", width = 12, height = 8, units = "in", res = 300)
+
+vis_miss(krill_selected, show_perc = TRUE)
+
+
+
+```
+
+
+## Merge Start
+
+#### 1.`Year_UTC`, `Month_UTC`, `Day_UTC`, `Time_UTC` ↔ time
+
+```{r}
+oah_bottle <- oah_bottle %>%
+  mutate(
+    Year_UTC = as.integer(Year_UTC),
+    Month_UTC = as.integer(Month_UTC),
+    Day_UTC = as.integer(Day_UTC)
+  )
+
+# one NA line
+oah_bottle <- oah_bottle %>%
+  filter(!is.na(Year_UTC) & !is.na(Month_UTC) & !is.na(Day_UTC))
+```
+
+```{r}
+# Keep only the date part
+oah_bottle <- oah_bottle %>%
+  mutate(Date = as.Date(paste(Year_UTC, Month_UTC, Day_UTC, sep = "-"), format = "%Y-%m-%d"))
+
+oah_bottle$Date
+```
+
+```{r}
+krill <- krill %>%
+  mutate(Date = as.Date(Date))
+
+#krill$Date
+
+# Check matching
+intersect(as.character(unique(oah_bottle$Date)), as.character(unique(krill$Date)))
+```
+
+
+#### Station ID
+```{r}
+# format Station_ID column
+krill$Station_ID <- paste(
+  sprintf('%05.1f', krill$Line),
+  sprintf('%05.1f', as.numeric(krill$Station)),
+  sep = ' '
+)
 
 ```
 
