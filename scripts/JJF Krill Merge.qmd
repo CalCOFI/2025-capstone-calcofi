@@ -3,6 +3,7 @@ title: "Untitled"
 format: html
 editor: visual
 ---
+
 ```{r}
 library(dplyr)
 library(naniar)
@@ -18,6 +19,7 @@ oah_bottle <- read_csv("~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/carb
 ```
 
 ## Check Missing for Krill
+
 ```{r}
 library(dplyr)
 library(naniar)
@@ -70,15 +72,16 @@ vis_miss(krill_selected, show_perc = TRUE)
 
 ```
 
-
 ## Merge Start
 
 #### 1.`Year_UTC`, `Month_UTC`, `Day_UTC`, `Time_UTC` ↔ time
+
 ```{r}
 
 ```
 
-----------
+------------------------------------------------------------------------
+
 ```{r}
 oah_bottle <- oah_bottle %>%
   mutate(
@@ -110,8 +113,8 @@ krill <- krill %>%
 intersect(as.character(unique(oah_bottle$Date)), as.character(unique(krill$Date)))
 ```
 
-
 #### Station ID
+
 ```{r}
 # format Station_ID column
 krill$Station_ID <- paste(
@@ -160,22 +163,136 @@ head(merged_krill)
 
 ```
 
-
 ```{r}
 library(dplyr)
 library(lubridate)
 
-# 处理 oah_bottle
+# oah_bottle
 oah_bottle <- oah_bottle %>%
   mutate(Year_Month = format(Date, "%Y-%m"))
 
-# 处理 krill 数据
+#  krill date month
 krill <- krill %>%
   mutate(Date = as.Date(Date),
          Year_Month = format(Date, "%Y-%m"))
 
-# 根据Year_Month和Station_ID合并
+# Year_Month and Station_ID
 merged_krill_2 <- inner_join(oah_bottle, krill, by = c("Year_Month", "Station_ID"))
+
+write_csv(merged_krill_2, "~/Desktop/197 data/merged_krill_2.csv")
 
 ```
 
+## EDA!!!!!!!!
+
+```{r}
+head(merged_krill_2)
+```
+
+```{r}
+# 如果尚未安装某些包，需要先 install.packages("包名")
+library(tidyverse)   # 包含 dplyr、tidyr、ggplot2 等
+library(readr)       # 读写 csv
+
+```
+
+```{r}
+# 假设数据路径如下，请根据自己的实际路径修改
+merged_krill_2 <- read_csv("~/Desktop/197 data/merged_krill_2.csv")
+```
+
+```{r}
+env_vars <- c("CTDTEMP_ITS90", "Salinity_PSS78", "DIC", "TA")
+
+# 示例：Euphausia pacifica （adult / juvenile），Thysanoessa spinifera （adult / juvenile）
+# 请把它替换成自己感兴趣的物种或发育阶段
+species_of_interest <- c("Euphausia_pacifica_adult_Abundance",
+                         "Euphausia_pacifica_juvenile_Abundance",
+                         "Thysanoessa_spinifera_adult_Abundance",
+                         "Thysanoessa_spinifera_juvenile_Abundance")
+
+# 提前把环境变量转为数值型，以免后续相关计算或可视化出错
+merged_krill_2 <- merged_krill_2 %>%
+  mutate(
+    across(.cols = all_of(env_vars), .fns = as.numeric)
+  )
+
+```
+
+3.  数据整形：长格式
+
+```{r}
+df_long <- merged_krill_2 %>%
+  # 只保留想用的环境变量 + 目标物种/阶段列
+  select(all_of(env_vars), all_of(species_of_interest)) %>%
+  pivot_longer(
+    cols = all_of(species_of_interest),
+    names_to = "SpeciesStage",
+    values_to = "Abundance"
+  ) %>%
+  # 去除在关键列中的 NA
+  drop_na(Abundance, CTDTEMP_ITS90, Salinity_PSS78, DIC, TA)
+
+# 如果只想看丰度>0的记录，可以再加一个过滤
+df_long <- df_long %>%
+  filter(Abundance > 0)
+
+```
+
+4.  可视化 1：箱线图 / 小提琴图
+
+目的：比较每个物种/阶段在某个环境变量上的分布范围。 下面以温度(CTDTEMP_ITS90)为例，做示范性箱线图。
+
+```{r}
+ggplot(df_long, aes(x = SpeciesStage, y = CTDTEMP_ITS90, fill = SpeciesStage)) +
+  geom_boxplot() +
+  # 也可使用 geom_violin() + geom_boxplot(width=0.1) 等组合
+  labs(title = "Temperature Distribution by Species/Stage",
+       x = "Species & Stage",
+       y = "CTDTEMP_ITS90 (°C)") +
+  theme_minimal() +
+  theme(axis.text.x = element_blank(),  # 若物种名过长，可隐藏x刻度文本并用下面替代
+        axis.ticks.x = element_blank()) +
+  # 为了显示物种名称，可以用下面替代 x 轴刻度
+  scale_x_discrete(labels = function(x) sub("_Abundance", "", x))
+
+```
+
+5.  可视化 2：温-盐二维散点图（分面或颜色区分物种） 目的：观察不同物种/阶段在温度与盐度两个维度如何分布，丰度高低也可用点大小或颜色表达。
+
+```{r}
+ggplot(df_long, aes(x = CTDTEMP_ITS90, y = Salinity_PSS78, 
+                    size = Abundance, color = SpeciesStage)) +
+  geom_point(alpha = 0.6) +
+  scale_size(range = c(1, 6)) +  # 控制点大小范围
+  labs(title = "Species/Stage Abundance in T-S Space",
+       x = "Temperature (°C)",
+       y = "Salinity (PSS78)",
+       color = "Species/Stage",
+       size = "Abundance") +
+  theme_minimal()
+
+```
+
+```{r}
+library(GGally)
+
+# 先只保留环境变量和 Abundance，这里不再区分多物种（或只保留一个物种）做示范
+# 如果要看多个物种，可以分开做或加上分facet
+df_for_pairs <- df_long %>%
+  select(Abundance, CTDTEMP_ITS90, Salinity_PSS78, DIC, TA) %>%
+  # 根据需求看是否要log transform之类的
+  mutate(
+    Abundance_log = log1p(Abundance) # 例：做 log(Abundance + 1)
+  ) %>%
+  drop_na()
+
+# 做散点矩阵
+ggpairs(df_for_pairs,
+        columns = c("Abundance_log", "CTDTEMP_ITS90", "Salinity_PSS78", "DIC", "TA"),
+        upper = list(continuous = wrap("cor", method = "pearson")),
+        lower = list(continuous = wrap("smooth", alpha = 0.5)),
+        diag  = list(continuous = "barDiag")) +
+  theme_bw()
+
+```
