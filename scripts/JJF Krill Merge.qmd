@@ -312,6 +312,217 @@ TukeyHSD(anova_mod)
 总丰度：计算每个物种在整个数据集中的丰度总和，选取丰度最高的若干个物种（比如前 5 或前 10）。
 出现频率：计算每个物种非零（>0）丰度在所有采样中的出现比例（presence frequency），若出现过于稀少，就可能缺乏代表性。
 ```{r}
+library(tidyverse)
+
+# 假设你有一个向量包含所有"物种_Abundance"列名
+# 例如你通过 grep("_Abundance$", colnames(merged_krill_2), value = TRUE) 得到
+all_krill_species_cols <- grep("_Abundance$", colnames(merged_krill_2), value = TRUE)
+
+# 1) 将这些列转成长表
+df_long_species <- merged_krill_2 %>%
+  pivot_longer(
+    cols = all_of(all_krill_species_cols),
+    names_to = "Species",
+    values_to = "Abundance"
+  )
+
+# 2) 按物种汇总: 计算总丰度 & 出现频率
+species_stats <- df_long_species %>%
+  group_by(Species) %>%
+  summarize(
+    total_abundance = sum(Abundance, na.rm = TRUE),
+    occurrence = sum(Abundance > 0, na.rm = TRUE),  # 出现次数
+    .groups = "drop"
+  ) %>%
+  mutate(
+    freq_percent = occurrence / nrow(merged_krill_2) * 100  # 出现频率（相对于采样行数）
+  )
+
+# 3) 根据总丰度排序，或根据出现频率排序
+species_stats_sorted <- species_stats %>%
+  arrange(desc(total_abundance))
+
+# 查看前 10 个物种
+head(species_stats_sorted, 20)
+
+```
+Euphausia_pacifica
+Thysanoessa_spinifera
+Nematoscelis_difficilis
+Nyctiphanes_simplex
+Stylocheiron_longicorne
+
+```{r}
+
+species <- c("Euphausia_pacifica", 
+             "Thysanoessa_spinifera",
+             "Nematoscelis_difficilis",
+             "Nyctiphanes_simplex",
+             "Stylocheiron_longicorne")
+
+
+stages <- c("adult", "juvenile","furcilia", "calyptopis")
+
+# column names
+abundance_cols <- expand.grid(species, stages) %>%
+  mutate(colname = paste0(Var1, "_", Var2, "_Abundance")) %>%
+  pull(colname)
+
+abundance_cols
+
+```
+
+```{r}
+# Environmental variables of interest
+env_vars <- c("CTDTEMP_ITS90", "Salinity_PSS78", "DIC", "TA", "Depth")
+
+merged_krill_2 <- merged_krill_2 %>%
+  mutate(across(all_of(env_vars), as.numeric))
+
+```
+
+4. Reshape the Selected Columns into Long Format
+```{r}
+df_long <- merged_krill_2 %>%
+  select(all_of(env_vars), all_of(abundance_cols)) %>%
+  pivot_longer(
+    cols = all_of(abundance_cols),
+    names_to = "SpeciesStage",
+    values_to = "Abundance"
+  ) %>%
+  drop_na(Abundance)
+
+df_long
+```
+5. (Optional) Split Species and Stage into Separate Columns
+```{r}
+df_long <- df_long %>%
+  mutate(
+    # Remove the trailing "_Abundance"
+    SpeciesStage_noAbund = gsub("_Abundance$", "", SpeciesStage)
+  ) %>%
+  separate(
+    col = SpeciesStage_noAbund,
+    into = c("Species", "Stage"),
+    sep = "_(?!.*_)",  # this regex attempts to split on the last underscore
+    remove = FALSE
+  )
+
+df_long
+```
+6. *Temperature* by Species & Stage
+```{r}
+# boxplot
+ggplot(df_long, aes(x = interaction(Species, Stage), y = CTDTEMP_ITS90, fill = Species)) +
+  geom_boxplot() +
+  labs(
+    title = "Temperature Distribution by Species and Stage",
+    x = "Species & Stage",
+    y = "CTDTEMP_ITS90 (°C)"
+  ) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+```{r}
+df_long$Stage <- factor(df_long$Stage, levels = c("adult", "juvenile", "furcilia", "calyptopis"))
+
+ggplot(df_long, aes(x = Stage, y = CTDTEMP_ITS90, fill = Stage)) +
+  geom_boxplot() +
+  facet_wrap(~ Species) +
+  labs(
+    title = "Temperature Distribution across Stages for Each Species",
+    x = "Stage",
+    y = "Temperature (°C)"
+  ) +
+  theme_bw()
+
+ggsave(file.path("JJF Krill Plots (Analysis)", "Temperature Distribution across Stages .png"))
+```
+7. Temperature vs. Salinity:T-S Diagram Faceted by Species (including Depth if needed)
+```{r}
+ggplot(df_long, aes(x = CTDTEMP_ITS90, y = Salinity_PSS78)) +
+  geom_point(aes(size = Abundance, color = Depth), alpha = 0.6) +
+  facet_wrap(~ Species) +
+  labs(
+    title = "T-S Diagram by Species (Point Color ~ Depth, Size ~ Abundance)",
+    x = "Temperature (°C)",
+    y = "Salinity (PSS78)",
+    size = "Abundance",
+    color = "Depth"
+  ) +
+  theme_minimal()
+
+ggsave(file.path("JJF Krill Plots (Analysis)", "T-S Diagram by Species (Point Color ~ Depth, Size ~ Abundance).png"))
+```
+```{r}
+# 安装并加载GGally
+# install.packages("GGally")
+library(GGally)
+library(dplyr)
+
+# Filter for Euphausia pacifica adult stage
+filtered_data <- df_long %>%
+  filter(Species == "Euphausia_pacifica", Stage == "adult") %>%
+  select(Abundance, CTDTEMP_ITS90, Salinity_PSS78, Depth)
+
+# Create the pairs plot with GGally
+ggpairs(filtered_data, 
+       columns = c("Abundance", "CTDTEMP_ITS90", "Salinity_PSS78", "Depth"),
+       diag = list(continuous = "barDiag"),
+       upper = list(continuous = wrap("cor", size = 4)),
+       lower = list(continuous = wrap("smooth", alpha = 0.5))) +
+  theme_bw() +
+  labs(title = "Correlation Plot for Euphausia pacifica (Adult Stage)")
+
+```
+
+```{r}
+ggplot(df_long, aes(x = CTDTEMP_ITS90, y = Salinity_PSS78)) +
+  geom_point(aes(color = Stage, size = Abundance), alpha = 0.6) +
+  facet_wrap(~ Species) +
+  labs(
+    title = "T-S Distribution (Colored by Stage, Sized by Abundance)",
+    x = "Temperature (°C)",
+    y = "Salinity (PSS78)"
+  ) +
+  theme_minimal()
+
+ggsave(file.path("JJF Krill Plots (Analysis)", "T-S Distribution(Stage, Abundance).png"))
+```
+
+8. Statistical Analysis Examples (ANOVA / Kruskal-Wallis)
+```{r}
+# Combine species and stage into one factor:
+df_long <- df_long %>%
+  mutate(SpeciesStageCombo = interaction(Species, Stage))
+
+# Kruskal-Wallis test (non-parametric):
+kruskal.test(CTDTEMP_ITS90 ~ SpeciesStageCombo, data = df_long)
+
+# ANOVA:
+aov_model <- aov(CTDTEMP_ITS90 ~ Species * Stage, data = df_long)
+summary(aov_model)
+TukeyHSD(aov_model)  # Post-hoc comparisons
+
+```
+Combine time or location data: if you want to see how these distributions change with Year_Month or Station_ID, you can facet by time or do grouped summaries.
+
+## New idea
+```{r}
+library(GGally)
+library(dplyr)
+
+# Select relevant columns, dropping NAs
+broad_corr_data <- df_long %>%
+  select(Abundance, CTDTEMP_ITS90, Salinity_PSS78, Depth, DIC, TA) %>%
+  drop_na()
+
+# Generate correlation plot
+ggcorr(broad_corr_data, label = TRUE, method = c("pairwise", "pearson"), 
+       label_alpha = TRUE, label_round = 2, hjust = 0.9) +
+  labs(title = "Overall Correlation Matrix of Environmental Variables and Krill Abundance") +
+  theme_bw()
 
 ```
 
