@@ -273,7 +273,7 @@ ggplot(df_long, aes(x = CTDTEMP_ITS90, y = Salinity_PSS78,
   theme_minimal()
 
 ```
-
+6. 可视化 3：多个环境变量的对比（散点矩阵 / ggpairs）
 ```{r}
 library(GGally)
 
@@ -296,3 +296,22 @@ ggpairs(df_for_pairs,
   theme_bw()
 
 ```
+
+7. 统计分析（可选）
+```{r}
+# Kruskal-Wallis 检验（非正态情况常用）
+kruskal.test(CTDTEMP_ITS90 ~ SpeciesStage, data = df_long)
+
+# 或 ANOVA
+anova_mod <- aov(CTDTEMP_ITS90 ~ SpeciesStage, data = df_long)
+summary(anova_mod)
+TukeyHSD(anova_mod)
+
+```
+1. 按总丰度或出现频率筛选
+总丰度：计算每个物种在整个数据集中的丰度总和，选取丰度最高的若干个物种（比如前 5 或前 10）。
+出现频率：计算每个物种非零（>0）丰度在所有采样中的出现比例（presence frequency），若出现过于稀少，就可能缺乏代表性。
+```{r}
+
+```
+
