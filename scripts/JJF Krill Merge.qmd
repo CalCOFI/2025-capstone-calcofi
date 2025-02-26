@@ -3,11 +3,15 @@ title: "Untitled"
 format: html
 editor: visual
 ---
-
 ```{r}
 library(dplyr)
 library(naniar)
+library(readr)
+library(lubridate)
+library(stringr)
+```
 
+```{r}
 krill <- read.csv("~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/krill_data/BTEDB_Abundances.csv")
 
 oah_bottle <- read_csv("~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/carbonate_chem_data/carbonate_chem_bottle.csv")
@@ -70,7 +74,11 @@ vis_miss(krill_selected, show_perc = TRUE)
 ## Merge Start
 
 #### 1.`Year_UTC`, `Month_UTC`, `Day_UTC`, `Time_UTC` ↔ time
+```{r}
 
+```
+
+----------
 ```{r}
 oah_bottle <- oah_bottle %>%
   mutate(
@@ -89,7 +97,7 @@ oah_bottle <- oah_bottle %>%
 oah_bottle <- oah_bottle %>%
   mutate(Date = as.Date(paste(Year_UTC, Month_UTC, Day_UTC, sep = "-"), format = "%Y-%m-%d"))
 
-oah_bottle$Date
+#oah_bottle$Date
 ```
 
 ```{r}
@@ -111,6 +119,63 @@ krill$Station_ID <- paste(
   sprintf('%05.1f', as.numeric(krill$Station)),
   sep = ' '
 )
+
+```
+
+```{r}
+# they are numeric, not integer. so convert!!!
+krill <- krill %>%
+  mutate(Line = as.integer(Line), Station = as.integer(Station))
+
+```
+
+```{r}
+# clean oah_bottle `Station_ID`
+oah_bottle <- oah_bottle %>%
+  mutate(Station_ID = str_replace_all(Station_ID, "\\s+", ""))  # delete space
+
+# krill `Station_ID`
+krill <- krill %>%
+  mutate(Station_ID = paste0(
+    str_pad(as.integer(Line), 3, pad = "0"), ".",  
+    str_pad(as.integer(Station), 4, pad = "0"), ".0"
+  )) %>%
+  select(-Line, -Station)
+
+# Check matching
+intersect(unique(oah_bottle$Station_ID), unique(krill$Station_ID))
+
+```
+
+```{r, eval = False}
+merged_krill_1 <- inner_join(
+  oah_bottle,
+  krill,
+  by = join_by(Station_ID, Date)
+)
+
+head(merged_krill)
+
+# only 54 observation
+
+```
+
+
+```{r}
+library(dplyr)
+library(lubridate)
+
+# 处理 oah_bottle
+oah_bottle <- oah_bottle %>%
+  mutate(Year_Month = format(Date, "%Y-%m"))
+
+# 处理 krill 数据
+krill <- krill %>%
+  mutate(Date = as.Date(Date),
+         Year_Month = format(Date, "%Y-%m"))
+
+# 根据Year_Month和Station_ID合并
+merged_krill_2 <- inner_join(oah_bottle, krill, by = c("Year_Month", "Station_ID"))
 
 ```
 
