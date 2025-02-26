@@ -54,6 +54,15 @@ head(new_zooplankton$datetime_UTC)
 ```
 
 ```{r}
+intersect(unique(oah_bottle$datetime_UTC), unique(new_zooplankton$datetime_UTC))
+class(oah_bottle$datetime_UTC)
+class(new_zooplankton$datetime_UTC)
+attr(oah_bottle$datetime_UTC, "tzone")
+attr(new_zooplankton$datetime_UTC, "tzone")
+
+```
+
+```{r}
 # Station_ID (CALCOFI)  ↔ 0+ line + 0+ station 
 library(dplyr)
 library(stringr)
@@ -90,28 +99,42 @@ new_zooplankton <- new_zooplankton %>%
 ```
 
 ```{r}
-# Ship_Name ↔ ship (even if there are no overlapping values) 
-# no preprocessing is required
+# Ship_Name ↔ ship (even if there are no overlapping values. Actually it has overlapping)
+oah_bottle <- oah_bottle %>%
+  mutate(Ship_Name_clean = str_to_upper(Ship_Name) %>% #unify upper case
+           str_replace("^RV\\s+", ""))  # delete "RV "
+
+new_zooplankton <- new_zooplankton %>%
+  mutate(ship_clean = str_to_upper(ship))  # upper case
+
+# check matching
+matched_ships <- intersect(unique(oah_bottle$Ship_Name_clean), unique(new_zooplankton$ship_clean))
+print(matched_ships)
 ```
 
 ```{r}
 merged_data <- oah_bottle %>%
-  full_join(new_zooplankton, by = c("Station_ID", 
+  left_join(new_zooplankton, by = c("Station_ID", 
                                     "Latitude" = "latitude", 
                                     "Longitude" = "longitude", 
-                                    "datetime_UTC", 
-                                    "Ship_Name" = "ship"))
+                                    "datetime_UTC",
+                                    "Ship_Name_clean" = "ship_clean"))
 
+merged_data <- merged_data %>%
+  select(-Ship_Name_clean, -ship)
 
-head(merged_data)
 
 
 write_csv(merged_data, "~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/merged_newzoo_dataset.csv")
 
 ```
+
 ```{r}
-unique(merged_data$Station_ID)
-n_distinct(merged_data$Station_ID)
+head(merged_data)
+```
+
+```{r}
+nrow(merged_data)
 ```
 
 ## Old Merge (old zooplankton)

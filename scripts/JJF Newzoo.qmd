@@ -3,19 +3,24 @@ title: "Untitled"
 format: html
 editor: visual
 ---
+
 ## New Merge(new data)
+
 ```{r}
 # Load libraries
 library(readr)
 library(dplyr)
 library(lubridate)
 # Load data
-oah_bottle <- read_csv("~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/carbonate_chem_bottle.csv")
-new_zooplankton <- read_csv("~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/Zooplankton-new.csv")
+oah_bottle <- read_csv("~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/carbonate_chem_data/carbonate_chem_bottle.csv")
+new_zooplankton <- read_csv("~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/zoop_data/Zooplankton-new.csv")
 
 ```
+
 #### 1.`Year_UTC`, `Month_UTC`, `Day_UTC`, `Time_UTC` ↔ time
+
 Fix Time_UTC issue → Time_UTC of oah_bottle is all 00:00:00, so just ignore it and join with Date.
+
 ```{r}
 oah_bottle <- oah_bottle %>%
   mutate(
@@ -45,8 +50,10 @@ new_zooplankton <- new_zooplankton %>%
 intersect(as.character(unique(oah_bottle$Date)), as.character(unique(new_zooplankton$Date)))
 ```
 
-#### 2.Station_ID (CALCOFI)  ↔ 0+ line + 0+ station 
+#### 2.Station_ID (CALCOFI) ↔ 0+ line + 0+ station
+
 Unify Station_ID format and remove spaces in Station_ID in oah_bottle.
+
 ```{r}
 str(new_zooplankton$line)
 str(new_zooplankton$station)
@@ -74,8 +81,15 @@ new_zooplankton <- new_zooplankton %>%
 intersect(unique(oah_bottle$Station_ID), unique(new_zooplankton$Station_ID))
 
 ```
+
+```{r}
+
+```
+
 #### 3. Latitude, Longitude (CALCOFI) ↔ latitude, longitude
+
 Make sure Latitude / Longitude are numeric types to prevent join failure.
+
 ```{r}
 # oah_bottle's Latitude and Longitude are object type, convert to num
 oah_bottle <- oah_bottle %>%
@@ -93,9 +107,11 @@ sum(oah_bottle$Longitude %in% new_zooplankton$longitude)
 
 ```
 
-#### Aggregate oah_bottle by Date
+#### GIVEUP: Aggregate oah_bottle by Date (Don't run this chunck)
+
 Because oah_bottle is hourly data and new_zooplankton is daily data, oah_bottle must be aggregated first.
-```{r}
+
+```{r, eval = False}
 oah_bottle_daily <- oah_bottle %>%
   group_by(Station_ID, Latitude, Longitude, Date, Ship_Name) %>%
   summarise(
@@ -109,21 +125,48 @@ oah_bottle_daily <- oah_bottle %>%
 head(oah_bottle_daily)
 ```
 
-#### 4.Ship_Name ↔ ship 
+#### 4.Ship_Name ↔ ship (not use for merge!!!)
+
 ```{r}
-oah_bottle_daily <- oah_bottle_daily %>%
-  mutate(Ship_Name_clean = str_to_upper(Ship_Name) %>% str_replace("^RV\\s+", ""))
+oah_bottle <- oah_bottle %>%
+  mutate(Ship_Name_clean = str_to_upper(Ship_Name) %>% #unify upper case
+           str_replace("^RV\\s+", ""))  # delete "RV "
+
+oah_bottle <- oah_bottle %>%
+  select(-Ship_Name)
 
 new_zooplankton <- new_zooplankton %>%
-  mutate(ship_clean = str_to_upper(ship))
+  mutate(ship_clean = str_to_upper(ship))  # upper case
 
+new_zooplankton <- new_zooplankton %>%
+  select(-ship)
 
-intersect(unique(oah_bottle_daily$Ship_Name_clean), unique(new_zooplankton$ship_clean))
+# check matching
+intersect(unique(oah_bottle$Ship_Name_clean), unique(new_zooplankton$ship_clean))
 
 ```
 
-#### left_join()
+#### inner_join()
+
 ```{r}
+merged_data_0 <- inner_join(
+  oah_bottle,
+  new_zooplankton,
+  by = join_by(Station_ID, Date)
+)
+
+head(merged_data_0)
+
+write_csv(merged_data_0, "~/Desktop/Pstat197BC/merged_data_0.csv")
+
+```
+
+```{r}
+library(visdat)
+vis_dat(merged_data_0)
+```
+
+```{r, eval = False}
 merged_data_1 <- new_zooplankton %>%
   inner_join(oah_bottle_daily, by = c("Station_ID", 
                                 "latitude" = "Latitude", 
@@ -135,7 +178,7 @@ merged_data_1 <- new_zooplankton %>%
 head(merged_data_1)
 ```
 
-```{r}
+```{r, eval = False}
 merged_data_2 <- oah_bottle_daily %>%
   full_join(new_zooplankton, by = c("Station_ID", 
                                     "Latitude" = "latitude", 
@@ -146,7 +189,284 @@ merged_data_2 <- oah_bottle_daily %>%
 filter(merged_data_2, is.na(volume_sampled) & !is.na(avg_DIC))
 
 ```
+
 ```{r}
 colSums(is.na(merged_data_2)) 
 ```
 
+EDA
+
+```{r}
+# Load necessary libraries
+library(tidyverse)
+library(ggplot2)
+library(corrplot)
+library(broom)
+
+# Load data
+df <- read.csv("~/Desktop/Pstat197BC/merged_data_0.csv")
+
+# Select relevant variables and remove missing values
+df_filtered <- df %>%
+  select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, total_plankton, small_plankton) %>%
+  drop_na()
+
+```
+
+## 1. Data Preprocessing
+
+```{r}
+
+summary(df_filtered)
+
+# Check distributions
+df_filtered %>%
+  pivot_longer(cols = everything(), names_to = "Variable", values_to = "Value") %>%
+  ggplot(aes(x = Value)) +
+  geom_histogram(bins = 30, fill = "blue", alpha = 0.5) +
+  facet_wrap(~Variable, scales = "free") +
+  theme_minimal() +
+  labs(title = "Distribution of Environmental Factors and Plankton Counts")
+       
+```
+
+## 2.Exploratory Data Analysis (EDA)
+
+```{r}
+# Compute correlation matrix
+cor_matrix <- cor(df_filtered, use = "complete.obs")
+
+# Visualize the correlation matrix
+corrplot(cor_matrix, method = "color", type = "upper", tl.cex = 0.8, col = colorRampPalette(c("blue", "white", "red"))(200))
+
+ggsave(file.path("JiajiaF merged plots", "Station_Locations_DIC.png"))
+```
+
+```{r}
+
+df_filtered <- df %>%
+  select(Month_UTC, CTDTEMP_ITS90, total_plankton, small_plankton) %>%
+  drop_na()
+
+# Define seasons based on Month
+df_filtered <- df_filtered %>%
+  mutate(Season = case_when(
+    Month_UTC %in% c(12, 1, 2) ~ "Winter",
+    Month_UTC %in% c(3, 4, 5)  ~ "Spring",
+    Month_UTC %in% c(6, 7, 8)  ~ "Summer",
+    Month_UTC %in% c(9, 10, 11) ~ "Fall"
+  ))
+
+# Convert Season to a factor with ordered levels
+df_filtered$Season <- factor(df_filtered$Season, levels = c("Winter", "Spring", "Summer", "Fall"))
+
+# Boxplot: Temperature across Seasons
+ggplot(df_filtered, aes(x = Season, y = CTDTEMP_ITS90, fill = Season)) +
+  geom_boxplot() +
+  scale_fill_manual(values = c("Winter" = "#60a5fa",  # Muted Blue
+                                "Spring" = "#f9a8d4",  # Muted Pink
+                                "Summer" = "#86efac",  # Muted Green
+                                "Fall" = "#c08457")) +  # Yellow for Fall
+  theme_minimal() +
+  labs(title = "Temperature Distribution Across Seasons", x = "Season", y = "Temperature (°C)")
+
+
+# Boxplot: Total Plankton across Seasons
+ggplot(df_filtered, aes(x = Season, y = total_plankton, fill = Season)) +
+  geom_boxplot(outlier.shape = NA) +  # Hides extreme outliers to improve visualization
+  scale_y_continuous(limits = c(0, quantile(df_filtered$total_plankton, 0.95))) +  # Focus on 95% range
+  scale_fill_manual(values =c("Winter" = "#60a5fa",  # Muted Blue
+                                "Spring" = "#f9a8d4",  # Muted Pink
+                                "Summer" = "#86efac",  # Muted Green
+                                "Fall" = "#c08457")) +   
+  theme_minimal() +
+  labs(title = "Total Plankton Distribution Across Seasons (Adjusted)", 
+       x = "Season", y = "Total Plankton")
+
+
+# Scatter Plot: Temperature vs Total Plankton by Season
+ggplot(df_filtered, aes(x = CTDTEMP_ITS90, y = total_plankton, color = Season)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  theme_minimal() +
+  labs(title = "Effect of Temperature on Plankton Across Seasons", x = "Temperature (°C)", y = "Total Plankton")
+
+ggplot(df_filtered, aes(x = CTDTEMP_ITS90, y = total_plankton, color = Season)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  scale_y_continuous(limits = c(0, quantile(df_filtered$total_plankton, 0.95))) +  # Focus on 95% range
+  scale_color_manual(values = c("Winter" = "#ef4444",  
+                                "Spring" = "#22c55e",  
+                                "Summer" = "#3b82f6",  
+                                "Fall" = "#a855f7")) +  
+  theme_minimal() +
+  labs(title = "Effect of Temperature on Plankton Across Seasons (Adjusted)", 
+       x = "Temperature (°C)", y = "Total Plankton")
+
+
+# Regression models for Summer and Winter
+summer_model <- lm(total_plankton ~ CTDTEMP_ITS90, data = df_filtered %>% filter(Season == "Summer"))
+winter_model <- lm(total_plankton ~ CTDTEMP_ITS90, data = df_filtered %>% filter(Season == "Winter"))
+
+# Display regression results
+summary(summer_model)
+summary(winter_model)
+
+```
+
+```{r}
+ggplot(df_filtered, aes(x = CTDTEMP_ITS90, y = total_plankton, color = Season)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  scale_y_continuous(limits = c(0, quantile(df_filtered$total_plankton, 0.95))) +  # Focus on 95% range
+  scale_color_manual(values = c("Winter" = "#60a5fa",  # Muted Blue
+                                "Spring" = "#f9a8d4",  # Muted Pink
+                                "Summer" = "#86efac",  # Muted Green
+                                "Fall" = "#c08457")) + 
+  theme_minimal() +
+  labs(title = "Effect of Temperature on Plankton Across Seasons (Adjusted)", 
+       x = "Temperature (°C)", y = "Total Plankton")
+
+
+ggplot(df_filtered, aes(x = CTDTEMP_ITS90, y = total_plankton, color = Season)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", se = FALSE) +
+  scale_y_log10() +  # Apply log scale
+  scale_color_manual(values = c("Winter" = "#ef4444",  
+                                "Spring" = "#22c55e",  
+                                "Summer" = "#3b82f6",  
+                                "Fall" = "#a855f7")) +  
+  theme_minimal() +
+  labs(title = "Effect of Temperature on Plankton (Log Scale)", 
+       x = "Temperature (°C)", y = "Total Plankton (log scale)")
+
+ggplot(df_filtered, aes(x = CTDTEMP_ITS90, y = total_plankton)) +
+  geom_point(alpha = 0.5, aes(color = Season)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  scale_color_manual(values = c("Winter" = "#60a5fa",  # Muted Blue
+                                "Spring" = "#f9a8d4",  # Muted Pink
+                                "Summer" = "#86efac",  # Muted Green
+                                "Fall" = "#c08457")) +  
+  theme_minimal() +
+  facet_wrap(~Season, scales = "free_y") +  # Separate plots for each season
+  labs(title = "Effect of Temperature on Plankton by Season", 
+       x = "Temperature (°C)", y = "Total Plankton")
+
+
+```
+
+```{r}
+# Scatter plots: Environmental Factors vs Total Plankton
+df_filtered %>%
+  pivot_longer(cols = c(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA), names_to = "Factor", values_to = "Value") %>%
+  ggplot(aes(x = Value, y = total_plankton)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", color = "red", se = TRUE) +
+  facet_wrap(~Factor, scales = "free_x") +
+  theme_minimal() +
+  labs(title = "Effect of Environmental Factors on Total Plankton", x = "Environmental Factor Value", y = "Total Plankton")
+
+# Scatter plots: Environmental Factors vs Small Plankton
+df_filtered %>%
+  pivot_longer(cols = c(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA), names_to = "Factor", values_to = "Value") %>%
+  ggplot(aes(x = Value, y = small_plankton)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", color = "blue", se = TRUE) +
+  facet_wrap(~Factor, scales = "free_x") +
+  theme_minimal() +
+  labs(title = "Effect of Environmental Factors on Small Plankton", x = "Environmental Factor Value", y = "Small Plankton")
+
+```
+
+3.1 Linear Regression
+
+```{r}
+# Linear regression models
+lm_total <- lm(total_plankton ~ CTDTEMP_ITS90 + Salinity_PSS78 + DIC + TA, data = df_filtered)
+lm_small <- lm(small_plankton ~ CTDTEMP_ITS90 + Salinity_PSS78 + DIC + TA, data = df_filtered)
+
+# Display regression summaries
+summary(lm_total)
+summary(lm_small)
+
+```
+
+```{r}
+# LOESS Smoothing for non-linear relationships
+df_filtered %>%
+  pivot_longer(cols = c(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA), names_to = "Factor", values_to = "Value") %>%
+  ggplot(aes(x = Value, y = total_plankton)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "loess", color = "darkred", se = TRUE) +
+  facet_wrap(~Factor, scales = "free_x") +
+  theme_minimal() +
+  labs(title = "Non-Linear Effect of Environmental Factors on Total Plankton")
+
+```
+
+```{r}
+# Compute correlation matrix
+cor_matrix <- cor(df_filtered, use = "complete.obs")
+
+# Visualize correlation matrix
+corrplot(cor_matrix, method = "color", type = "upper", tl.cex = 0.8, col = colorRampPalette(c("blue", "white", "red"))(200))
+
+```
+
+```{r}
+# Scatter plots of environmental factors vs total_plankton
+df_filtered %>%
+  pivot_longer(cols = c(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA), names_to = "Factor", values_to = "Value") %>%
+  ggplot(aes(x = Value, y = total_plankton)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "lm", color = "red") +
+  facet_wrap(~Factor, scales = "free_x") +
+  theme_minimal() +
+  labs(title = "Effect of Environmental Factors on Total Plankton", x = "Environmental Factor Value", y = "Total Plankton")
+
+```
+
+```{r}
+# Linear regression models
+lm_total <- lm(total_plankton ~ CTDTEMP_ITS90 + Salinity_PSS78 + DIC + TA, data = df_filtered)
+lm_small <- lm(small_plankton ~ CTDTEMP_ITS90 + Salinity_PSS78 + DIC + TA, data = df_filtered)
+
+# Display regression results
+summary(lm_total)
+summary(lm_small)
+
+```
+
+```{r}
+# Group by Year and calculate mean values
+df_trend <- df %>%
+  group_by(Year_UTC) %>%
+  summarize(
+    mean_DIC = mean(DIC, na.rm = TRUE),
+    mean_TA = mean(TA, na.rm = TRUE),
+    mean_Salinity = mean(Salinity_PSS78, na.rm = TRUE),
+    mean_total_plankton = mean(total_plankton, na.rm = TRUE)
+  )
+
+```
+
+```{r}
+# Plot trends of environmental variables
+df_trend %>%
+  pivot_longer(cols = c(mean_DIC, mean_TA, mean_Salinity), names_to = "Variable", values_to = "Value") %>%
+  ggplot(aes(x = Year_UTC, y = Value, color = Variable)) +
+  geom_line() +
+  geom_point() +
+  theme_minimal() +
+  labs(title = "Long-term Trends of Environmental Factors", x = "Year", y = "Mean Value")
+
+```
+
+```{r}
+ggplot(df_trend, aes(x = Year_UTC, y = mean_total_plankton)) +
+  geom_line(color = "red") +
+  geom_point() +
+  theme_minimal() +
+  labs(title = "Trend of Total Plankton Over Time", x = "Year", y = "Mean Total Plankton")
+
+```
