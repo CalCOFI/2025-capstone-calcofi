@@ -842,3 +842,18 @@ esper_bottle_combined %>%
     style = 3
   ) %>%
   gtsave("images/ESPER_comparison/DIC_res_table.png")
+
+### HYPOTHESIS TESTING
+for (i in 1:6) {
+  print(models[i%%3+1])
+  print(inputs[i%%2+1])
+  esper_bottle_combined %>%
+    filter(
+      ESPER_model == models[i%%3+1], ESPER_input == inputs[i%%2+1]
+    ) %>%
+    pull(
+      TA_res
+    ) %>%
+    t.test() %>%
+    print()
+}
