@@ -3,6 +3,9 @@
 ### EDA ON MERGED BOTTLE DATASET ###
 
 library(tidyverse)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
 library(maps)
 library(ggforce)
 library(scales)
@@ -87,20 +90,13 @@ merged_bottle_data %>%
 ggsave("images/merged_bottle_EDA/depth_vs_yr.png", bg = "white")
 
 # plot map of stations and number of observations at stations
-world <- map_data("world")
-ca_counties <- subset(map_data("county"), region == "california")
+world <- ne_countries(scale = "medium", returnclass = "sf")
+# states <- st_as_sf(map("state", plot = FALSE, fill = TRUE))
 
-ggplot() +
-  geom_polygon(
-    data = world,
-    aes(
-      x = long,
-      y = lat,
-      group = group
-    ),
-    color = "black",
-    fill = "gray90"
-  ) +
+ggplot(
+  data = world
+) +
+  geom_sf(fill = "antiquewhite1") +
   geom_point(
     data = merged_bottle_data %>%
       group_by(
@@ -117,14 +113,21 @@ ggplot() +
       size = Count
     )
   ) +
-  coord_cartesian(
-    xlim = c(merged_bottle_data$Longitude %>% min() - 1.5, merged_bottle_data$Longitude %>% max() + 3.5),
+  coord_sf(
+    xlim = c(merged_bottle_data$Longitude %>% min() - 2, merged_bottle_data$Longitude %>% max() + 2),
     ylim = c(merged_bottle_data$Latitude %>% min() - 1,merged_bottle_data$Latitude %>% max() + 1)
   ) +
-  theme_minimal() +
+  theme(
+    panel.grid.major = element_line(
+      color = gray(0.5), 
+      linetype = "solid", 
+      linewidth = 0.5
+    ), 
+    panel.background = element_rect(fill = "aliceblue")
+  ) +
   labs(
-    x = "Longitude",
-    y = "Latitude",
+    x = NULL,
+    y = NULL,
     title = "Number of Observations by Station in Merged Bottle Dataset",
     size = "Observations"
   )

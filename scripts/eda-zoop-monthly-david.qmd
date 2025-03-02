@@ -1,5 +1,8 @@
 ```{r}
+library(tidyverse)
 library(ggplot2)
+library(sf)
+library(rnaturalearth)
 ```
 
 
@@ -39,7 +42,64 @@ ggplot(data=zoop, aes(x=Salinity_PSS78, y=DIC)) +
   theme_minimal()
 ```
 
-```{r}
 
+```{r}
+# filter coordinate columns and count observations by station
+coords_total_plankton <- zoop[, c('latitude', 'longitude', 'total_plankton')] %>%
+  group_by(latitude, longitude) %>%
+  summarise(avg_total_plankton = mean(total_plankton))
+  # rename(Num_Observations = n)
+
+# find min and max coordinates
+min_lon <- min(coords_total_plankton[, 'longitude'])
+max_lon <- max(coords_total_plankton[, 'longitude'])
+
+min_lat <- min(coords_total_plankton[, 'latitude'])
+max_lat <- max(coords_total_plankton[, 'latitude'])
+```
+
+```{r}
+zoop[, c('latitude', 'longitude', 'total_plankton')]
+```
+
+
+```{r}
+# see if total plankton count varies by location
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+ggplot(data=world) + 
+  geom_sf(fill = "antiquewhite1") + 
+  geom_point(data=coords_total_plankton, aes(x=longitude, y=latitude, size=avg_total_plankton)) + 
+  coord_sf(xlim = c(min_lon - 1, max_lon + 4), ylim = c(min_lat - 1, max_lat + 1), expand=FALSE) + 
+  theme(panel.grid.major = element_line(color = gray(0.5), linetype = "solid", 
+        linewidth = 0.5), panel.background = element_rect(fill = "aliceblue"))
+```
+
+
+
+```{r}
+coords_merged_zoop <- zoop[, c('Station_ID', 'latitude', 'longitude')] %>%
+  count(Station_ID, latitude, longitude) %>%
+  group_by(Station_ID) %>%
+  summarise(Latitude = mean(latitude), Longitude = mean(longitude), N = sum(n)) 
+  
+coords_merged_zoop
+```
+
+```{r}
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+station_loc_map_new <- ggplot(data=world) + 
+  geom_sf(fill = "antiquewhite1") + 
+  geom_point(data=coords_merged_zoop, aes(x=Longitude, y=Latitude, size = Count), alpha=0.6) + 
+  coord_sf(xlim = c(min_lon - 1, max_lon + 4), ylim = c(min_lat - 1, max_lat + 1), expand=FALSE) + 
+  theme(panel.grid.major = element_line(color = gray(0.5), linetype = "solid", 
+        linewidth = 0.5), panel.background = element_rect(fill = "aliceblue")) + 
+  ggtitle('Station Locations of Updated Merged Zooplankton Data')
+
+# save figure
+ggsave(path='../images/merged_zoop_EDA', filename='station_loc_map_new.png')
+
+station_loc_map_new
 ```
 

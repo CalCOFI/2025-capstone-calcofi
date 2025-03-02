@@ -4,8 +4,8 @@
 
 library(tidyverse)
 
-sea_dtd_data <- function(qty, df, date_col) {
-  # Seasonally detrend selected columns in a dataframe based on Sutton, A. J. et al. (2022)
+sea_dtd_data_vec <- function(qty, df, date_col) {
+  # Seasonally detrend in a dataframe based on Sutton, A. J. et al. (2022)
   #   qty: vector of column names of variables to be detrended
   #   df: dataframe with observations to be detrended
   #   date_col: date column to be used for fitting

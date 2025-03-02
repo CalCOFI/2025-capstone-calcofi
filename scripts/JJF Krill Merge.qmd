@@ -3,22 +3,560 @@ title: "Untitled"
 format: html
 editor: visual
 ---
+
 ```{r}
-library(visdat)
-krill <- read.csv("~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/krill_data/BTEDB_Abundances.csv")
+library(dplyr)
+library(naniar)
+library(readr)
+library(lubridate)
+library(stringr)
 ```
+
+```{r}
+krill <- read.csv("~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/krill_data/BTEDB_Abundances.csv")
+
+oah_bottle <- read_csv("~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/carbonate_chem_data/carbonate_chem_bottle.csv")
+```
+
+## Check Missing for Krill
 
 ```{r}
 library(dplyr)
 library(naniar)
 
-df_sampled <- df %>% slice_sample(n = 1000)
-vis_miss(krill)
+# convert 0 to NA
+krill_na <- krill %>% mutate(across(where(is.numeric), ~ na_if(., 0)))
 
-library(naniar)
+# Missing Plot
+vis_miss(krill_na, warn_large_data = FALSE, show_perc = FALSE)
 
-vis_miss(df, warn_large_data = FALSE)
+
+png("krill_missing_plot.png", width = 12, height = 8, units = "in", res = 300)
+
+vis_miss(krill_na, warn_large_data = FALSE, show_perc = FALSE)
+
+dev.off()
+
 
 
 ```
 
+```{r}
+# select 10 columns for species check missing
+library(dplyr)
+library(naniar)
+
+selected_cols <- c(
+  
+  "Euphausia_eximia_furcilia_F4_Abundance",
+  "Stylocheiron_maximum_calyptopis_Abundance",
+  "Nyctiphanes_simplex_calyptopis_C3_Abundance",
+  "Euphausia_pacifica_furcilia_F4_Abundance",
+  "Euphausia_recurva_calyptopis_C2_Abundance",
+  "Thysanoessa_gregaria_adult_Abundance",
+  "Euphausia_recurva_damaged_Abundance",
+  "Thysanoessa_spinifera_larvae_Abundance",
+  "Nematoscelis_difficilis_larvae_Abundance",
+  "Thysanoessa_gregaria_juvenile_Abundance"
+)
+
+krill_selected <- krill %>%
+  select(all_of(selected_cols)) %>%
+  mutate(across(everything(), ~ na_if(., 0)))
+
+#png("krill_missing_10_plot.png", width = 12, height = 8, units = "in", res = 300)
+
+vis_miss(krill_selected, show_perc = TRUE)
+
+
+
+```
+
+## Merge Start
+
+#### 1.`Year_UTC`, `Month_UTC`, `Day_UTC`, `Time_UTC` ↔ time
+
+```{r}
+
+```
+
+------------------------------------------------------------------------
+
+```{r}
+oah_bottle <- oah_bottle %>%
+  mutate(
+    Year_UTC = as.integer(Year_UTC),
+    Month_UTC = as.integer(Month_UTC),
+    Day_UTC = as.integer(Day_UTC)
+  )
+
+# one NA line
+oah_bottle <- oah_bottle %>%
+  filter(!is.na(Year_UTC) & !is.na(Month_UTC) & !is.na(Day_UTC))
+```
+
+```{r}
+# Keep only the date part
+oah_bottle <- oah_bottle %>%
+  mutate(Date = as.Date(paste(Year_UTC, Month_UTC, Day_UTC, sep = "-"), format = "%Y-%m-%d"))
+
+#oah_bottle$Date
+```
+
+```{r}
+krill <- krill %>%
+  mutate(Date = as.Date(Date))
+
+#krill$Date
+
+# Check matching
+intersect(as.character(unique(oah_bottle$Date)), as.character(unique(krill$Date)))
+```
+
+#### Station ID
+
+```{r}
+# format Station_ID column
+krill$Station_ID <- paste(
+  sprintf('%05.1f', krill$Line),
+  sprintf('%05.1f', as.numeric(krill$Station)),
+  sep = ' '
+)
+
+```
+
+```{r}
+# they are numeric, not integer. so convert!!!
+krill <- krill %>%
+  mutate(Line = as.integer(Line), Station = as.integer(Station))
+
+```
+
+```{r}
+# clean oah_bottle `Station_ID`
+oah_bottle <- oah_bottle %>%
+  mutate(Station_ID = str_replace_all(Station_ID, "\\s+", ""))  # delete space
+
+# krill `Station_ID`
+krill <- krill %>%
+  mutate(Station_ID = paste0(
+    str_pad(as.integer(Line), 3, pad = "0"), ".",  
+    str_pad(as.integer(Station), 4, pad = "0"), ".0"
+  )) %>%
+  select(-Line, -Station)
+
+# Check matching
+intersect(unique(oah_bottle$Station_ID), unique(krill$Station_ID))
+
+```
+
+```{r, eval = False}
+merged_krill_1 <- inner_join(
+  oah_bottle,
+  krill,
+  by = join_by(Station_ID, Date)
+)
+
+head(merged_krill)
+
+# only 54 observation
+
+```
+
+```{r}
+library(dplyr)
+library(lubridate)
+
+# oah_bottle
+oah_bottle <- oah_bottle %>%
+  mutate(Year_Month = format(Date, "%Y-%m"))
+
+#  krill date month
+krill <- krill %>%
+  mutate(Date = as.Date(Date),
+         Year_Month = format(Date, "%Y-%m"))
+
+# Year_Month and Station_ID
+merged_krill_2 <- inner_join(oah_bottle, krill, by = c("Year_Month", "Station_ID"))
+
+write_csv(merged_krill_2, "~/Desktop/197 data/merged_krill_2.csv")
+
+```
+
+## EDA!!!!!!!!
+
+```{r}
+head(merged_krill_2)
+```
+
+```{r}
+# 如果尚未安装某些包，需要先 install.packages("包名")
+library(tidyverse)   # 包含 dplyr、tidyr、ggplot2 等
+library(readr)       # 读写 csv
+
+```
+
+```{r}
+# 假设数据路径如下，请根据自己的实际路径修改
+merged_krill_2 <- read_csv("~/Desktop/197 data/merged_krill_2.csv")
+```
+
+```{r}
+env_vars <- c("CTDTEMP_ITS90", "Salinity_PSS78", "DIC", "TA")
+
+# 示例：Euphausia pacifica （adult / juvenile），Thysanoessa spinifera （adult / juvenile）
+# 请把它替换成自己感兴趣的物种或发育阶段
+species_of_interest <- c("Euphausia_pacifica_adult_Abundance",
+                         "Euphausia_pacifica_juvenile_Abundance",
+                         "Thysanoessa_spinifera_adult_Abundance",
+                         "Thysanoessa_spinifera_juvenile_Abundance")
+
+# 提前把环境变量转为数值型，以免后续相关计算或可视化出错
+merged_krill_2 <- merged_krill_2 %>%
+  mutate(
+    across(.cols = all_of(env_vars), .fns = as.numeric)
+  )
+
+```
+
+3.  数据整形：长格式
+
+```{r}
+df_long <- merged_krill_2 %>%
+  # 只保留想用的环境变量 + 目标物种/阶段列
+  select(all_of(env_vars), all_of(species_of_interest)) %>%
+  pivot_longer(
+    cols = all_of(species_of_interest),
+    names_to = "SpeciesStage",
+    values_to = "Abundance"
+  ) %>%
+  # 去除在关键列中的 NA
+  drop_na(Abundance, CTDTEMP_ITS90, Salinity_PSS78, DIC, TA)
+
+# 如果只想看丰度>0的记录，可以再加一个过滤
+df_long <- df_long %>%
+  filter(Abundance > 0)
+
+```
+
+4.  可视化 1：箱线图 / 小提琴图
+
+目的：比较每个物种/阶段在某个环境变量上的分布范围。 下面以温度(CTDTEMP_ITS90)为例，做示范性箱线图。
+
+```{r}
+ggplot(df_long, aes(x = SpeciesStage, y = CTDTEMP_ITS90, fill = SpeciesStage)) +
+  geom_boxplot() +
+  # 也可使用 geom_violin() + geom_boxplot(width=0.1) 等组合
+  labs(title = "Temperature Distribution by Species/Stage",
+       x = "Species & Stage",
+       y = "CTDTEMP_ITS90 (°C)") +
+  theme_minimal() +
+  theme(axis.text.x = element_blank(),  # 若物种名过长，可隐藏x刻度文本并用下面替代
+        axis.ticks.x = element_blank()) +
+  # 为了显示物种名称，可以用下面替代 x 轴刻度
+  scale_x_discrete(labels = function(x) sub("_Abundance", "", x))
+
+```
+
+5.  可视化 2：温-盐二维散点图（分面或颜色区分物种） 目的：观察不同物种/阶段在温度与盐度两个维度如何分布，丰度高低也可用点大小或颜色表达。
+
+```{r}
+ggplot(df_long, aes(x = CTDTEMP_ITS90, y = Salinity_PSS78, 
+                    size = Abundance, color = SpeciesStage)) +
+  geom_point(alpha = 0.6) +
+  scale_size(range = c(1, 6)) +  # 控制点大小范围
+  labs(title = "Species/Stage Abundance in T-S Space",
+       x = "Temperature (°C)",
+       y = "Salinity (PSS78)",
+       color = "Species/Stage",
+       size = "Abundance") +
+  theme_minimal()
+
+```
+
+6.  可视化 3：多个环境变量的对比（散点矩阵 / ggpairs）
+
+```{r}
+library(GGally)
+
+# 先只保留环境变量和 Abundance，这里不再区分多物种（或只保留一个物种）做示范
+# 如果要看多个物种，可以分开做或加上分facet
+df_for_pairs <- df_long %>%
+  select(Abundance, CTDTEMP_ITS90, Salinity_PSS78, DIC, TA) %>%
+  # 根据需求看是否要log transform之类的
+  mutate(
+    Abundance_log = log1p(Abundance) # 例：做 log(Abundance + 1)
+  ) %>%
+  drop_na()
+
+# 做散点矩阵
+ggpairs(df_for_pairs,
+        columns = c("Abundance_log", "CTDTEMP_ITS90", "Salinity_PSS78", "DIC", "TA"),
+        upper = list(continuous = wrap("cor", method = "pearson")),
+        lower = list(continuous = wrap("smooth", alpha = 0.5)),
+        diag  = list(continuous = "barDiag")) +
+  theme_bw()
+
+```
+
+7.  统计分析（可选）
+
+```{r}
+# Kruskal-Wallis 检验（非正态情况常用）
+kruskal.test(CTDTEMP_ITS90 ~ SpeciesStage, data = df_long)
+
+# 或 ANOVA
+anova_mod <- aov(CTDTEMP_ITS90 ~ SpeciesStage, data = df_long)
+summary(anova_mod)
+TukeyHSD(anova_mod)
+
+```
+
+1.  按总丰度或出现频率筛选 总丰度：计算每个物种在整个数据集中的丰度总和，选取丰度最高的若干个物种（比如前 5 或前 10）。 出现频率：计算每个物种非零（\>0）丰度在所有采样中的出现比例（presence frequency），若出现过于稀少，就可能缺乏代表性。
+
+```{r}
+library(tidyverse)
+
+# 假设你有一个向量包含所有"物种_Abundance"列名
+# 例如你通过 grep("_Abundance$", colnames(merged_krill_2), value = TRUE) 得到
+all_krill_species_cols <- grep("_Abundance$", colnames(merged_krill_2), value = TRUE)
+
+# 1) 将这些列转成长表
+df_long_species <- merged_krill_2 %>%
+  pivot_longer(
+    cols = all_of(all_krill_species_cols),
+    names_to = "Species",
+    values_to = "Abundance"
+  )
+
+# 2) 按物种汇总: 计算总丰度 & 出现频率
+species_stats <- df_long_species %>%
+  group_by(Species) %>%
+  summarize(
+    total_abundance = sum(Abundance, na.rm = TRUE),
+    occurrence = sum(Abundance > 0, na.rm = TRUE),  # 出现次数
+    .groups = "drop"
+  ) %>%
+  mutate(
+    freq_percent = occurrence / nrow(merged_krill_2) * 100  # 出现频率（相对于采样行数）
+  )
+
+# 3) 根据总丰度排序，或根据出现频率排序
+species_stats_sorted <- species_stats %>%
+  arrange(desc(total_abundance))
+
+# 查看前 10 个物种
+head(species_stats_sorted, 20)
+
+```
+
+Euphausia_pacifica Thysanoessa_spinifera Nematoscelis_difficilis Nyctiphanes_simplex Stylocheiron_longicorne
+
+```{r}
+
+species <- c("Euphausia_pacifica", 
+             "Thysanoessa_spinifera",
+             "Nematoscelis_difficilis",
+             "Nyctiphanes_simplex",
+             "Stylocheiron_longicorne")
+
+
+stages <- c("adult", "juvenile","furcilia", "calyptopis")
+
+# column names
+abundance_cols <- expand.grid(species, stages) %>%
+  mutate(colname = paste0(Var1, "_", Var2, "_Abundance")) %>%
+  pull(colname)
+
+abundance_cols
+
+```
+
+```{r}
+# Environmental variables of interest
+env_vars <- c("CTDTEMP_ITS90", "Salinity_PSS78", "DIC", "TA", "Depth")
+
+merged_krill_2 <- merged_krill_2 %>%
+  mutate(across(all_of(env_vars), as.numeric))
+
+```
+
+4.  Reshape the Selected Columns into Long Format
+
+```{r}
+df_long <- merged_krill_2 %>%
+  select(all_of(env_vars), all_of(abundance_cols)) %>%
+  pivot_longer(
+    cols = all_of(abundance_cols),
+    names_to = "SpeciesStage",
+    values_to = "Abundance"
+  ) %>%
+  drop_na(Abundance)
+
+df_long
+```
+
+5.  (Optional) Split Species and Stage into Separate Columns
+
+```{r}
+df_long <- df_long %>%
+  mutate(
+    # Remove the trailing "_Abundance"
+    SpeciesStage_noAbund = gsub("_Abundance$", "", SpeciesStage)
+  ) %>%
+  separate(
+    col = SpeciesStage_noAbund,
+    into = c("Species", "Stage"),
+    sep = "_(?!.*_)",  # this regex attempts to split on the last underscore
+    remove = FALSE
+  )
+
+df_long
+
+```
+```{r}
+df_long_nonzero <- df_long %>%
+  filter(Abundance > 0)
+
+df_long_nonzero
+```
+
+6.  *Temperature* by Species & Stage
+
+```{r}
+# boxplot
+ggplot(df_long, aes(x = interaction(Species, Stage), y = CTDTEMP_ITS90, fill = Species)) +
+  geom_boxplot() +
+  labs(
+    title = "Temperature Distribution by Species and Stage",
+    x = "Species & Stage",
+    y = "CTDTEMP_ITS90 (°C)"
+  ) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+```
+
+```{r}
+df_long$Stage <- factor(df_long$Stage, levels = c("adult", "juvenile", "furcilia", "calyptopis"))
+
+ggplot(df_long, aes(x = Stage, y = CTDTEMP_ITS90, fill = Stage)) +
+  geom_boxplot() +
+  facet_wrap(~ Species) +
+  labs(
+    title = "Temperature Distribution across Stages for Each Species",
+    x = "Stage",
+    y = "Temperature (°C)"
+  ) +
+  theme_bw()
+
+ggsave(file.path("JJF Krill Plots (Analysis)", "Temperature Distribution across Stages .png"))
+```
+
+7.  Temperature vs. Salinity:T-S Diagram Faceted by Species (including Depth if needed)
+
+```{r}
+ggplot(df_long_nonzero, aes(x = CTDTEMP_ITS90, y = Abundance)) +
+  geom_point(aes(color = Depth), alpha = 0.6) +
+  facet_wrap(~ Species, scale = "free") +
+  labs(
+    title = "T-S Diagram by Species (Point Color ~ Depth)",
+    x = "Temperature",
+    y = "Abundance",
+    color = "Depth"
+  ) +
+  scale_color_gradient(low = "lightblue", high = "darkblue", guide = guide_colourbar(reverse = TRUE)) +
+  theme_minimal()
+
+ggsave(file.path("JJF Krill Plots (Analysis)", "T-S Diagram by Species (Point Color ~ Depth, Size ~ Abundance).png"))
+```
+
+```{r}
+# 安装并加载GGally
+# install.packages("GGally")
+library(GGally)
+library(dplyr)
+
+# Filter for Euphausia pacifica adult stage
+filtered_data <- df_long %>%
+  filter(Species == "Euphausia_pacifica", Stage == "adult") %>%
+  select(Abundance, CTDTEMP_ITS90, Salinity_PSS78, Depth)
+
+# Create the pairs plot with GGally
+ggpairs(filtered_data, 
+       columns = c("Abundance", "CTDTEMP_ITS90", "Salinity_PSS78", "Depth"),
+       diag = list(continuous = "barDiag"),
+       upper = list(continuous = wrap("cor", size = 4)),
+       lower = list(continuous = wrap("smooth", alpha = 0.5))) +
+  theme_bw() +
+  labs(title = "Correlation Plot for Euphausia pacifica (Adult Stage)")
+
+```
+
+```{r}
+ggplot(df_long_nonzero, aes(x = CTDTEMP_ITS90, y = Abundance)) +
+  geom_point(aes(color = Stage), alpha = 0.6) +
+  facet_wrap(~ Species, scale = "free") +
+  labs(
+    title = "Krill Abundance Across Temperature (Stage Variations)",
+    x = "Temperature (°C)",
+    y = "Abundance"
+  ) +
+  theme_minimal()
+
+ggsave(file.path("JJF Krill Plots (Analysis)", "Krill Abundance Across Temperature (Stage Variations).png"))
+
+head(df_long_nonzero)
+head(df_long)
+```
+```{r}
+ggplot(df_long, aes(x = DIC, y = Abundance)) +
+  geom_point(aes(color = Stage), alpha = 0.6) +
+  facet_wrap(~ Species, scale = "free") +
+  labs(
+    title = "T-S Distribution (DIC vs. Abundance)",
+    x = "DIC",
+    y = "Abundance"
+  ) +
+  theme_minimal()
+
+#ggsave(file.path("JJF Krill Plots (Analysis)", "T-S Distribution DIC Abundance"))
+```
+
+8.  Statistical Analysis Examples (ANOVA / Kruskal-Wallis)
+
+```{r}
+# Combine species and stage into one factor:
+df_long <- df_long %>%
+  mutate(SpeciesStageCombo = interaction(Species, Stage))
+
+# Kruskal-Wallis test (non-parametric):
+kruskal.test(CTDTEMP_ITS90 ~ SpeciesStageCombo, data = df_long)
+
+# ANOVA:
+aov_model <- aov(CTDTEMP_ITS90 ~ Species * Stage, data = df_long)
+summary(aov_model)
+TukeyHSD(aov_model)  # Post-hoc comparisons
+
+```
+
+Combine time or location data: if you want to see how these distributions change with Year_Month or Station_ID, you can facet by time or do grouped summaries.
+
+## New idea
+
+```{r}
+library(GGally)
+library(dplyr)
+
+# Select relevant columns, dropping NAs
+broad_corr_data <- df_long %>%
+  select(Abundance, CTDTEMP_ITS90, Salinity_PSS78, Depth, DIC, TA) %>%
+  drop_na()
+
+# Generate correlation plot
+ggcorr(broad_corr_data, label = TRUE, method = c("pairwise", "pearson"), 
+       label_alpha = TRUE, label_round = 2, hjust = 0.9) +
+  labs(title = "Overall Correlation Matrix of Environmental Variables and Krill Abundance") +
+  theme_bw()
+
+```
