@@ -273,7 +273,9 @@ ggplot(df_long, aes(x = CTDTEMP_ITS90, y = Salinity_PSS78,
   theme_minimal()
 
 ```
-6. 可视化 3：多个环境变量的对比（散点矩阵 / ggpairs）
+
+6.  可视化 3：多个环境变量的对比（散点矩阵 / ggpairs）
+
 ```{r}
 library(GGally)
 
@@ -297,7 +299,8 @@ ggpairs(df_for_pairs,
 
 ```
 
-7. 统计分析（可选）
+7.  统计分析（可选）
+
 ```{r}
 # Kruskal-Wallis 检验（非正态情况常用）
 kruskal.test(CTDTEMP_ITS90 ~ SpeciesStage, data = df_long)
@@ -308,9 +311,9 @@ summary(anova_mod)
 TukeyHSD(anova_mod)
 
 ```
-1. 按总丰度或出现频率筛选
-总丰度：计算每个物种在整个数据集中的丰度总和，选取丰度最高的若干个物种（比如前 5 或前 10）。
-出现频率：计算每个物种非零（>0）丰度在所有采样中的出现比例（presence frequency），若出现过于稀少，就可能缺乏代表性。
+
+1.  按总丰度或出现频率筛选 总丰度：计算每个物种在整个数据集中的丰度总和，选取丰度最高的若干个物种（比如前 5 或前 10）。 出现频率：计算每个物种非零（\>0）丰度在所有采样中的出现比例（presence frequency），若出现过于稀少，就可能缺乏代表性。
+
 ```{r}
 library(tidyverse)
 
@@ -346,11 +349,8 @@ species_stats_sorted <- species_stats %>%
 head(species_stats_sorted, 20)
 
 ```
-Euphausia_pacifica
-Thysanoessa_spinifera
-Nematoscelis_difficilis
-Nyctiphanes_simplex
-Stylocheiron_longicorne
+
+Euphausia_pacifica Thysanoessa_spinifera Nematoscelis_difficilis Nyctiphanes_simplex Stylocheiron_longicorne
 
 ```{r}
 
@@ -381,7 +381,8 @@ merged_krill_2 <- merged_krill_2 %>%
 
 ```
 
-4. Reshape the Selected Columns into Long Format
+4.  Reshape the Selected Columns into Long Format
+
 ```{r}
 df_long <- merged_krill_2 %>%
   select(all_of(env_vars), all_of(abundance_cols)) %>%
@@ -394,7 +395,9 @@ df_long <- merged_krill_2 %>%
 
 df_long
 ```
-5. (Optional) Split Species and Stage into Separate Columns
+
+5.  (Optional) Split Species and Stage into Separate Columns
+
 ```{r}
 df_long <- df_long %>%
   mutate(
@@ -409,8 +412,17 @@ df_long <- df_long %>%
   )
 
 df_long
+
 ```
-6. *Temperature* by Species & Stage
+```{r}
+df_long_nonzero <- df_long %>%
+  filter(Abundance > 0)
+
+df_long_nonzero
+```
+
+6.  *Temperature* by Species & Stage
+
 ```{r}
 # boxplot
 ggplot(df_long, aes(x = interaction(Species, Stage), y = CTDTEMP_ITS90, fill = Species)) +
@@ -424,6 +436,7 @@ ggplot(df_long, aes(x = interaction(Species, Stage), y = CTDTEMP_ITS90, fill = S
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 ```
+
 ```{r}
 df_long$Stage <- factor(df_long$Stage, levels = c("adult", "juvenile", "furcilia", "calyptopis"))
 
@@ -439,22 +452,25 @@ ggplot(df_long, aes(x = Stage, y = CTDTEMP_ITS90, fill = Stage)) +
 
 ggsave(file.path("JJF Krill Plots (Analysis)", "Temperature Distribution across Stages .png"))
 ```
-7. Temperature vs. Salinity:T-S Diagram Faceted by Species (including Depth if needed)
+
+7.  Temperature vs. Salinity:T-S Diagram Faceted by Species (including Depth if needed)
+
 ```{r}
-ggplot(df_long, aes(x = CTDTEMP_ITS90, y = Salinity_PSS78)) +
-  geom_point(aes(size = Abundance, color = Depth), alpha = 0.6) +
-  facet_wrap(~ Species) +
+ggplot(df_long_nonzero, aes(x = CTDTEMP_ITS90, y = Abundance)) +
+  geom_point(aes(color = Depth), alpha = 0.6) +
+  facet_wrap(~ Species, scale = "free") +
   labs(
-    title = "T-S Diagram by Species (Point Color ~ Depth, Size ~ Abundance)",
-    x = "Temperature (°C)",
-    y = "Salinity (PSS78)",
-    size = "Abundance",
+    title = "T-S Diagram by Species (Point Color ~ Depth)",
+    x = "Temperature",
+    y = "Abundance",
     color = "Depth"
   ) +
+  scale_color_gradient(low = "lightblue", high = "darkblue", guide = guide_colourbar(reverse = TRUE)) +
   theme_minimal()
 
 ggsave(file.path("JJF Krill Plots (Analysis)", "T-S Diagram by Species (Point Color ~ Depth, Size ~ Abundance).png"))
 ```
+
 ```{r}
 # 安装并加载GGally
 # install.packages("GGally")
@@ -478,20 +494,37 @@ ggpairs(filtered_data,
 ```
 
 ```{r}
-ggplot(df_long, aes(x = CTDTEMP_ITS90, y = Salinity_PSS78)) +
-  geom_point(aes(color = Stage, size = Abundance), alpha = 0.6) +
-  facet_wrap(~ Species) +
+ggplot(df_long_nonzero, aes(x = CTDTEMP_ITS90, y = Abundance)) +
+  geom_point(aes(color = Stage), alpha = 0.6) +
+  facet_wrap(~ Species, scale = "free") +
   labs(
-    title = "T-S Distribution (Colored by Stage, Sized by Abundance)",
+    title = "Krill Abundance Across Temperature (Stage Variations)",
     x = "Temperature (°C)",
-    y = "Salinity (PSS78)"
+    y = "Abundance"
   ) +
   theme_minimal()
 
-ggsave(file.path("JJF Krill Plots (Analysis)", "T-S Distribution(Stage, Abundance).png"))
+ggsave(file.path("JJF Krill Plots (Analysis)", "Krill Abundance Across Temperature (Stage Variations).png"))
+
+head(df_long_nonzero)
+head(df_long)
+```
+```{r}
+ggplot(df_long, aes(x = DIC, y = Abundance)) +
+  geom_point(aes(color = Stage), alpha = 0.6) +
+  facet_wrap(~ Species, scale = "free") +
+  labs(
+    title = "T-S Distribution (DIC vs. Abundance)",
+    x = "DIC",
+    y = "Abundance"
+  ) +
+  theme_minimal()
+
+#ggsave(file.path("JJF Krill Plots (Analysis)", "T-S Distribution DIC Abundance"))
 ```
 
-8. Statistical Analysis Examples (ANOVA / Kruskal-Wallis)
+8.  Statistical Analysis Examples (ANOVA / Kruskal-Wallis)
+
 ```{r}
 # Combine species and stage into one factor:
 df_long <- df_long %>%
@@ -506,9 +539,11 @@ summary(aov_model)
 TukeyHSD(aov_model)  # Post-hoc comparisons
 
 ```
+
 Combine time or location data: if you want to see how these distributions change with Year_Month or Station_ID, you can facet by time or do grouped summaries.
 
 ## New idea
+
 ```{r}
 library(GGally)
 library(dplyr)
@@ -525,4 +560,3 @@ ggcorr(broad_corr_data, label = TRUE, method = c("pairwise", "pearson"),
   theme_bw()
 
 ```
-
