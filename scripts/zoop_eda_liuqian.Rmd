@@ -9,6 +9,14 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+Variable descriptions: `small_plankton`: Standardized volume of plankton with individual displacement volumes <5 ml(the eggs and larvae of fish found mainly in the upper 200 meters of the water column, also called the near-surface waters.)
+`total plankton`: Standardized volume of plankton in the sample
+`volume_sampled`: Volume of water sampled by the net
+
+For net tow samples, laboratory processing begins with plankton volume determination of the bongo net sample that is preserved in formalin. Two volumes are measured by displacement for each sample: total volume and "small volume". Total volume includes everything in the sample except any non-planktonic organisms such as juvenile and adult fish, large cephalopods, and pelagic crabs.
+
+The total volume is determined by measuring the volume of plankton and formalin together, and subtracting the volume of formalin remaining once the plankton has been strained out. "Small volume" is determined using the same method, however, small volume is the total volume with the large plankters removed (salps and jellies).
+
 ```{r}
 # Load necessary libraries
 library(ggplot2)
@@ -30,7 +38,7 @@ merged_zoop_avg_monthly <- merged_zoop_avg_monthly %>%
 ggplot(merged_zoop_avg_monthly, aes(x = YearMonth, y = Station_ID, size = total_plankton, color = total_plankton)) +
   geom_point(alpha = 0.7) +
   scale_color_viridis_c() +          
-  scale_size(range = c(5, 10)) +     # control the size range of the points
+  scale_size(range = c(1, 5)) +     # control the size range of the points
   labs(title = "Scatter Plot with Size and Color Representing total_plankton",
        x = "Year-Month",
        y = "Station",
@@ -85,18 +93,118 @@ ggplot(zmerged_zoop_avg_monthly_filtered, aes(x = YearMonth, y = total_plankton)
 ```
 
 ```{r}
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+
+# Get all unique station IDs and sort them
+all_stations <- sort(unique(merged_zoop_avg_monthly_filtered$Station_ID))
+
+# Compute indices for evenly spaced selection of 16 stations
+selected_indices <- round(seq(1, length(all_stations), length.out = 16))
+stations_to_plot <- all_stations[selected_indices]
+
+# Filter the dataset for these 16 stations
+subset_data <- merged_zoop_avg_monthly_filtered %>%
+  filter(Station_ID %in% stations_to_plot)
+
+# Create the faceted time series plot
+ggplot(subset_data, aes(x = YearMonth, y = total_plankton)) +
+  geom_line() +
+  facet_wrap(~ Station_ID, ncol = 4) +  # Adjust ncol as desired
+  labs(
+    title = "Time Series for 16 'Evenly Spaced' Stations",
+    x = "Year-Month",
+    y = "Total Plankton"
+  ) +
+  scale_x_date(date_breaks = "4 year", date_labels = "%Y") +
+  theme_minimal()
+
+```
+
+
+```{r}
 # remove outliers
-zmerged_zoop_avg_monthly_filtered <- merged_zoop_avg_monthly %>%
-  filter(total_plankton <= 2000, Year_UTC >= 2005)
+merged_zoop_avg_monthly_filtered <- merged_zoop_avg_monthly %>%
+  filter(total_plankton <= 2000, Year_UTC >= 2005) %>% 
+  #select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, total_plankton, small_plankton, large_plankton) %>%
+  drop_na()
+
 ggplot(zmerged_zoop_avg_monthly_filtered, aes(x = YearMonth, y = Station_ID, size = total_plankton, color = total_plankton)) +
   geom_point(alpha = 0.7) +
   scale_color_viridis_c() +          
-  scale_size(range = c(5, 10)) +     # control the size range of the points
+  scale_size(range = c(2, 6)) +     # control the size range of the points
   labs(title = "Scatter Plot with Size and Color Representing total_plankton",
        x = "Year-Month",
        y = "Station",
        color = "total_plankton",
        size = "total_plankton") +
   theme_minimal()
+```
+
+```{r}
+library(naniar)
+vis_miss(merged_zoop_avg_monthly) 
+```
+
+```{r}
+library(ggcorrplot)
+merged_zoop_avg_monthly_filtered %>%
+  pivot_longer(cols = everything(), names_to = "Variable", values_to = "Value") %>%
+  ggplot(aes(x = Value)) +
+  geom_histogram(bins = 30, fill = "blue", alpha = 0.5) +
+  facet_wrap(~Variable, scales = "free") +
+  theme_minimal() +
+  labs(title = "Distribution of Environmental Factors and Plankton Counts")
+       
+
+```
+
+```{r}
+library(corrplot)
+
+# Compute correlation matrix
+cor_matrix <- cor(merged_zoop_avg_monthly_filtered, use = "complete.obs")
+
+# Visualize the correlation matrix
+corrplot(cor_matrix, method = "color", type = "upper", tl.cex = 0.8, col = colorRampPalette(c("blue", "white", "red"))(200))
+```
+
+```{r}
+# seasonal 
+merged_zoop_avg_monthly_filtered <- merged_zoop_avg_monthly_filtered %>%
+  mutate(Season = case_when(
+    Month_UTC %in% c(12, 1, 2) ~ "Winter",
+    Month_UTC %in% c(3, 4, 5)  ~ "Spring",
+    Month_UTC %in% c(6, 7, 8)  ~ "Summer",
+    Month_UTC %in% c(9, 10, 11) ~ "Fall"
+  ))
+
+merged_zoop_avg_monthly_filtered$Season <- factor(merged_zoop_avg_monthly_filtered$Season, levels = c("Winter", "Spring", "Summer", "Fall"))
+
+ggplot(merged_zoop_avg_monthly_filtered, aes(x = TA, y = total_plankton)) +
+  geom_point(alpha = 0.5, aes(color = Season)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  scale_color_manual(values = c("Winter" = "#60a5fa",  # Muted Blue
+                                "Spring" = "#f9a8d4",  # Muted Pink
+                                "Summer" = "#86efac",  # Muted Green
+                                "Fall" = "#c08457")) +  
+  theme_minimal() +
+  facet_wrap(~Season, scales = "free_y") +  # Separate plots for each season
+  labs(title = "Effect of DIC on Plankton by Season", 
+       x = "DIC(micromoles/kg)", y = "Total Plankton")
+```
+
+```{r}
+merged_zoop_avg_monthly_filtered <- merged_zoop_avg_monthly_filtered %>% mutate(
+  Month_fac = as.factor(Month_UTC)
+)
+ggplot(merged_zoop_avg_monthly_filtered, aes(x = Season, y = CTDTEMP_ITS90, fill = Season)) +
+  geom_boxplot() 
+```
+
+```{r}
+ggplot(merged_zoop_avg_monthly_filtered, aes(x = Season, y = total_plankton, fill = Season)) +
+  geom_boxplot() 
 ```
 
