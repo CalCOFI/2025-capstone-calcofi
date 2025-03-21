@@ -1,0 +1,302 @@
+# Preprocessing
+```{r}
+# Load in data
+bottle_data <- read_csv(here::here("data/merged_bottle_co2sys.csv"))
+krill_data <- read_csv(here::here("data/krill_data/BTEDB_Abundances.csv"))
+
+head(bottle_data)
+head(krill_data)
+
+nrow(bottle_data) #4125
+nrow(krill_data) #7482
+```
+```{r}
+# Cleaning
+
+## Make sure values are numeric
+bottle_data <- bottle_data %>% mutate(DIC = as.numeric(DIC),
+                                  TA = as.numeric(TA),
+                                  Depth = as.numeric(Depth),
+                                  CTDTEMP_ITS90 = as.numeric(CTDTEMP_ITS90),
+                                  Salinity_PSS78 = as.numeric(Salinity_PSS78),
+                                  Longitude = as.numeric(Longitude),
+                                  Latitude = as.numeric(Latitude)
+                                  )
+
+## Create `Station_ID` variable in krill dataset by merging `Line` and `Station`
+krill_data$Station_ID <- paste(
+  sprintf('%05.1f', krill_data$Line),
+  sprintf('%05.1f', as.numeric(krill_data$Station)),
+  sep = ' '
+)
+
+krill_data <- krill_data %>%
+  relocate(Station_ID, .before = Line)
+
+## Separating `Date` into Year, Month, and Day variables
+krill_data <- krill_data %>%
+  mutate(
+    Year_UTC = year(Date),
+    Month_UTC = month(Date),
+    Day_UTC = day(Date),
+    .after = Date
+  )
+
+head(krill_data)
+```
+
+```{r}
+num_cc<- bottle_data[,c("Date_cc", "Year_UTC", "Month_UTC", "Day_UTC", "Station_ID", 
+                      "Latitude", "Longitude", "TA", "DIC", "Depth", 
+                      "CTDTEMP_ITS90", "Salinity_PSS78", "pHin", "pHout")]
+
+monthly_bottle_data <- num_cc %>% group_by(Year_UTC, Month_UTC, Station_ID) %>% 
+  summarise(across(everything(), mean),
+            .groups = 'drop')  %>%
+  as.data.frame()
+
+# Merged data
+merged_krill <- inner_join(
+  monthly_bottle_data, 
+  krill_data,
+  by = join_by(Year_UTC == Year_UTC, Month_UTC == Month_UTC, Station_ID == Station_ID)
+)
+nrow(merged_krill) #104
+
+#write_csv(CV_merged_krill, here::here("data/CV_merged_krill.csv"))
+
+## Remove NaN values for pH (in and out)
+merged_krill <- merged_krill %>% filter(is.na(pHin) == F | is.na(pHout) == F)
+head(merged_krill)
+nrow(merged_krill) #70
+
+
+## Remove columns (taxa) if all abundance values = 0
+# merged_krill <- merged_krill %>% select(1:27, which(colSums(.[, 28:252]) != 0) + 27)
+# dim(merged_krill)
+
+# Create Total_Abundance
+merged_krill <- merged_krill %>%
+  mutate(Total_Abundance = rowSums(across(28:last_col()), na.rm = TRUE))
+
+```
+
+```{r}
+# Look at krill species that Erin mentioned
+# ***Refer to paper!!!
+taxa_data <- merged_krill %>% select(1:27, starts_with("Euphausia_pacifica"), starts_with("Thysanoessa_spinifera"), starts_with("Nyctiphanes_simplex"), starts_with("Euphausia_eximia"), starts_with("Euphausia_gibboides"), starts_with("Euphausia_recurva"), starts_with("Stylocheiron_affine"), starts_with("Euphausia_hemigibba"), starts_with("Nematoscelis_difficilis"), starts_with("Thysanoessa_gregaria"))
+head(taxa_data)
+
+#write_csv(taxa_data, here::here("data/CV_krill_taxa_data.csv"))
+```
+
+```{r}
+krill_taxa <- c("Euphausia_pacifica", "Thysanoessa_spinifera", "Nyctiphanes_simplex",
+                "Euphausia_eximia", "Euphausia_gibboides", "Euphausia_recurva",
+                "Stylocheiron_affine", "Euphausia_hemigibba", "Nematoscelis_difficilis",
+                "Thysanoessa_gregaria")
+
+for (taxon in krill_taxa) {
+  matching_cols <- grep(paste0("^", taxon), names(merged_krill), value = TRUE)
+  
+  if (length(matching_cols) > 0) {
+    merged_krill[[paste0(taxon, "_Total")]] <- rowSums(merged_krill[, matching_cols], na.rm = TRUE)
+  }
+}
+
+# View the new columns
+head(merged_krill)
+
+select(merged_krill, contains("Total")) 
+
+select(merged_krill, contains("Euphausia_pacifica")) 
+
+merged_krill %>%
+  filter(Euphausia_pacifica_Total == 0) # 90
+
+
+```
+```{r}
+library(dplyr)
+
+# Define krill taxa prefixes
+krill_taxa <- c("Euphausia_pacifica", "Thysanoessa_spinifera", "Nyctiphanes_simplex",
+                "Euphausia_eximia", "Euphausia_gibboides", "Euphausia_recurva",
+                "Stylocheiron_affine", "Euphausia_hemigibba", "Nematoscelis_difficilis",
+                "Thysanoessa_gregaria")
+
+# Get column names that start with each taxon
+taxa_columns <- lapply(krill_taxa, function(taxa) {
+  select(merged_krill, starts_with(taxa)) %>% names()
+})
+
+# Print result
+names(taxa_columns) <- krill_taxa
+print(taxa_columns)
+
+```
+
+```{r}
+
+# Identify all columns that contain "Total" in their name
+total_columns <- names(merged_krill)[grepl("Total", names(merged_krill))]
+
+# Create a data frame showing the count of zeros for each "Total" column
+zero_counts_table <- data.frame(
+  Column_Name = total_columns,
+  Zero_Count = sapply(total_columns, function(col) sum(merged_krill[[col]] == 0, na.rm = TRUE))
+)
+
+# Display the table
+print(zero_counts_table)
+
+library(knitr)
+library(kableExtra)
+kable(zero_counts_table, caption = "Number of Zero Observations in Total Abundance per Taxa", row.names = F)
+
+zero_counts_table %>%
+  kbl(caption = "Number of Zero Observations in Total Abundance per Taxa", row.names = F) %>%
+  kable_styling(full_width = FALSE, bootstrap_options = c("striped", "hover", "condensed", "responsive"))
+
+
+
+```
+
+```{r}
+head(merged_krill)
+krill_taxa_data <- merged_krill %>% select(1:27, starts_with("Euphausia_pacifica"), starts_with("Thysanoessa_spinifera"), starts_with("Nyctiphanes_simplex"), starts_with("Euphausia_eximia"), starts_with("Euphausia_gibboides"), starts_with("Euphausia_recurva"), starts_with("Stylocheiron_affine"), starts_with("Euphausia_hemigibba"), starts_with("Nematoscelis_difficilis"), starts_with("Thysanoessa_gregaria"))
+head(krill_taxa_data)
+
+totals_data <- merged_krill %>% select(1:27, starts_with("Euphausia_pacifica"), starts_with("Thysanoessa_spinifera"), starts_with("Nyctiphanes_simplex"), starts_with("Euphausia_eximia"), starts_with("Euphausia_gibboides"), starts_with("Euphausia_recurva"), starts_with("Stylocheiron_affine"), starts_with("Euphausia_hemigibba"), starts_with("Nematoscelis_difficilis"), starts_with("Thysanoessa_gregaria"), Total_Abundance)
+```
+
+```{r}
+krill_total_data <- merged_krill %>% select(1:27, Total_Abundance)
+head(krill_total_data)
+```
+
+# EDA
+
+```{r}
+krill_total_data %>%
+  ggplot(aes(x=Total_Abundance, y=pHin)) +
+  geom_jitter(width = 0.5, size = 1) +
+  geom_smooth(method = "lm", se = F, col = "red") +
+  labs(title = "pH vs. Total Krill Abundance")
+
+cor(krill_total_data$Total_Abundance, krill_total_data$pHin)
+
+cor(krill_taxa_data$Euphausia_pacifica_Total, krill_total_data$pHin)
+cor(krill_taxa_data$Nematoscelis_difficilis_Total, krill_total_data$pHin)
+cor(krill_taxa_data$Thysanoessa_gregaria_Total, krill_total_data$pHin)
+```
+
+```{r}
+library(ggplot2)
+
+ggplot() + 
+  geom_violin(data = krill_taxa_data, aes(x = "Euphausia pacifica", y = Euphausia_pacifica_Total), 
+              fill = "blue", alpha = 0.5, color = "black") +
+  geom_violin(data = krill_taxa_data, aes(x = "Nematoscelis difficilis", y = Nematoscelis_difficilis_Total), 
+              fill = "red", alpha = 0.5, color = "black") +
+  geom_violin(data = krill_taxa_data, aes(x = "Thysanoessa gregaria", y = Thysanoessa_gregaria_Total), 
+              fill = "purple", alpha = 0.5, color = "black") +
+  geom_violin(data = krill_total_data, aes(x = "Total_Abundance", y = Total_Abundance), 
+              fill = "green", alpha = 0.5, color = "black") +
+  labs(title = "Total Krill Abundance Distribution", x = "Taxa", y = "Abundance") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for readability
+
+
+
+```
+
+```{r}
+
+ggplot() +
+  geom_boxplot(data = krill_taxa_data, aes(x = "Euphausia_pacifica", y = Euphausia_pacifica_Total), 
+               fill = "blue", alpha = 0.5, color = "black") +
+  geom_boxplot(data = krill_taxa_data, aes(x = "Nematoscelis_difficilis", y = Nematoscelis_difficilis_Total), 
+               fill = "red", alpha = 0.5, color = "black") +
+  geom_boxplot(data = krill_taxa_data, aes(x = "Thysanoessa_gregaria", y = Thysanoessa_gregaria_Total), 
+               fill = "purple", alpha = 0.5, color = "black") +
+  geom_boxplot(data = krill_total_data, aes(x = "Total_Abundance", y = Total_Abundance), 
+               fill = "green", alpha = 0.5, color = "black") +
+  labs(title = "Total Krill Abundance Distribution", x = "Taxa", y = "Abundance") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))  # Rotate x-axis labels for readability
+
+```
+
+```{r}
+ggplot(krill_taxa_data, aes(x=Euphausia_pacifica_Total)) +
+  geom_histogram(bins = 50) +
+  theme_bw() +
+  ggtitle("Distribution of Total Euphausia Pacifica Abundance") +
+  labs(x="Total Euphausia Pacifica Abundance", y="Count")
+```
+
+```{r}
+ggplot(krill_taxa_data, aes(x=Nematoscelis_difficilis_Total)) +
+  geom_histogram(bins = 50) +
+  theme_bw() +
+  ggtitle("Distribution of Total Nematoscelis Difficilis Abundance") +
+  labs(x="Total Nematoscelis Difficilis Abundance", y="Count")
+```
+
+```{r}
+ggplot(krill_taxa_data, aes(x=Thysanoessa_gregaria_Total)) +
+  geom_histogram(bins = 50) +
+  theme_bw() +
+  ggtitle("Distribution of Total Thysanoessa Gregaria Abundance") +
+  labs(x="Total Thysanoessa Gregaria Abundance", y="Count")
+```
+
+```{r}
+library(corrplot)
+krill_total_data %>%
+  select(TA, DIC, Depth, CTDTEMP_ITS90, Salinity_PSS78, pHin, MaxDepth, Total_Abundance) %>%
+  cor(use = "pairwise.complete.obs") %>% 
+  corrplot(type = "lower", diag = FALSE, addCoef.col = 1)
+
+cor_matrix <- krill_taxa_data %>%
+  select(TA, DIC, Depth, CTDTEMP_ITS90, Salinity_PSS78, pHin, MaxDepth, 
+         Euphausia_pacifica_Total, Nematoscelis_difficilis_Total, Thysanoessa_gregaria_Total) %>%
+  cor(use = "pairwise.complete.obs")
+
+corrplot(cor_matrix, 
+         type = "lower", 
+         diag = FALSE, 
+         addCoef.col = "black",
+         tl.col = "black",
+         tl.cex = 0.6,
+         tl.srt = 45, 
+         number.cex = 0.7,  
+         mar = c(2, 2, 2, 2))    
+
+cor_matrix <- totals_data %>%
+  select(TA, DIC, Depth, CTDTEMP_ITS90, Salinity_PSS78, pHin, MaxDepth, 
+         Euphausia_pacifica_Total, Nematoscelis_difficilis_Total, Thysanoessa_gregaria_Total, Total_Abundance) %>%
+  cor(use = "pairwise.complete.obs")
+
+corrplot(cor_matrix, 
+         type = "lower", 
+         diag = FALSE, 
+         addCoef.col = "black",
+         tl.col = "black",
+         tl.cex = 0.6,
+         tl.srt = 45, 
+         number.cex = 0.5,  
+         mar = c(2, 2, 2, 2))   
+```
+# Models
+- time series
+- linear/non-linear model
+- glm/mixed effects model
+objectives
+- use variables to see how pH affects krill abundance
+- use more observations to see what would be a good predictor for krill abundance
+main datasets
+-totals_data (contains carbonchem/oceanographic data, and the krill_total_data and krill_taxa_data)
+-krill_total_data (Total_Abundance)
+-krill_taxa_data (contains 10 taxa data including total per taxa, specifically looking at top 3 with least amount of 0 values)
