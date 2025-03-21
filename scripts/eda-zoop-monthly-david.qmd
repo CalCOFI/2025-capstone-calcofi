@@ -23,6 +23,19 @@ dic_ts <- as.ts(zoop$DIC, zoop$Date)
 plot.ts(dic_ts)
 ```
 
+# Plankton Time Series
+```{r}
+total_plankton_ts <- as.ts(zoop$total_plankton, zoop$Date)
+plot.ts(total_plankton_ts)
+```
+
+
+```{r}
+small_plankton_ts <- as.ts(zoop$small_plankton, zoop$Date)
+plot.ts(small_plankton_ts)
+```
+
+
 # Effect of DIC and Salinity on Zooplankton
 ```{r}
 ggplot(data=zoop, aes(x=Salinity_PSS78, y=total_plankton)) + 
