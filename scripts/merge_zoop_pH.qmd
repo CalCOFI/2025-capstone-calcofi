@@ -81,9 +81,9 @@ merged_cc_zoop_data <- inner_join(
 ```
 
 ```{r}
-merged_cc_zoop_data$pHout
+# save dataset
+write.csv(merged_cc_zoop_data, '../data/zoop_data/zooplankton_pH.csv', row.names=FALSE)
 ```
-
 
 
 # Quarterly Average
