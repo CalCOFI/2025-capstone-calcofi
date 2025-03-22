@@ -9,11 +9,14 @@ library(ModelMetrics)
 library(gt)
 library(cowplot)
 
-### READ IN DATA ###
+#READ IN DATA
 source("scripts/ESPER_analysis/ESPER_out_proc.R")
 esper_bottle_combined <- esper_out_proc() %>%
   mutate(
     ESPER_input = factor(ESPER_input, levels = c("lim", "all"), ordered = TRUE)
+  ) %>%
+  filter(
+    Salnty > 30
   )
 
 models <- c("Mixed", "LIR", "NN")
@@ -552,7 +555,7 @@ esper_bottle_combined %>%
     row_group_as_column = TRUE
   ) %>%
   tab_header(
-    title = "ESPERs Error Metrics"
+    title = "ESPER Error Metrics"
   ) %>%
   tab_stubhead(
     label = "Model"
@@ -726,7 +729,7 @@ esper_bottle_combined %>%
     y = "RMSE/SD",
     x = "Year",
     col = "Quantity"
-  )
+  ) %>%
 ggsave("images/ESPER_comparison/rmse_by_year.png", bg = "white")
 
 # generate table of TA residuals summary statistics 
@@ -842,6 +845,112 @@ esper_bottle_combined %>%
     style = 3
   ) %>%
   gtsave("images/ESPER_comparison/DIC_res_table.png")
+
+# mean relative error by year
+esper_bottle_combined %>%
+  group_by(
+    ESPER_model, ESPER_input, Year_UTC
+  ) %>%
+  summarize(
+    TA_mean_err = mean(TA_rel, na.rm = TRUE)*100,
+    DIC_mean_err = mean(DIC_rel, na.rm = TRUE)*100
+  ) %>%
+  ungroup() %>%
+  add_row(
+    ESPER_model = rep(c("LIR", "Mixed", "NN"), each = 12),
+    ESPER_input = rep(c("all","lim"), each = 6, length.out = 36),
+    Year_UTC = rep(2002:2007,6), 
+    TA_mean_err = rep(NA, 36),
+    DIC_mean_err = rep(NA, 36)
+  ) %>%
+  pivot_longer(
+    cols = c(TA_mean_err, DIC_mean_err),
+    names_to = "qty",
+    values_to = "mean_err"
+  ) %>%
+  ggplot(
+    aes(
+      x = Year_UTC,
+    )
+  ) +
+  geom_hline(
+    yintercept = 0,
+    lty = 3
+  ) +
+  geom_line(
+    aes(
+      y = mean_err,
+      group = qty,
+      col = qty
+    ),
+    na.rm = TRUE
+  ) +
+  theme_bw() +
+  facet_grid(
+    ESPER_input ~ ESPER_model
+  ) +
+  scale_color_discrete(
+    labels = c("DIC", "TA"),
+    type = c("blue", "red")
+  ) +
+  labs(
+    y = "Mean Percent Error",
+    x = "Year",
+    col = "Quantity"
+  )
+
+# mean percent error by depth
+esper_bottle_combined %>%
+  group_by(
+    ESPER_model, ESPER_input, Year_UTC
+  ) %>%
+  summarize(
+    TA_mean_err = mean(TA_rel, na.rm = TRUE)*100,
+    DIC_mean_err = mean(DIC_rel, na.rm = TRUE)*100
+  ) %>%
+  ungroup() %>%
+  add_row(
+    ESPER_model = rep(c("LIR", "Mixed", "NN"), each = 12),
+    ESPER_input = rep(c("all","lim"), each = 6, length.out = 36),
+    Year_UTC = rep(2002:2007,6), 
+    TA_mean_err = rep(NA, 36),
+    DIC_mean_err = rep(NA, 36)
+  ) %>%
+  pivot_longer(
+    cols = c(TA_mean_err, DIC_mean_err),
+    names_to = "qty",
+    values_to = "mean_err"
+  ) %>%
+  ggplot(
+    aes(
+      x = Year_UTC,
+    )
+  ) +
+  geom_hline(
+    yintercept = 0,
+    lty = 3
+  ) +
+  geom_line(
+    aes(
+      y = mean_err,
+      group = qty,
+      col = qty
+    ),
+    na.rm = TRUE
+  ) +
+  theme_bw() +
+  facet_grid(
+    ESPER_input ~ ESPER_model
+  ) +
+  scale_color_discrete(
+    labels = c("DIC", "TA"),
+    type = c("blue", "red")
+  ) +
+  labs(
+    y = "Mean Percent Error",
+    x = "Year",
+    col = "Quantity"
+  )
 
 ### HYPOTHESIS TESTING
 for (i in 1:6) {
