@@ -5,6 +5,7 @@ library(gt)
 library(sf)
 library(rnaturalearth)
 library(scales)
+library(latex2exp)
 
 # Load seasonal detrending function
 source("scripts/OA_trends/detrend_data.R")
@@ -73,7 +74,10 @@ for (i in 1:nrow(stations)) {
 results <- results %>%
   mutate(
     across(-c(station, qty), as.numeric)
-  ) 
+  ) %>%
+  mutate(
+    sigp = factor(ifelse(`Pr(>|t|)` < 0.5, 1, 0), levels = c(1,0), labels = c("Yes", "No"))
+  )
 
 results %>%
   filter(
@@ -90,7 +94,10 @@ results %>%
 
 world <- ne_countries(scale = "medium", returnclass = "sf")
 
-qty_names <- c("Temperature", "Salinity", "TA", "DIC", "pCO2", "Revelle Factor", "pH", "CO3(2-)", "Ωcalcite", "Ωaragonite")
+qty_names <- c("Temperature", "Salinity", "TA", "DIC", "pCO2", "Revelle Factor", "pH", "CO3$^{2-}$", "$\\Omega_{calcite}$", "$\\Omega_{aragonite}$")
+units <- c("$^\\circ$C yr$^{-1}$", "yr$^{-1}$", "$\\mu$mol kg$^{-1}$ yr${^-1}$", 
+           "$\\mu$mol kg$^{-1}$ yr${^-1}$", "$\\mu$atm yr$^{-1}$","yr$^{-1}$", 
+           "yr$^{-1}$", "$\\mu$mol kg$^{-1}$ yr${^-1}$", "yr$^{-1}$", "yr$^{-1}$")
 for (i in 1:10) {
   data <- results %>%
     filter(
@@ -99,7 +106,7 @@ for (i in 1:10) {
     filter(
       (!is.na(Estimate)) & (n > 30)
     )
-  print(ggplot(
+  ggplot(
     data = world
   ) +
     geom_sf(fill = "antiquewhite1") +
@@ -108,17 +115,28 @@ for (i in 1:10) {
       aes(
         x = lon,
         y = lat,
-        color = Estimate,
-        size = n
-      )
+        fill = Estimate,
+        size = n,
+        shape = sigp
+      ),
+      color = "black",
+      show.legend=TRUE
     ) +
     coord_sf(
       xlim = c(results$lon %>% min() - 2, results$lon %>% max() + 2),
       ylim = c(results$lat %>% min(), results$lat %>% max())
     ) +
-    scale_color_gradientn(
-      colors = c("red", "gray85", "blue"),
-      values = c(0, abs(min(data$Estimate))/(abs(max(data$Estimate)) + (abs(min(data$Estimate)))), 1)
+    scale_fill_gradientn(
+      colors = c("#d7191c", "#fdae61", "#ffffbf", "#abd9e9", "#2c7bb6"),
+      values = c(0, 
+                 (abs(min(data$Estimate))-abs(quantile(data$Estimate, 0.25)))/(abs(max(data$Estimate)) + (abs(min(data$Estimate)))),
+                 abs(min(data$Estimate))/(abs(max(data$Estimate)) + (abs(min(data$Estimate)))), 
+                 (abs(min(data$Estimate))+abs(quantile(data$Estimate, 0.75)))/(abs(max(data$Estimate)) + (abs(min(data$Estimate)))),
+                 1)
+    ) +
+    scale_shape_manual(
+      values = c("Yes" = 24, "No" = 21),
+      drop = FALSE
     ) +
     theme(
       panel.grid.major = element_line(
@@ -129,23 +147,18 @@ for (i in 1:10) {
       panel.background = element_rect(fill = "aliceblue")
     ) +
     guides(
-      fill = guide_legend(order = 98),
-      size = guide_legend(order = 1)
+      fill = guide_colorbar(order = 1),
+      size = guide_legend(order = 50),
+      shape = guide_legend(order = 98)
     ) +
     labs(
       x = NULL,
       y = NULL,
-      title = paste("Estimated Slope for", qty_names[i], "against Time by Station (N>10)"),
+      title = TeX(paste("Estimated Slope for", qty_names[i], "by Station (N>30)")),
       color = "Estimate",
       size = "N",
-      caption = paste("Mean:", weighted.mean(data$Estimate, data$n))
-    ))
+      shape = TeX("$p<0.5$"),
+      caption = TeX(paste("Mean Slope (weighted by $N$):", format(round(weighted.mean(data$Estimate, data$n), 4), nsmall = 4), units[i]))
+    )
+  ggsave(paste0("images/OA_trends/", qty[i], "_by_station.png"), bg = "white")
 }
-
-
-# X -----------------------------------------------------------------------
-
-
-# -------------------------------------------------------------------------
-
-
