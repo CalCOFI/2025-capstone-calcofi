@@ -4,6 +4,7 @@ library(tidyverse)
 library(gt)
 library(sf)
 library(rnaturalearth)
+library(scales)
 
 # Load seasonal detrending function
 source("scripts/OA_trends/detrend_data.R")
@@ -100,7 +101,7 @@ for (i in 1:10) {
     )
   print(ggplot(
     data = world
-    ) +
+  ) +
     geom_sf(fill = "antiquewhite1") +
     geom_point(
       data = data,
@@ -115,10 +116,9 @@ for (i in 1:10) {
       xlim = c(results$lon %>% min() - 2, results$lon %>% max() + 2),
       ylim = c(results$lat %>% min(), results$lat %>% max())
     ) +
-    scale_color_gradient2(
-      low = "red",
-      high = "blue",
-      mid = "gray80"
+    scale_color_gradientn(
+      colors = c("red", "gray85", "blue"),
+      values = c(0, abs(min(data$Estimate))/(abs(max(data$Estimate)) + (abs(min(data$Estimate)))), 1)
     ) +
     theme(
       panel.grid.major = element_line(
@@ -127,6 +127,10 @@ for (i in 1:10) {
         linewidth = 0.5
       ), 
       panel.background = element_rect(fill = "aliceblue")
+    ) +
+    guides(
+      fill = guide_legend(order = 98),
+      size = guide_legend(order = 1)
     ) +
     labs(
       x = NULL,
@@ -137,3 +141,11 @@ for (i in 1:10) {
       caption = paste("Mean:", weighted.mean(data$Estimate, data$n))
     ))
 }
+
+
+# X -----------------------------------------------------------------------
+
+
+# -------------------------------------------------------------------------
+
+
