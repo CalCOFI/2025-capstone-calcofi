@@ -8,6 +8,9 @@ library(lmerTest)
 library(katex)
 library(gt)
 
+
+# READ IN AND PROCESS DATA ------------------------------------------------
+
 # Load seasonal detrending function
 source("scripts/OA_trends/detrend_data.R")
 
@@ -33,7 +36,7 @@ qty <- c("T_degC","Salnty","TA","DIC","pCO2in","RFin","pHin","CO3in","OmegaCAin"
 # Detrend variables of interest
 STA90.90 <- sea_dtd_data(qty, STA90.90, "Date.cc")
 
-# Plot detrended and original observations
+# Plot detrended and original observations for each quantity to check that the procedure was succesful
 for (i in qty) {
   print(STA90.90 %>%
           ggplot(
@@ -75,7 +78,10 @@ for (i in qty) {
           ))
 }
 
-# Fit linear models
+
+# FIT LINEAR MODELS -------------------------------------------------------
+
+# fit a linear model with time for each quantity
 models <- lapply(
   qty,
   function(x) {

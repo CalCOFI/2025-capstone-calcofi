@@ -5,6 +5,10 @@ library(lme4)
 library(lmerTest)
 library(gt)
 library(MuMIn)
+library(ModelMetrics)
+
+
+# READ IN AND PROCESS DATA ------------------------------------------------
 
 # Load seasonal detrending function
 source("scripts/OA_trends/detrend_data.R")
@@ -54,8 +58,11 @@ bottle_co2sys <- bottle_co2sys %>%
   )
   
 
-# Model Selection
+# MODEL SELECTION ---------------------------------------------------------
+
 if (FALSE) {
+
+# create vector of different potential models
 rhs <- c(
   "Date_Dec + (1 | Station_ID)",
   "Date_Dec + (Date_Dec | Station_ID)",
@@ -67,17 +74,23 @@ rhs <- c(
   "Date_Dec + Depth_Trans + Depth_Trans:Date_Dec + (Date_Dec | Station_ID)"
 )
 
+# create vector to store RMSE of each model
 RMSE <- NULL
-library(ModelMetrics)
+
+# fit each model once for each quantity
 for (i in 1:length(qty)) {
   for (j in 1:length(formulas)) {
     model <- lmer(as.formula(paste(paste0(qty[i],"_dtd"),"~",rhs[j])),
          data = bottle_co2sys,
          control = lmerControl(optimizer = "nloptwrap"))
+    # add RMSE of the fitted model to the RMSE vector
     RMSE <- c(RMSE, rmse(actual = predict(model) - resid(model), predicted = predict(model)))
   }
 }
+
+# transform the rmse function into a dataframe and plot RMSE as a function of model complexity
 RMSE %>%
+  # transform into dataframe
   matrix(
     nrow = length(qty), byrow = TRUE
   ) %>%
@@ -91,6 +104,7 @@ RMSE %>%
     values_to = "rmse",
     names_transform = function(x) {gsub("X([0-9]+)", "\\1", x)}
   ) %>%
+  # plot RMSE as a function of model complexity
   ggplot(
     aes(
       x = formula,
@@ -104,7 +118,10 @@ RMSE %>%
   theme_minimal()
 }
 
-# Fit best model
+
+# FIT BEST MODEL ----------------------------------------------------------
+
+# fit best model for all ten quantities
 models <- lapply(
   qty,
   function(x) {
@@ -116,19 +133,23 @@ models <- lapply(
   }
 )
 
-# Format results into table
+# format results into table
 lapply(
   1:10,
   function(i) {
     c(qty = qty[i], coef(summary(models[[i]]))[2,], n = nobs(models[[i]]), r2 = r.squaredGLMM(models[[i]])[2])
   }
 ) %>%
+  # combine results into a dataframe
   bind_rows() %>%
+  # convert appropriate columns to numeric
   mutate(
     across(-qty, as.numeric)
   ) %>%
+  # rename quantities vector for tidier appearance in table
   mutate(
     qty = c("Temperature", "Salinity", "A~T~", "C~T~", "*p*CO2", "Revelle Factor", "pH", "CO~3~<sup>2-</sup>", "Ω~calcite~", "Ω~aragonite~"),
+    # add column of units for each quantity
     units = c("degC yr^-1", "yr^-1", ":mu:mol kg^-1 yr^-1", ":mu:mol kg^-1 yr^-1", ":mu:atm yr^-1",
               "yr^-1", "yr^-1", ":mu:mol kg^-1 yr^-1", "yr^-1", "yr^-1")
   ) %>%
@@ -153,9 +174,11 @@ lapply(
     label = "Hydrography",
     rows = c("Temperature", "Salinity")
   ) %>%
+  # add label to row names
   tab_stubhead(
     label = "Parameter"
   ) %>%
+  # rename columns
   cols_label(
     Estimate = "Slope",
     `Pr(>|t|)` = "p-value",
@@ -163,15 +186,13 @@ lapply(
     units = "Units",
     r2 = md("r<sup>2</sup>")
   ) %>%
+  # move units to be next to estimate and standard error columns
   cols_move(
     units,
     after = `Std. Error`
   ) %>%
   fmt_markdown(
     columns = qty
-  ) %>%
-  opt_stylize(
-    style = 3
   ) %>%
   fmt_units(
     columns = units
@@ -184,6 +205,10 @@ lapply(
     columns = `Pr(>|t|)`,
     threshold = 0.0001
   ) %>%
+  opt_stylize(
+    style = 3
+  ) %>%
+  # save table
   gtsave(
     "images/OA_trends/mix_fit_table.png"
   )

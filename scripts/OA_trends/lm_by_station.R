@@ -7,6 +7,9 @@ library(rnaturalearth)
 library(scales)
 library(latex2exp)
 
+
+# READ AND PROCESS DATA ---------------------------------------------------
+
 # Load seasonal detrending function
 source("scripts/OA_trends/detrend_data.R")
 
@@ -42,12 +45,19 @@ stations <- bottle_co2sys %>%
     lon = mean(Longitude),
   )
 
-# Fitting
+# FIT LINEAR MODELS -------------------------------------------------------
+
+# create results object
 results <- NULL
+
+# iterate through stations and fit linear models for each quantity
 for (i in 1:nrow(stations)) {
+  # extract data for station i
   data <- bottle_co2sys %>% filter(Station_ID == stations$Station_ID[i])
   for (j in qty) {
+    # check if all values are NA
     if (data %>% select(paste0(j,"_dtd")) %>% is.na() %>% `!`() %>% sum() == 0) {
+      # if so, add row of NA values to results for the corresponding quantity and station
       results <- bind_rows(results, c(
         station = stations$Station_ID[i],
         lat = stations$lat[i],
@@ -57,8 +67,9 @@ for (i in 1:nrow(stations)) {
         n = NA, 
         r2 = NA))
     }
-    else {
+    else { # fit the linear model
       fit <- lm(as.formula(paste(paste0(j,"_dtd"),"~","Date_Dec + Depth_Trans")), data = data)
+      # add coefficient estimate and regression statistics in a new row to results
       results <- bind_rows(results, c(
         station = stations$Station_ID[i],
         lat = stations$lat[i],
@@ -71,41 +82,43 @@ for (i in 1:nrow(stations)) {
   }
 }
 
+# PLOTTING FIT RESULTS ----------------------------------------------------
+
+# modify results object for plotting
 results <- results %>%
+  # convert numeric columns to numeric vectors
   mutate(
     across(-c(station, qty), as.numeric)
   ) %>%
+  # create vector indicating if p < 0.5
   mutate(
     sigp = factor(ifelse(`Pr(>|t|)` < 0.5, 1, 0), levels = c(1,0), labels = c("Yes", "No"))
   )
 
-results %>%
-  filter(
-    n > 2
-  ) %>%
-  group_by(
-    qty
-  ) %>%
-  summarize(
-    est = mean(Estimate, na.rm = TRUE),
-    std = sd(Estimate, na.rm = TRUE),
-    n = sum(!is.na(Estimate))
-  )
-
+# import map for plotting
 world <- ne_countries(scale = "medium", returnclass = "sf")
 
+# create vector of (full) names for each quantity
 qty_names <- c("Temperature", "Salinity", "TA", "DIC", "pCO2", "Revelle Factor", "pH", "CO3$^{2-}$", "$\\Omega_{calcite}$", "$\\Omega_{aragonite}$")
-units <- c("$^\\circ$C yr$^{-1}$", "yr$^{-1}$", "$\\mu$mol kg$^{-1}$ yr${^-1}$", 
-           "$\\mu$mol kg$^{-1}$ yr${^-1}$", "$\\mu$atm yr$^{-1}$","yr$^{-1}$", 
-           "yr$^{-1}$", "$\\mu$mol kg$^{-1}$ yr${^-1}$", "yr$^{-1}$", "yr$^{-1}$")
+
+# create vector of units for each quantity
+units <- c("$^\\circ$C yr$^{-1}$", "yr$^{-1}$", "µmol kg$^{-1}$ yr$^{-1}$", 
+           "µmol kg$^{-1}$ yr$^{-1}$", "µatm yr$^{-1}$","yr$^{-1}$", 
+           "yr$^{-1}$", "µmol kg$^{-1}$ yr$^{-1}$", "yr$^{-1}$", "yr$^{-1}$")
+
+# generate a plot of slope by station for each quantity
 for (i in 1:10) {
+  # extract data for quantity i
   data <- results %>%
     filter(
       qty == qty[i]
     ) %>%
+    # filter out stations with n<=30 observations used in the fit
     filter(
       (!is.na(Estimate)) & (n > 30)
     )
+  
+  # create plot of slope by station
   ggplot(
     data = world
   ) +
@@ -115,28 +128,32 @@ for (i in 1:10) {
       aes(
         x = lon,
         y = lat,
-        fill = Estimate,
-        size = n,
-        shape = sigp
+        fill = Estimate, # estimated slope
+        size = n, # number of observations
+        shape = sigp # if estimate is statistically significant
       ),
       color = "black",
-      show.legend=TRUE
+      show.legend=TRUE # force shape to always show in legend
     ) +
+    # manually adjust coordinates
     coord_sf(
       xlim = c(results$lon %>% min() - 2, results$lon %>% max() + 2),
       ylim = c(results$lat %>% min(), results$lat %>% max())
     ) +
+    # create color scale for slope estimates
     scale_fill_gradientn(
       colors = c("#d7191c", "#fdae61", "#ffffbf", "#abd9e9", "#2c7bb6"),
+      # center color scale on 0 and 1st and 3rd quartiles
       values = c(0, 
                  (abs(min(data$Estimate))-abs(quantile(data$Estimate, 0.25)))/(abs(max(data$Estimate)) + (abs(min(data$Estimate)))),
                  abs(min(data$Estimate))/(abs(max(data$Estimate)) + (abs(min(data$Estimate)))), 
                  (abs(min(data$Estimate))+abs(quantile(data$Estimate, 0.75)))/(abs(max(data$Estimate)) + (abs(min(data$Estimate)))),
                  1)
     ) +
+    # create custom shape scale
     scale_shape_manual(
       values = c("Yes" = 24, "No" = 21),
-      drop = FALSE
+      drop = FALSE # force both shapes to always show in legend
     ) +
     theme(
       panel.grid.major = element_line(
@@ -146,6 +163,7 @@ for (i in 1:10) {
       ), 
       panel.background = element_rect(fill = "aliceblue")
     ) +
+    # fix the order of the legends
     guides(
       fill = guide_colorbar(order = 1),
       size = guide_legend(order = 50),
@@ -154,11 +172,13 @@ for (i in 1:10) {
     labs(
       x = NULL,
       y = NULL,
-      title = TeX(paste("Estimated Slope for", qty_names[i], "by Station (N>30)")),
+      title = TeX(paste("Estimated Slope for", qty_names[i], "by Station (N>30)", paste0("[",units[i],"]"))),
       color = "Estimate",
       size = "N",
       shape = TeX("$p<0.5$"),
       caption = TeX(paste("Mean Slope (weighted by $N$):", format(round(weighted.mean(data$Estimate, data$n), 4), nsmall = 4), units[i]))
     )
+  
+  # save plots
   ggsave(paste0("images/OA_trends/", qty[i], "_by_station.png"), bg = "white")
 }
