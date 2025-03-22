@@ -90,7 +90,7 @@ models <- lapply(
 lapply(
   1:10,
   function(i) {
-    c(qty = qty[i], coef(summary(models[[i]]))[2,], n = summary(models[[i]])$df[2], r2 = summary(models[[i]])$r.squared)
+    c(qty = qty[i], coef(summary(models[[i]]))[2,], n = summary(models[[i]])$df[2] + 2, r2 = summary(models[[i]])$r.squared)
   }
 ) %>%
   bind_rows() %>%
