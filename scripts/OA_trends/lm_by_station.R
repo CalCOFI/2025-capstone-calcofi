@@ -82,7 +82,7 @@ for (i in 1:nrow(stations)) {
   }
 }
 
-# PLOTTING FIT RESULTS ----------------------------------------------------
+# PLOT FIT RESULTS ----------------------------------------------------
 
 # modify results object for plotting
 results <- results %>%
@@ -182,3 +182,20 @@ for (i in 1:10) {
   # save plots
   ggsave(paste0("images/OA_trends/", qty[i], "_by_station.png"), bg = "white")
 }
+
+# GENERATE TABULAR SUMMARY ------------------------------------------------
+
+results %>%
+  filter(
+    n>200
+  ) %>%
+  group_by(
+    qty
+  ) %>%
+  summarize(
+    mean = weighted.mean(Estimate, n, na.rm = TRUE),
+    std = sd(Estimate, na.rm = TRUE),
+    min = min(Estimate, na.rm = TRUE),
+    max = max(Estimate, na.rm = TRUE),
+    n = sum(!is.na(Estimate))
+  )
