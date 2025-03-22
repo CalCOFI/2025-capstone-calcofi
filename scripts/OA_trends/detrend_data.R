@@ -4,7 +4,7 @@
 
 library(tidyverse)
 
-sea_dtd_data_vec <- function(qty, df, date_col) {
+sea_dtd_data <- function(qty, df, date_col) {
   # Seasonally detrend in a dataframe based on Sutton, A. J. et al. (2022)
   #   qty: vector of column names of variables to be detrended
   #   df: dataframe with observations to be detrended
@@ -48,7 +48,7 @@ sea_dtd_data_vec <- function(qty, df, date_col) {
     # Compute monthly means of each 3-month bin
     monthly_means_df <- df_binned %>%
       group_by(
-        Year_UTC, bin_month
+        bin_month
       ) %>%
       summarize(
         monthly_mean = mean(lin_dtd_obs, na.rm = TRUE),
@@ -65,7 +65,7 @@ sea_dtd_data_vec <- function(qty, df, date_col) {
     df <- df %>% 
       left_join(
         monthly_means_df,
-        by = join_by(Year_UTC, Month_UTC == bin_month)
+        by = join_by(Month_UTC == bin_month)
       ) %>%
       mutate(
         i_dtd = get(i) - anomaly

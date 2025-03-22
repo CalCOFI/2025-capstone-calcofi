@@ -1,20 +1,23 @@
-# CO2SYS_out_fit.R
+# mixed_effects_fit.R
 
 library(tidyverse)
 library(lme4)
 library(lmerTest)
+library(gt)
+library(MuMIn)
 
 # Load seasonal detrending function
-source("scripts/detrend_data.R")
+source("scripts/OA_trends/detrend_data.R")
 
 # Load merged bottle data and CO2SYS output
 merged_bottle_data <- read_csv("data/merged_bottle_data.csv")
 co2sys_out <- read_csv("data/CO2SYS_out.csv")
 
-# Combine merged bottle data and CO2SYS output
-bottle_co2sys <- bind_cols(merged_bottle_data, co2sys_out)
-
-# Create columns for normalized TA and DIC
+# Combine merged bottle data and CO2SYS output and filter out anomalies
+bottle_co2sys <- bind_cols(merged_bottle_data, co2sys_out) %>%
+  filter(
+    Salnty > 30
+  )
 
 # Create vector of variables to be detrended
 qty <- c("T_degC","Salnty","TA","DIC","pCO2in","RFin","pHin","CO3in","OmegaCAin","OmegaARin")
@@ -37,7 +40,7 @@ keep_stations <- bottle_co2sys %>%
     n = n()
   ) %>%
   filter(
-    n < 20
+    n < 40
   ) %>%
   pull(
     Station_ID
@@ -52,6 +55,7 @@ bottle_co2sys <- bottle_co2sys %>%
   
 
 # Model Selection
+if (FALSE) {
 rhs <- c(
   "Date_Dec + (1 | Station_ID)",
   "Date_Dec + (Date_Dec | Station_ID)",
@@ -98,87 +102,88 @@ RMSE %>%
   geom_line() +
   scale_y_log10() +
   theme_minimal()
+}
 
 # Fit best model
 models <- lapply(
   qty,
   function(x) {
     lmer(
-      as.formula(paste(paste0(x,"_dtd"),"~","Date_Dec + Depth_Trans + (1 | Station_ID)")),
+      as.formula(paste(paste0(x,"_dtd"),"~","Date_Dec + Depth_Trans + (Date_Dec | Station_ID)")),
       data = bottle_co2sys,
       control = lmerControl(optimizer = "Nelder_Mead")
     )
   }
 )
 
-# Format results
+# Format results into table
 lapply(
-  1:length(models),
-  function(x) {
-    models[[x]] %>% 
-      summary() %>% 
-      coef() %>% 
-      `[`(2,c(1,2,5)) %>% 
-      c(qty = qty[x], .) %>% 
-      t() %>%
-      data.frame()
+  1:10,
+  function(i) {
+    c(qty = qty[i], coef(summary(models[[i]]))[2,], n = nobs(models[[i]]), r2 = r.squaredGLMM(models[[i]])[2])
   }
-) %>% bind_rows() %>% 
-  rename(
-    est = Estimate,
-    std = Std..Error,
-    pval = Pr...t..
+) %>%
+  bind_rows() %>%
+  mutate(
+    across(-qty, as.numeric)
   ) %>%
   mutate(
-    across(
-      -qty,
-      as.numeric
-    ),
-    qty = factor(qty, levels = qty, labels = c("Temperature", "Salinity", "TA", "DIC",
-                                               "pCO2", "Revelle Factor", "pH", "CO3",
-                                               "OmegaCA", "OmegaAR")),
+    qty = c("Temperature", "Salinity", "A~T~", "C~T~", "*p*CO2", "Revelle Factor", "pH", "CO~3~<sup>2-</sup>", "Ω~calcite~", "Ω~aragonite~"),
     units = c("degC yr^-1", "yr^-1", ":mu:mol kg^-1 yr^-1", ":mu:mol kg^-1 yr^-1", ":mu:atm yr^-1",
-              "yr^-1", "yr^-1", ":mu:mol kg^-1 yr^-1", "yr^-1", "yr^-1"),
-    .before = pval
+              "yr^-1", "yr^-1", ":mu:mol kg^-1 yr^-1", "yr^-1", "yr^-1")
   ) %>%
-  gt() %>%
+  select(
+    -c("t value", "df")
+  ) %>%
+  gt(
+    rowname_col = "qty"
+  ) %>%
   tab_header(
-    "Estimated Rates of Change for Ocean Carbonate System Quantities"
+    title = "Mixed Effect Regression Statistics for CalCOFI Stations with n≥20 Observations"
   ) %>%
-  cols_merge_uncert(
-    est,
-    std
+  tab_row_group(
+    label = "Seawater carbonate chemistry",
+    rows = c("C~T~", "A~T~", "*p*CO2", "Revelle Factor")
   ) %>%
-  cols_merge(
-    columns = c(est, units)
+  tab_row_group(
+    label = "Ocean acidification indicators",
+    rows = c("pH", "CO~3~<sup>2-</sup>", "Ω~calcite~", "Ω~aragonite~")
+  ) %>%
+  tab_row_group(
+    label = "Hydrography",
+    rows = c("Temperature", "Salinity")
+  ) %>%
+  tab_stubhead(
+    label = "Parameter"
   ) %>%
   cols_label(
-    qty = "Quantity",
-    est = "Estimated Annual Change",
-    pval = "p-value"
+    Estimate = "Slope",
+    `Pr(>|t|)` = "p-value",
+    `Std. Error` = "Std. Error",
+    units = "Units",
+    r2 = md("r<sup>2</sup>")
   ) %>%
-  fmt_number(
-    columns = c(est, std),
-    decimals = 4
+  cols_move(
+    units,
+    after = `Std. Error`
   ) %>%
-  fmt_scientific(
-    columns = pval,
-    decimals = 4
-  ) %>%
-  fmt_units(
-    columns = units
+  fmt_markdown(
+    columns = qty
   ) %>%
   opt_stylize(
     style = 3
   ) %>%
-  tab_footnote(
-    locations = cells_body(columns = qty, rows = 1:4),
-    footnote = "Observed quantities in CalCOFI bottle data"
+  fmt_units(
+    columns = units
   ) %>%
-  tab_footnote(
-    locations = cells_body(columns = qty, rows = 5:10),
-    footnote = "Derived quantities from CO2SYS"
+  fmt_number(
+    columns = c("Estimate", "Std. Error", "Pr(>|t|)", "r2"),
+    decimals = 4
+  ) %>%
+  sub_small_vals(
+    columns = `Pr(>|t|)`,
+    threshold = 0.0001
   ) %>%
   gtsave(
-    "images/CO2SYS_out_fit/rates_table.png"
+    "images/OA_trends/mix_fit_table.png"
   )
