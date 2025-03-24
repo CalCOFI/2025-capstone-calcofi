@@ -68,7 +68,7 @@ for (i in 1:nrow(stations)) {
         r2 = NA))
     }
     else { # fit the linear model
-      fit <- lm(as.formula(paste(paste0(j,"_dtd"),"~","Date_Dec + Depth_Trans")), data = data)
+      fit <- lm(as.formula(paste(paste0(j,"_dtd"),"~","Date_Dec + Depth_Trans + I(Depth_Trans^2)")), data = data)
       # add coefficient estimate and regression statistics in a new row to results
       results <- bind_rows(results, c(
         station = stations$Station_ID[i],
@@ -82,10 +82,54 @@ for (i in 1:nrow(stations)) {
   }
 }
 
+# create results object for surface (<20m)
+surf_results <- NULL
+
+# iterate through stations and fit linear models for each quantity
+for (i in 1:nrow(stations)) {
+  # extract data for station i
+  data <- bottle_co2sys %>% filter((Station_ID == stations$Station_ID[i]) & (Depth <= 20))
+  for (j in qty) {
+    # check if all values are NA
+    if (data %>% select(paste0(j,"_dtd")) %>% is.na() %>% `!`() %>% sum() == 0) {
+      # if so, add row of NA values to surf_results for the corresponding quantity and station
+      surf_results <- bind_rows(surf_results, c(
+        station = stations$Station_ID[i],
+        lat = stations$lat[i],
+        lon = stations$lon[i],
+        qty = j, 
+        c(Estimate = NA, `Std. Error` = NA, `t value` = NA, `Pr(>|t|)` = NA), 
+        n = NA, 
+        r2 = NA))
+    }
+    else { # fit the linear model
+      fit <- lm(as.formula(paste(paste0(j,"_dtd"),"~","Date_Dec + Depth_Trans + I(Depth_Trans^2)")), data = data)
+      # add coefficient estimate and regression statistics in a new row to surf_results
+      surf_results <- bind_rows(surf_results, c(
+        station = stations$Station_ID[i],
+        lat = stations$lat[i],
+        lon = stations$lon[i], 
+        qty = j, 
+        if(nrow(coef(summary(fit))) == 1) c(Estimate = NA, `Std. Error` = NA, `t value` = NA, `Pr(>|t|)` = NA) else coef(summary(fit))[2,], 
+        n = summary(fit)$df[2] + 2, 
+        r2 = summary(fit)$r.squared))
+    }
+  }
+}
+
 # PLOT FIT RESULTS ----------------------------------------------------
 
-# modify results object for plotting
+# modify results objects for plotting
 results <- results %>%
+  # convert numeric columns to numeric vectors
+  mutate(
+    across(-c(station, qty), as.numeric)
+  ) %>%
+  # create vector indicating if p < 0.5
+  mutate(
+    sigp = factor(ifelse(`Pr(>|t|)` < 0.5, 1, 0), levels = c(1,0), labels = c("Yes", "No"))
+  )
+surf_results <- surf_results %>%
   # convert numeric columns to numeric vectors
   mutate(
     across(-c(station, qty), as.numeric)
@@ -141,14 +185,10 @@ for (i in 1:10) {
       ylim = c(results$lat %>% min(), results$lat %>% max())
     ) +
     # create color scale for slope estimates
-    scale_fill_gradientn(
-      colors = c("#d7191c", "#fdae61", "#ffffbf", "#abd9e9", "#2c7bb6"),
-      # center color scale on 0 and 1st and 3rd quartiles
-      values = c(0, 
-                 (abs(min(data$Estimate))-abs(quantile(data$Estimate, 0.25)))/(abs(max(data$Estimate)) + (abs(min(data$Estimate)))),
-                 abs(min(data$Estimate))/(abs(max(data$Estimate)) + (abs(min(data$Estimate)))), 
-                 (abs(min(data$Estimate))+abs(quantile(data$Estimate, 0.75)))/(abs(max(data$Estimate)) + (abs(min(data$Estimate)))),
-                 1)
+    scale_fill_gradient2(
+      low = "#d7191c",
+      high = "#2c7bb6",
+      mid = "#ffffbf"
     ) +
     # create custom shape scale
     scale_shape_manual(
@@ -183,11 +223,84 @@ for (i in 1:10) {
   ggsave(paste0("images/OA_trends/", qty[i], "_by_station.png"), bg = "white")
 }
 
+# generate plots for surface fits
+for (i in 1:10) {
+  # extract data for quantity i
+  data <- surf_results %>%
+    filter(
+      qty == qty[i]
+    ) %>%
+    # filter out stations with n<=30 observations used in the fit
+    filter(
+      (!is.na(Estimate)) & (n > 30)
+    )
+  
+  # create plot of slope by station
+  ggplot(
+    data = world
+  ) +
+    geom_sf(fill = "antiquewhite1") +
+    geom_point(
+      data = data,
+      aes(
+        x = lon,
+        y = lat,
+        fill = Estimate, # estimated slope
+        size = n, # number of observations
+        shape = sigp # if estimate is statistically significant
+      ),
+      color = "black",
+      show.legend=TRUE # force shape to always show in legend
+    ) +
+    # manually adjust coordinates
+    coord_sf(
+      xlim = c(surf_results$lon %>% min() - 2, surf_results$lon %>% max() + 2),
+      ylim = c(surf_results$lat %>% min(), surf_results$lat %>% max())
+    ) +
+    # create color scale for slope estimates
+    scale_fill_gradient2(
+      low = "#d7191c",
+      high = "#2c7bb6",
+      mid = "#ffffbf"
+    ) +
+    # create custom shape scale
+    scale_shape_manual(
+      values = c("Yes" = 24, "No" = 21),
+      drop = FALSE # force both shapes to always show in legend
+    ) +
+    theme(
+      panel.grid.major = element_line(
+        color = gray(0.5), 
+        linetype = "solid", 
+        linewidth = 0.5
+      ), 
+      panel.background = element_rect(fill = "aliceblue")
+    ) +
+    # fix the order of the legends
+    guides(
+      fill = guide_colorbar(order = 1),
+      size = guide_legend(order = 50),
+      shape = guide_legend(order = 98)
+    ) +
+    labs(
+      x = NULL,
+      y = NULL,
+      title = TeX(paste("Estimated Slope for", qty_names[i], "by Station at Surface (Depth<=20m, N>30)", paste0("[",units[i],"]"))),
+      color = "Estimate",
+      size = "N",
+      shape = TeX("$p<0.5$"),
+      caption = TeX(paste("Mean Slope (weighted by $N$):", format(round(weighted.mean(data$Estimate, data$n), 4), nsmall = 4), units[i]))
+    )
+  
+  # save plots
+  ggsave(paste0("images/OA_trends/surf_", qty[i], "_by_station.png"), bg = "white")
+}
+
 # GENERATE TABULAR SUMMARY ------------------------------------------------
 
 results %>%
   filter(
-    n>200
+    n>30
   ) %>%
   group_by(
     qty
