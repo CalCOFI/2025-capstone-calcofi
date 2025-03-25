@@ -47,34 +47,39 @@ stations <- bottle_co2sys %>%
 
 # FIT LINEAR MODELS -------------------------------------------------------
 
-# create results object
+# create fits and results object
+fits <- NULL
 results <- NULL
 
 # iterate through stations and fit linear models for each quantity
 for (i in 1:nrow(stations)) {
   # extract data for station i
   data <- bottle_co2sys %>% filter(Station_ID == stations$Station_ID[i])
-  for (j in qty) {
+  for (j in 1:length(qty)) {
     # check if all values are NA
-    if (data %>% select(paste0(j,"_dtd")) %>% is.na() %>% `!`() %>% sum() == 0) {
-      # if so, add row of NA values to results for the corresponding quantity and station
+    if (data %>% select(paste0(qty[j],"_dtd")) %>% is.na() %>% `!`() %>% sum() == 0) {
+      # if so, add NA to list of fits
+      fits[[(i-1)*length(qty)+j]] <- NA
+      # and add row of NA values to results for the corresponding quantity and station
       results <- bind_rows(results, c(
         station = stations$Station_ID[i],
         lat = stations$lat[i],
         lon = stations$lon[i],
-        qty = j, 
+        qty = qty[j], 
         c(Estimate = NA, `Std. Error` = NA, `t value` = NA, `Pr(>|t|)` = NA), 
         n = NA, 
         r2 = NA))
     }
     else { # fit the linear model
-      fit <- lm(as.formula(paste(paste0(j,"_dtd"),"~","Date_Dec + Depth_Trans + I(Depth_Trans^2)")), data = data)
+      fit <- lm(as.formula(paste(paste0(qty[j],"_dtd"),"~","Date_Dec + Depth_Trans + I(Depth_Trans^2)")), data = data)
+      # add fit to list of fits
+      fits[[(i-1)*length(qty)+j]] <- fit
       # add coefficient estimate and regression statistics in a new row to results
       results <- bind_rows(results, c(
         station = stations$Station_ID[i],
         lat = stations$lat[i],
         lon = stations$lon[i], 
-        qty = j, 
+        qty = qty[j], 
         if(nrow(coef(summary(fit))) == 1) c(Estimate = NA, `Std. Error` = NA, `t value` = NA, `Pr(>|t|)` = NA) else coef(summary(fit))[2,], 
         n = summary(fit)$df[2] + 2, 
         r2 = summary(fit)$r.squared))
@@ -82,34 +87,40 @@ for (i in 1:nrow(stations)) {
   }
 }
 
-# create results object for surface (<20m)
+
+# create fits and results objects for surface (<20m)
+surf_fits <- NULL
 surf_results <- NULL
 
 # iterate through stations and fit linear models for each quantity
 for (i in 1:nrow(stations)) {
   # extract data for station i
   data <- bottle_co2sys %>% filter((Station_ID == stations$Station_ID[i]) & (Depth <= 20))
-  for (j in qty) {
+  for (j in 1:length(qty)) {
     # check if all values are NA
-    if (data %>% select(paste0(j,"_dtd")) %>% is.na() %>% `!`() %>% sum() == 0) {
-      # if so, add row of NA values to surf_results for the corresponding quantity and station
+    if (data %>% select(paste0(qty[j],"_dtd")) %>% is.na() %>% `!`() %>% sum() == 0) {
+      # if so, add NA to list of fits
+      surf_fits[[(i-1)*length(qty)+j]] <- NA
+      # and add row of NA values to surf_results for the corresponding quantity and station
       surf_results <- bind_rows(surf_results, c(
         station = stations$Station_ID[i],
         lat = stations$lat[i],
         lon = stations$lon[i],
-        qty = j, 
+        qty = qty[j], 
         c(Estimate = NA, `Std. Error` = NA, `t value` = NA, `Pr(>|t|)` = NA), 
         n = NA, 
         r2 = NA))
     }
     else { # fit the linear model
-      fit <- lm(as.formula(paste(paste0(j,"_dtd"),"~","Date_Dec + Depth_Trans + I(Depth_Trans^2)")), data = data)
+      fit <- lm(as.formula(paste(paste0(qty[j],"_dtd"),"~","Date_Dec + Depth_Trans + I(Depth_Trans^2)")), data = data)
+      # add fit to list of fits
+      surf_fits[[(i-1)*length(qty)+j]] <- fit
       # add coefficient estimate and regression statistics in a new row to surf_results
       surf_results <- bind_rows(surf_results, c(
         station = stations$Station_ID[i],
         lat = stations$lat[i],
         lon = stations$lon[i], 
-        qty = j, 
+        qty = qty[j], 
         if(nrow(coef(summary(fit))) == 1) c(Estimate = NA, `Std. Error` = NA, `t value` = NA, `Pr(>|t|)` = NA) else coef(summary(fit))[2,], 
         n = summary(fit)$df[2] + 2, 
         r2 = summary(fit)$r.squared))
