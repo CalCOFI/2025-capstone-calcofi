@@ -2,6 +2,9 @@
 
 library(tidyverse)
 library(gt)
+library(sf)
+library(rnaturalearth)
+library(scales)
 
 # READ IN DATA ------------------------------------------------------------
 source("scripts/ESPER_analysis/ESPER_out_proc.R")
@@ -394,3 +397,208 @@ esper_bottle_combined %>%
     col = "Quantity"
   )
 ggsave("images/ESPER_analysis/mpe_vs_year.png")
+
+# mean error by station
+
+err_by_station <- esper_bottle_combined %>%
+  group_by(
+    ESPER_model, ESPER_input, Station_ID
+  ) %>%
+  summarize(
+    lon = mean(Longitude, na.rm = TRUE),
+    lat = mean(Latitude, na.rm = TRUE),
+    TA_mean_err = mean(TA_rel, na.rm = TRUE),
+    DIC_mean_err = mean(DIC_rel, na.rm = TRUE),
+    TA_n = sum(!is.na(TA_rel), na.rm = TRUE),
+    DIC_n = sum(!is.na(DIC_rel), na.rm = TRUE)
+  ) %>%
+  pivot_longer(
+    cols = -c(ESPER_model, ESPER_input, Station_ID, lon, lat),
+    names_to = c("qty", "metric"),
+    values_to = "value",
+    names_pattern = "(.+?)_(.+)"
+  ) %>%
+  pivot_wider(
+    values_from = value,
+    names_from = metric
+  )
+
+# import map for plotting
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+# generate plots to compare MPE by station between DIC and TA
+for (i in models) {
+  for (j in inputs) {
+    # extract data for model i and input j
+    data <- err_by_station %>%
+      filter(
+        (ESPER_model == i) & (ESPER_input == j)
+      )
+    
+    # create dataframe of labels
+    labels <- data.frame(
+      qty = c("DIC", "TA"),
+      label = c(
+        paste0("Overall Error = ", format(round(weighted.mean(data %>% filter(qty == "DIC") %>% pull(mean_err), data %>% filter(qty == "DIC") %>% pull(n)), 5)*100, nsmall = 3), "%"),
+        paste0("Overall Error = ", format(round(weighted.mean(data %>% filter(qty == "TA") %>% pull(mean_err), data %>% filter(qty == "TA") %>% pull(n)), 5)*100, nsmall = 3), "%")
+      )
+    )
+  
+    # create plot of errors by station
+    ggplot(
+      data = world
+    ) +
+      geom_sf(fill = "antiquewhite1") +
+      geom_point(
+        data = data,
+        aes(
+          x = lon,
+          y = lat,
+          fill = mean_err, # estimated slope
+          size = n # number of observations
+        ),
+        shape = 21,
+        color = "black",
+        na.rm = TRUE
+      ) +
+      geom_text(
+        data = labels,
+        aes(
+          x = Inf,
+          y = Inf,
+          label = label
+        ),
+        hjust = 1.025,
+        vjust = 1.5,
+        size = 3
+      ) +
+      # manually adjust coordinates
+      coord_sf(
+        xlim = c(err_by_station$lon %>% min() - 2, err_by_station$lon %>% max() + 2),
+        ylim = c(err_by_station$lat %>% min(), err_by_station$lat %>% max())
+      ) +
+      # create color scale for slope estimates
+      scale_fill_gradient2(
+        low = "#d7191c",
+        high = "#2c7bb6",
+        mid = "#ffffbf",
+        # add percent labels
+        labels = label_percent()
+      ) +
+      facet_wrap(
+        vars(qty)
+      ) +
+      theme(
+        panel.grid.major = element_line(
+          color = gray(0.5), 
+          linetype = "solid", 
+          linewidth = 0.5
+        ), 
+        panel.background = element_rect(fill = "aliceblue")
+      ) +
+      # fix the order of the legends
+      guides(
+        fill = guide_colorbar(order = 1),
+        size = guide_legend(order = 98)
+      ) +
+      labs(
+        x = NULL,
+        y = NULL,
+        title = paste("ESPER", i, "Mean Percent Error by Station using", (if (j == "lim") {"Limited"} else {"All"}), "Input Variables"),
+        fill = "Error",
+        size = "N"
+      )
+    
+    # save plots
+    ggsave(paste0("images/ESPER_analysis/ESPER_", i, "_", j, "_MPE_by_station.png"), bg = "white")
+  }
+}
+
+# generate plots to MPE by station between models
+for (k in c("DIC", "TA")) {
+  # extract data for quantity i
+  data <- err_by_station %>%
+    filter(
+      (qty == k)
+    )
+  
+  # create dataframe of labels
+  labels <- data.frame(ESPER_model = c(), ESPER_input = c(), label = c())
+  for (i in c("NN", "LIR", "Mixed")) {
+    for (j in c("lim", "all")) {
+      labels <- bind_rows(
+        labels,
+        data.frame(ESPER_model = i, ESPER_input = j, 
+          label = paste0("Overall Error = ", format(round(weighted.mean(data %>% filter((ESPER_model == i) & (ESPER_input == j)) %>% pull(mean_err), data %>% filter((ESPER_model == i) & (ESPER_input == j)) %>% pull(n)), 5)*100, nsmall = 3), "%"))
+      )
+    }
+  }
+  
+  # create plot of errors by station
+  print(ggplot(
+    data = world
+  ) +
+    geom_sf(fill = "antiquewhite1") +
+    geom_point(
+      data = data,
+      aes(
+        x = lon,
+        y = lat,
+        fill = mean_err, # estimated slope
+        size = n # number of observations
+      ),
+      shape = 21,
+      color = "black",
+      na.rm = TRUE
+    ) +
+    geom_text(
+      data = labels,
+      aes(
+        x = Inf,
+        y = Inf,
+        label = label
+      ),
+      hjust = 1.025,
+      vjust = 1.5,
+      size = 3
+    ) +
+    # manually adjust coordinates
+    coord_sf(
+      xlim = c(err_by_station$lon %>% min() - 2, err_by_station$lon %>% max() + 2),
+      ylim = c(err_by_station$lat %>% min(), err_by_station$lat %>% max())
+    ) +
+    # create color scale for slope estimates
+    scale_fill_gradient2(
+      low = "#d7191c",
+      high = "#2c7bb6",
+      mid = "#ffffbf",
+      # add percent labels
+      labels = label_percent()
+    ) +
+    facet_grid(
+      ESPER_input ~ ESPER_model
+    ) +
+    theme(
+      panel.grid.major = element_line(
+        color = gray(0.5), 
+        linetype = "solid", 
+        linewidth = 0.5
+      ), 
+      panel.background = element_rect(fill = "aliceblue")
+    ) +
+    # fix the order of the legends
+    guides(
+      fill = guide_colorbar(order = 1),
+      size = guide_legend(order = 98)
+    ) +
+    labs(
+      x = NULL,
+      y = NULL,
+      title = paste("ESPER Mean Percent Error by Station for", k, "Predictions"),
+      fill = "Error",
+      size = "N"
+    ))
+  
+  # save plots
+  ggsave(paste0("images/ESPER_analysis/", k, "_MPE_by_station.png"), bg = "white")
+}
