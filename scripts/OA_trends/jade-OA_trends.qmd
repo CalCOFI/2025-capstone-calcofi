@@ -379,6 +379,8 @@ summary(T_degC_mod)
 
 ggplot() + 
       geom_point(aes(y = resid(T_degC_mod1), x = fitted(T_degC_mod1)))
+
+paste0("(", signif((intervals(T_degC_mod, which = "fixed"))[[1]][2,1], digits = 3), " ", signif((intervals(T_degC_mod, which = "fixed")[[1]])[2,3], digits = 3), ")")
 ```
 
 

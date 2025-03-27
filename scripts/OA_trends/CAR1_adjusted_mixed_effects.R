@@ -202,14 +202,15 @@ models <- list(T_degC_mod, Salnty_mod, TA_mod, DIC_mod, pCO2in_mod, RFin_mod, pH
 lapply(
   1:10,
   function(i) {
-    c(qty = qty[i], coef(summary(models[[i]]))[2,], n = nobs(models[[i]]), r2 = r.squaredGLMM(models[[i]])[2])
+    c(qty = qty[i], coef(summary(models[[i]]))[2,], n = nobs(models[[i]]), r2 = r.squaredGLMM(models[[i]])[2],
+      CI = paste0("(", signif((intervals(models[[i]], which = "fixed"))[[1]][2,1], digits = 3), ", ", signif((intervals(models[[i]], which = "fixed")[[1]])[2,3], digits = 3), ")"))
   }
 ) %>%
   # combine results into a dataframe
   bind_rows() %>%
   # convert appropriate columns to numeric
   mutate(
-    across(-qty, as.numeric)
+    across(-c(qty, CI), as.numeric)
   ) %>%
   # rename quantities vector for tidier appearance in table
   mutate(
@@ -249,15 +250,20 @@ lapply(
     `p-value` = "p-value",
     `Std.Error` = "Std. Error",
     units = "Units",
-    r2 = md("r<sup>2</sup>")
+    r2 = md("r<sup>2</sup>"),
+    CI = "95% CI"
   ) %>%
   # move units to be next to estimate and standard error columns
   cols_move(
-    units,
+    CI,
     after = `Std.Error`
   ) %>%
+  cols_move(
+    units,
+    after = CI
+  ) |> 
   fmt_markdown(
-    columns = qty
+    columns = c(qty, CI)
   ) %>%
   fmt_units(
     columns = units
