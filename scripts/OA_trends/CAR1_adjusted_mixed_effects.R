@@ -86,9 +86,10 @@ multi_seq_bottle_co2sys <- multi_seq_bottle_co2sys |>
 omegaARin_mod <- lme(
   OmegaARin_dtd ~ Date_Dec + Depth_Trans,
   method = "REML",
-  random = ~ Date_Dec | Station_ID/depth_bin,
+  random = ~ 1 | Station_ID,
   correlation = corCAR1(form=~Date_Dec|Station_ID/depth_bin),
   data = multi_seq_bottle_co2sys,
+  weights = varIdent(form =~1 | depth_bin),
   control = list(maxIter=10000, niterEM=10000, opt = 'optim'),
   na.action = na.omit
 )
@@ -96,7 +97,8 @@ omegaARin_mod <- lme(
 T_degC_mod <- lme(
   T_degC_dtd ~ Date_Dec + Depth_Trans,
   method = "REML",
-  random = ~ Date_Dec | Station_ID/depth_bin,
+  random = ~ 1 | Station_ID,
+  weights = varIdent(form =~1 | depth_bin),
   correlation = corCAR1(form=~Date_Dec|Station_ID/depth_bin),
   data = multi_seq_bottle_co2sys,
   control = list(maxIter=10000, niterEM=10000, opt = 'optim'),
@@ -106,7 +108,8 @@ T_degC_mod <- lme(
 Salnty_mod <- lme(
   Salnty_dtd ~ Date_Dec + Depth_Trans,
   method = "REML",
-  random = ~ Date_Dec | Station_ID/depth_bin,
+  random = ~ 1 | Station_ID,
+  weights = varIdent(form =~1 | depth_bin),
   correlation = corCAR1(form=~Date_Dec|Station_ID/depth_bin),
   data = multi_seq_bottle_co2sys,
   control = list(maxIter=10000, niterEM=10000, opt = 'optim'),
@@ -116,17 +119,19 @@ Salnty_mod <- lme(
 TA_mod <- lme(
   TA_dtd ~ Date_Dec + Depth_Trans,
   method = "REML",
-  random = ~ Date_Dec | Station_ID/depth_bin,
+  random = ~ 1 | Station_ID,
+  weights = varIdent(form =~1 | depth_bin),
   correlation = corCAR1(form=~Date_Dec|Station_ID/depth_bin),
   data = multi_seq_bottle_co2sys,
-  control = list(maxIter=10000, niterEM=10000),
+  control = list(maxIter=10000, niterEM=10000, opt = "optim"),
   na.action = na.omit
 )
 
 DIC_mod <- lme(
   DIC_dtd ~ Date_Dec + Depth_Trans,
   method = "REML",
-  random = ~ Date_Dec | Station_ID/depth_bin,
+  random = ~ 1 | Station_ID,
+  weights = varIdent(form =~1 | depth_bin),
   correlation = corCAR1(form=~Date_Dec|Station_ID/depth_bin),
   data = multi_seq_bottle_co2sys,
   control = list(maxIter=10000, niterEM=10000, opt = 'optim'),
@@ -138,8 +143,9 @@ DIC_mod <- lme(
 pCO2in_mod <- lme(
   pCO2in_dtd ~ Date_Dec + Depth_Trans,
   method = "REML",
-  random = ~ Date_Dec | Station_ID/depth_bin,
+  random = ~ 1 | Station_ID,
   correlation = corCAR1(form=~Date_Dec|Station_ID/depth_bin),
+  weights = varIdent(form =~1 | depth_bin),
   data = multi_seq_bottle_co2sys,
   control = list(maxIter=10000, niterEM=10000, opt = 'optim'),
   na.action = na.omit
@@ -148,7 +154,8 @@ pCO2in_mod <- lme(
 RFin_mod <- lme(
   RFin_dtd ~ Date_Dec + Depth_Trans,
   method = "REML",
-  random = ~ Date_Dec | Station_ID/depth_bin,
+  random = ~ 1 | Station_ID,
+  weights = varIdent(form =~1 | depth_bin),
   correlation = corCAR1(form=~Date_Dec|Station_ID/depth_bin),
   data = multi_seq_bottle_co2sys,
   control = list(maxIter=10000, niterEM=10000, opt = 'optim'),
@@ -158,7 +165,8 @@ RFin_mod <- lme(
 pHin_mod <- lme(
   pHin_dtd ~ Date_Dec + Depth_Trans,
   method = "REML",
-  random = ~ Date_Dec | Station_ID/depth_bin,
+  random = ~ 1 | Station_ID,
+  weights = varIdent(form =~1 | depth_bin),
   correlation = corCAR1(form=~Date_Dec|Station_ID/depth_bin),
   data = multi_seq_bottle_co2sys,
   control = list(maxIter=10000, niterEM=10000, opt = 'optim'),
@@ -168,7 +176,8 @@ pHin_mod <- lme(
 CO3in_mod <- lme(
   CO3in_dtd ~ Date_Dec + Depth_Trans,
   method = "REML",
-  random = ~ Date_Dec | Station_ID/depth_bin,
+  random = ~ 1 | Station_ID,
+  weights = varIdent(form =~1 | depth_bin),
   correlation = corCAR1(form=~Date_Dec|Station_ID/depth_bin),
   data = multi_seq_bottle_co2sys,
   control = list(maxIter=10000, niterEM=10000, opt = 'optim'),
@@ -178,7 +187,8 @@ CO3in_mod <- lme(
 omegaCAin_mod <- lme(
   OmegaCAin_dtd ~ Date_Dec + Depth_Trans,
   method = "REML",
-  random = ~ Date_Dec | Station_ID/depth_bin,
+  random = ~ 1 | Station_ID,
+  weights = varIdent(form =~1 | depth_bin),
   correlation = corCAR1(form=~Date_Dec|Station_ID/depth_bin),
   data = multi_seq_bottle_co2sys,
   control = list(maxIter=10000, niterEM=10000, opt = 'optim'),
