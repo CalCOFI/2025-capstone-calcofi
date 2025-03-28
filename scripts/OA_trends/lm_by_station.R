@@ -71,7 +71,7 @@ for (i in 1:nrow(stations)) {
         r2 = NA))
     }
     else { # fit the linear model
-      fit <- lm(as.formula(paste(paste0(qty[j],"_dtd"),"~","Date_Dec + Depth_Trans + I(Depth_Trans^2)")), data = data)
+      fit <- lm(as.formula(paste(paste0(qty[j],"_dtd"),"~","Date_Dec + Depth + I(Depth^2)")), data = data, na.action = na.exclude)
       # add fit to list of fits
       fits[[(i-1)*length(qty)+j]] <- fit
       # add coefficient estimate and regression statistics in a new row to results
@@ -112,7 +112,7 @@ for (i in 1:nrow(stations)) {
         r2 = NA))
     }
     else { # fit the linear model
-      fit <- lm(as.formula(paste(paste0(qty[j],"_dtd"),"~","Date_Dec + Depth_Trans + I(Depth_Trans^2)")), data = data)
+      fit <- lm(as.formula(paste(paste0(qty[j],"_dtd"),"~","Date_Dec + Depth")), data = data, na.action = na.exclude)
       # add fit to list of fits
       surf_fits[[(i-1)*length(qty)+j]] <- fit
       # add coefficient estimate and regression statistics in a new row to surf_results
@@ -241,9 +241,9 @@ for (i in 1:10) {
     filter(
       qty == qty[i]
     ) %>%
-    # filter out stations with n<=30 observations used in the fit
+    # filter out stations with n<=15 observations used in the fit
     filter(
-      (!is.na(Estimate)) & (n > 30)
+      (!is.na(Estimate)) & (n > 15)
     )
   
   # create plot of slope by station
@@ -296,7 +296,7 @@ for (i in 1:10) {
     labs(
       x = NULL,
       y = NULL,
-      title = TeX(paste("Estimated Slope for", qty_names[i], "by Station at Surface (Depth<=20m, N>30)", paste0("[",units[i],"]"))),
+      title = TeX(paste("Estimated Slope for", qty_names[i], "by Station at Surface (Depth<=20m, N>15)", paste0("[",units[i],"]"))),
       color = "Estimate",
       size = "N",
       shape = TeX("$p<0.5$"),
@@ -321,5 +321,22 @@ results %>%
     std = sd(Estimate, na.rm = TRUE),
     min = min(Estimate, na.rm = TRUE),
     max = max(Estimate, na.rm = TRUE),
-    n = sum(!is.na(Estimate))
+    n = sum(!is.na(Estimate)),
+    r2 = mean(r2, na.rm = TRUE)
+  )
+
+surf_results %>%
+  filter(
+    n>15
+  ) %>%
+  group_by(
+    qty
+  ) %>%
+  summarize(
+    mean = weighted.mean(Estimate, n, na.rm = TRUE),
+    std = sd(Estimate, na.rm = TRUE),
+    min = min(Estimate, na.rm = TRUE),
+    max = max(Estimate, na.rm = TRUE),
+    n = sum(!is.na(Estimate)),
+    r2 = mean(r2, na.rm = TRUE)
   )

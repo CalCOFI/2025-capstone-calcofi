@@ -210,5 +210,5 @@ lapply(
   ) %>%
   # save table
   gtsave(
-    "images/OA_trends/mix_fit_table.png"
+    "images/OA_trends/mixed_effects_res.png"
   )
