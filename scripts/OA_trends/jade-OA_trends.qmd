@@ -116,6 +116,30 @@ multi_seq_bottle_co2sys <- multi_seq_bottle_co2sys |>
   filter(!is.na(Date_Dec)) |> 
   mutate(Date_Dec_cen = Date_Dec - min(multi_seq_bottle_co2sys$Date_Dec))
 
+multi_seq_bottle_co2sys <- multi_seq_bottle_co2sys |> filter(Station_ID != "080.0 100.0") |> 
+  filter(Station_ID != "080.0 090.0")
+
+keep_stations <- multi_seq_bottle_co2sys %>%
+  group_by(
+    Station_ID
+  ) %>%
+  summarize(
+    n = n()
+  ) %>%
+  filter(
+    n < 40
+  ) %>%
+  pull(
+    Station_ID
+  ) %>%
+  setdiff(
+    x = unique(multi_seq_bottle_co2sys$Station_ID)
+  )
+multi_seq_bottle_co2sys <- multi_seq_bottle_co2sys %>%
+  filter(
+    Station_ID %in% keep_stations
+  )
+
 
 cmod_lme <- lme(TA_dtd ~ Date_Dec + Depth_Trans,
             data=multi_seq_bottle_co2sys, method="REML",
@@ -209,12 +233,23 @@ DIC_mod <- lme(
       na.action = na.omit
     )
 
+multi_seq_bottle_co2sys1 <- multi_seq_bottle_co2sys |> filter(Depth < 1000)
+pCO2in_mod1 <- lme(
+  pCO2in_dtd ~ Date_Dec + Depth,
+  method = "REML",
+  random = ~ 1 | Station_ID,
+  correlation = corCAR1(form=~Date_Dec|Station_ID/depth_bin),
+  weights = varIdent(form =~1 | depth_bin),
+  data = multi_seq_bottle_co2sys1,
+  control = list(maxIter=10000, niterEM=10000, opt = 'optim'),
+  na.action = na.omit
+)
 
-
+summary(pCO2in_mod1)
 pCO2in_mod <- lme(
       pCO2in_dtd ~ Date_Dec + Depth_Trans,
       method = "REML",
-      random = ~ Date_Dec | Station_ID/depth_bin,
+      random = ~ 1 | Station_ID/depth_bin,
       correlation = corCAR1(form=~Date_Dec|Station_ID/depth_bin),
       data = multi_seq_bottle_co2sys,
       control = list(maxIter=10000, niterEM=10000, opt = 'optim'),
@@ -262,7 +297,8 @@ omegaCAin_mod <- lme(
     )
 
 coef(summary(pCO2in_mod))
-summary(pCO2in_mod)
+summary(pCO2in_mod1)
+
 ```
 
 ```{r}
@@ -387,3 +423,30 @@ paste0("(", signif((intervals(T_degC_mod, which = "fixed"))[[1]][2,1], digits = 
 Sources:
 https://rpsychologist.com/r-guide-longitudinal-lme-lmer#data-format
 https://cran.r-project.org/web/packages/nlme/index.html
+
+# Bayesian Models
+
+```{r}
+library(rstanarm)
+
+pCo2_bayes <- stan_glmer(formula = pCO2in ~ Date_Dec + Depth + (Date_Dec | Station_ID),
+                  data = multi_seq_bottle_co2sys,
+                  family = "gaussian",
+                  prior_intercept = normal(0, 2.5, autoscale = TRUE),
+                  prior = normal(0, 2.5, autoscale = TRUE),
+                  prior_aux = exponential(1, autoscale = TRUE),
+                  prior_covariance = decov(reg = 1, conc = 1, shape = 1, scale = 1),
+                  chains = 4, iter = 5000*2, seed = 84735)
+```
+
+```{r}
+multi_seq_bottle_co2sys |> 
+  filter(Depth > 1000) |> 
+  ggplot() + 
+  geom_density(aes(x = Depth))
+
+bottle_co2sys |> 
+  ggplot() +
+  geom_point(aes(y = RFin_dtd, x = Depth))
+```
+

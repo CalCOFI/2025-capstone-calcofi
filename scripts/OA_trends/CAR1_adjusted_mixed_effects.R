@@ -17,7 +17,8 @@ co2sys_out <- read_csv(here::here("data/CO2SYS_out.csv"))
 # Combine merged bottle data and CO2SYS output and filter out anomalies
 bottle_co2sys <- bind_cols(merged_bottle_data, co2sys_out) %>%
   filter(
-    Salnty > 30
+    Salnty > 30,
+    Depth < 1000
   )
 
 qty <- c("T_degC","Salnty","TA","DIC","pCO2in","RFin","pHin","CO3in","OmegaCAin","OmegaARin")
@@ -84,7 +85,7 @@ multi_seq_bottle_co2sys <- multi_seq_bottle_co2sys |>
   mutate(Date_Dec_cen = Date_Dec - min(multi_seq_bottle_co2sys$Date_Dec))
 
 omegaARin_mod <- lme(
-  OmegaARin_dtd ~ Date_Dec + Depth_Trans,
+  OmegaARin_dtd ~ Date_Dec + Depth,
   method = "REML",
   random = ~ 1 | Station_ID,
   correlation = corCAR1(form=~Date_Dec|Station_ID/depth_bin),
@@ -95,7 +96,7 @@ omegaARin_mod <- lme(
 )
 
 T_degC_mod <- lme(
-  T_degC_dtd ~ Date_Dec + Depth_Trans,
+  T_degC_dtd ~ Date_Dec + Depth,
   method = "REML",
   random = ~ 1 | Station_ID,
   weights = varIdent(form =~1 | depth_bin),
@@ -106,7 +107,7 @@ T_degC_mod <- lme(
 )
 
 Salnty_mod <- lme(
-  Salnty_dtd ~ Date_Dec + Depth_Trans,
+  Salnty_dtd ~ Date_Dec + Depth,
   method = "REML",
   random = ~ 1 | Station_ID,
   weights = varIdent(form =~1 | depth_bin),
@@ -117,7 +118,7 @@ Salnty_mod <- lme(
 )
 
 TA_mod <- lme(
-  TA_dtd ~ Date_Dec + Depth_Trans,
+  TA_dtd ~ Date_Dec + Depth,
   method = "REML",
   random = ~ 1 | Station_ID,
   weights = varIdent(form =~1 | depth_bin),
@@ -128,7 +129,7 @@ TA_mod <- lme(
 )
 
 DIC_mod <- lme(
-  DIC_dtd ~ Date_Dec + Depth_Trans,
+  DIC_dtd ~ Date_Dec + Depth,
   method = "REML",
   random = ~ 1 | Station_ID,
   weights = varIdent(form =~1 | depth_bin),
@@ -141,7 +142,7 @@ DIC_mod <- lme(
 
 
 pCO2in_mod <- lme(
-  pCO2in_dtd ~ Date_Dec + Depth_Trans,
+  pCO2in_dtd ~ Date_Dec + Depth,
   method = "REML",
   random = ~ 1 | Station_ID,
   correlation = corCAR1(form=~Date_Dec|Station_ID/depth_bin),
@@ -152,7 +153,7 @@ pCO2in_mod <- lme(
 )
 
 RFin_mod <- lme(
-  RFin_dtd ~ Date_Dec + Depth_Trans,
+  RFin_dtd ~ Date_Dec + Depth,
   method = "REML",
   random = ~ 1 | Station_ID,
   weights = varIdent(form =~1 | depth_bin),
@@ -163,7 +164,7 @@ RFin_mod <- lme(
 )
 
 pHin_mod <- lme(
-  pHin_dtd ~ Date_Dec + Depth_Trans,
+  pHin_dtd ~ Date_Dec + Depth,
   method = "REML",
   random = ~ 1 | Station_ID,
   weights = varIdent(form =~1 | depth_bin),
@@ -174,7 +175,7 @@ pHin_mod <- lme(
 )
 
 CO3in_mod <- lme(
-  CO3in_dtd ~ Date_Dec + Depth_Trans,
+  CO3in_dtd ~ Date_Dec + Depth,
   method = "REML",
   random = ~ 1 | Station_ID,
   weights = varIdent(form =~1 | depth_bin),
@@ -185,7 +186,7 @@ CO3in_mod <- lme(
 )
 
 omegaCAin_mod <- lme(
-  OmegaCAin_dtd ~ Date_Dec + Depth_Trans,
+  OmegaCAin_dtd ~ Date_Dec + Depth,
   method = "REML",
   random = ~ 1 | Station_ID,
   weights = varIdent(form =~1 | depth_bin),
