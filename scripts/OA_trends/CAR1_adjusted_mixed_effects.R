@@ -204,7 +204,7 @@ lapply(
   1:10,
   function(i) {
     c(qty = qty[i], coef(summary(models[[i]]))[2,], n = nobs(models[[i]]), r2 = r.squaredGLMM(models[[i]])[2],
-      CI = paste0("(", signif((intervals(models[[i]], which = "fixed"))[[1]][2,1], digits = 3), ", ", signif((intervals(models[[i]], which = "fixed")[[1]])[2,3], digits = 3), ")"))
+      CI = paste0("(", format(round((intervals(models[[i]], which = "fixed"))[[1]][2,1], 5), nsmall = 5), ", ", format(round((intervals(models[[i]], which = "fixed"))[[1]][2,3], 5), nsmall = 5), ")"))
   }
 ) %>%
   # combine results into a dataframe
@@ -279,4 +279,7 @@ lapply(
   ) %>%
   opt_stylize(
     style = 3
+  ) %>%
+  gtsave(
+    "images/OA_trends/CAR1_mixed_effects.png"
   )
