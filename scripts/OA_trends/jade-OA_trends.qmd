@@ -1,0 +1,546 @@
+---
+title: "General Stuff"
+format: html
+---
+
+## Seeing if data is "Panel" data
+
+```{r}
+library(tidyverse)
+
+source(here::here("scripts/OA_trends/detrend_data.R"))
+
+merged_bottle_data <- read_csv(here::here("data/merged_bottle_data.csv"))
+co2sys_out <- read_csv(here::here("data/CO2SYS_out.csv"))
+
+# Combine merged bottle data and CO2SYS output and filter out anomalies
+bottle_co2sys <- bind_cols(merged_bottle_data, co2sys_out) %>%
+  filter(
+    Salnty > 30
+  )
+
+qty <- c("T_degC","Salnty","TA","DIC","pCO2in","RFin","pHin","CO3in","OmegaCAin","OmegaARin")
+
+# Detrend variables of interest
+bottle_co2sys <- sea_dtd_data(qty, bottle_co2sys, "Date.cc")
+```
+
+```{r}
+bottle_co2sys |> group_by(Station_ID, Depth, Date_Dec) |>
+  filter(n() > 1) |>
+  ungroup() |> 
+  select(Station_ID, Depth, Date_Dec, TA, T_degC, Salnty, DIC, pCO2in, RFin, pHin, CO3in, OmegaCAin, OmegaARin)
+```
+Note that the data is actually NOT panel data. We will fix this by averaging.
+```{r}
+multi_seq_bottle_co2sys <- bottle_co2sys |> group_by(Station_ID, Depth, Date.cc) |>
+  select(Station_ID, Depth, Date_Dec, TA_dtd, T_degC_dtd, DIC_dtd, pCO2in_dtd, RFin_dtd, pHin_dtd, CO3in_dtd, OmegaCAin_dtd, OmegaARin_dtd, Salnty_dtd, Lon_Dec, Lat_Dec) |> 
+  summarize(Station_ID = max(Station_ID),
+            Depth = max(Depth),
+            Date_Dec = max(Date_Dec),
+            TA_dtd = mean(TA_dtd, na.rm = T),
+            DIC_dtd = mean(DIC_dtd, na.rm = T),
+            T_degC_dtd = mean(T_degC_dtd, na.rm = T),
+            pCO2in_dtd = mean(pCO2in_dtd, na.rm = T),
+            RFin_dtd = mean(RFin_dtd),
+            pHin_dtd = mean(pHin_dtd),
+            CO3in_dtd = mean(CO3in_dtd, na.rm = T),
+            OmegaCAin_dtd = mean(OmegaCAin_dtd, na.rm = T),
+            OmegaARin_dtd = mean(OmegaARin_dtd, na.rm = T),
+            Salnty_dtd = mean(Salnty_dtd, na.rm = T),
+            Lat_Dec = mean(Lat_Dec, na.rm = T),
+            Lon_Dec = mean(Lon_Dec, na.rm = T)) |> 
+  ungroup()
+```
+
+Check to see if it works:
+```{r}
+multi_seq_bottle_co2sys |> group_by(Station_ID, Date_Dec, Depth) |> 
+  filter(n() > 1) |>
+  ungroup()
+```
+
+All that remains is to set nice depth bins
+```{r}
+multi_seq_bottle_co2sys |> group_by(Station_ID, Date_Dec) |> 
+  filter(n() > 1) |>
+  ungroup()
+
+multi_seq_bottle_co2sys |> group_by(Station_ID, Date_Dec) |> 
+  filter(n() > 1) |>
+  filter(Depth > 600) |> 
+  ungroup()
+  
+multi_seq_bottle_co2sys <- multi_seq_bottle_co2sys |> 
+  mutate(depth_bin = case_when(
+    Depth < 8 ~ "Surface",
+    Depth < 14 ~ "8 - 13 m",
+    Depth < 21 ~ "14 - 20 m",
+    Depth < 35 ~ "21 - 34 m",
+    Depth < 46 ~ "35 - 45 m",
+    Depth < 60 ~ "46 - 59 m",
+    Depth < 80 ~ "60 - 79 m",
+    Depth < 101 ~ "80 - 100 m",
+    Depth < 120 ~ "100 - 120 m",
+    Depth < 190 ~ "120 - 189 m",
+    Depth < 271 ~ "190 - 270 m",
+    Depth < 370 ~ "271 - 369 m",
+    Depth < 451 ~ "370 - 450 m",
+    Depth < 521 ~ "451 ~ 520 m",
+    TRUE ~ ">520 m"
+  ))
+
+dupes <- multi_seq_bottle_co2sys |>  group_by(Station_ID, depth_bin, Date_Dec) |> 
+  arrange(-Date_Dec) |> 
+  filter(n() >1) |> 
+  ungroup()
+
+multi_seq_bottle_co2sys <- anti_join(multi_seq_bottle_co2sys, dupes)
+```
+Good enough! We only lose 12 data points through this discritization.
+
+## mixed Effects Modeling
+
+
+```{r}
+library(lme4)
+library(sandwich)
+library(nlme)
+
+
+multi_seq_bottle_co2sys <- multi_seq_bottle_co2sys %>%
+  mutate(
+    Depth_Trans = log(Depth + 1, base = 10)
+  )
+
+multi_seq_bottle_co2sys <- multi_seq_bottle_co2sys |> 
+  filter(!is.na(Depth_Trans)) |> 
+  filter(!is.na(Date_Dec)) |> 
+  mutate(Date_Dec_cen = Date_Dec - min(multi_seq_bottle_co2sys$Date_Dec))
+
+multi_seq_bottle_co2sys <- multi_seq_bottle_co2sys |> filter(Depth < 1000)
+
+
+
+cmod_lme <- lme(TA_dtd ~ Date_Dec + Depth_Trans,
+            data=multi_seq_bottle_co2sys, method="REML",
+            random = ~ Date_Dec | Station_ID/depth_bin,
+            control=list(maxIter=10000, niterEM=10000))
+
+
+
+cmod_lme_acor <- update(cmod_lme, 
+       correlation=corCAR1(form=~Date_Dec|Station_ID/depth_bin))
+
+plot(ACF(cmod_lme_acor, resType = "normalized"))
+plot(ACF(cmod_lme))
+
+
+
+plot(fitted(cmod_lme_acor), resid(cmod_lme_acor))
+
+
+summary(cmod_lme_acor)
+
+plot(fitted(cmod_lme_acor), multi_seq_bottle_co2sys$TA_dtd)
+
+multi_seq_bottle_co2sys |> select(Date_Dec, Date_Dec_cen) |> arrange(Date_Dec)
+qqnorm(resid(cmod_lme_acor))
+qqline(resid(cmod_lme_acor))
+
+omegaARin_mod <- lme(
+      OmegaARin_dtd ~ Date_Dec + Depth_Trans,
+      method = "REML",
+      random = ~ Date_Dec | Station_ID/depth_bin,
+      correlation = corCAR1(form=~Date_Dec|Station_ID/depth_bin),
+      data = multi_seq_bottle_co2sys,
+      control = list(maxIter=10000, niterEM=10000, opt = 'optim'),
+      na.action = na.omit
+    )
+
+T_degC_mod <- lme(
+      T_degC_dtd ~ Date_Dec + Depth_Trans,
+      method = "REML",
+      random = ~ Date_Dec | Station_ID/depth_bin,
+      correlation = corCAR1(form=~Date_Dec|Station_ID/depth_bin),
+      data = multi_seq_bottle_co2sys,
+      control = list(maxIter=10000, niterEM=10000, opt = 'optim'),
+      na.action = na.omit
+    )
+
+
+T_degC_mod1 <- lme(
+      T_degC_dtd ~ Date_Dec + Depth_Trans,
+      method = "REML",
+      random = ~ 1 | Station_ID,
+      correlation = corCAR1(form=~Date_Dec|Station_ID/depth_bin),
+      data = multi_seq_bottle_co2sys,
+      weights = ~1/n,
+      control = list(maxIter=10000, niterEM=10000, opt = 'optim'),
+      na.action = na.omit
+    )
+
+summary(T_degC_mod1)
+
+r.squaredGLMM(T_degC_mod1)
+
+Salnty_mod <- lme(
+      Salnty_dtd ~ Date_Dec + Depth_Trans,
+      method = "REML",
+      random = ~ Date_Dec | Station_ID/depth_bin,
+      correlation = corCAR1(form=~Date_Dec|Station_ID/depth_bin),
+      data = multi_seq_bottle_co2sys,
+      control = list(maxIter=10000, niterEM=10000, opt = 'optim'),
+      na.action = na.omit
+    )
+
+TA_mod <- lme(
+      TA_dtd ~ Date_Dec + Depth_Trans,
+      method = "REML",
+      random = ~ Date_Dec | Station_ID/depth_bin,
+      correlation = corCAR1(form=~Date_Dec|Station_ID/depth_bin),
+      data = multi_seq_bottle_co2sys,
+      control = list(maxIter=10000, niterEM=10000),
+      na.action = na.omit
+    )
+
+DIC_mod <- lme(
+      DIC_dtd ~ Date_Dec + Depth_Trans,
+      method = "REML",
+      random = ~ Date_Dec | Station_ID/depth_bin,
+      correlation = corCAR1(form=~Date_Dec|Station_ID/depth_bin),
+      data = multi_seq_bottle_co2sys,
+      control = list(maxIter=10000, niterEM=10000, opt = 'optim'),
+      na.action = na.omit
+    )
+
+
+pCO2in_mod1 <- lme(
+  pCO2in_dtd ~ Date_Dec + Depth,
+  method = "REML",
+  random = ~ 1 | Station_ID,
+  correlation = corCAR1(form=~Date_Dec|Station_ID/depth_bin),
+  data = multi_seq_bottle_co2sys,
+  control = list(maxIter=10000, niterEM=10000, opt = 'optim'),
+  na.action = na.omit
+)
+
+pCO2in_mod2 <- lme(
+  pCO2in_dtd ~ Date_Dec + Depth,
+  method = "REML",
+  random = ~ 1 | Station_ID,
+  data = multi_seq_bottle_co2sys,
+  control = list(maxIter=10000, niterEM=10000, opt = 'optim'),
+  na.action = na.omit
+)
+
+pCO2in_mod3 <- lme(
+  pCO2in_dtd ~ Date_Dec + Depth,
+  method = "REML",
+  random = ~ 1 | Station_ID,
+  weights = varIdent(form =~1 | depth_bin),
+  data = multi_seq_bottle_co2sys,
+  control = list(maxIter=10000, niterEM=10000, opt = 'optim'),
+  na.action = na.omit
+)
+
+summary(pCO2in_mod1)
+pCO2in_mod <- lme(
+      pCO2in_dtd ~ Date_Dec + Depth_Trans,
+      method = "REML",
+      random = ~ 1 | Station_ID/depth_bin,
+      correlation = corCAR1(form=~Date_Dec|Station_ID/depth_bin),
+      data = multi_seq_bottle_co2sys,
+      control = list(maxIter=10000, niterEM=10000, opt = 'optim'),
+      na.action = na.omit
+    )
+
+RFin_mod <- lme(
+      RFin_dtd ~ Date_Dec + Depth_Trans,
+      method = "REML",
+      random = ~ Date_Dec | Station_ID/depth_bin,
+      correlation = corCAR1(form=~Date_Dec|Station_ID/depth_bin),
+      data = multi_seq_bottle_co2sys,
+      control = list(maxIter=10000, niterEM=10000, opt = 'optim'),
+      na.action = na.omit
+    )
+
+pHin_mod <- lme(
+      pHin_dtd ~ Date_Dec + Depth_Trans,
+      method = "REML",
+      random = ~ Date_Dec | Station_ID/depth_bin,
+      correlation = corCAR1(form=~Date_Dec|Station_ID/depth_bin),
+      data = multi_seq_bottle_co2sys,
+      control = list(maxIter=10000, niterEM=10000, opt = 'optim'),
+      na.action = na.omit
+    )
+
+CO3in_mod <- lme(
+      CO3in_dtd ~ Date_Dec + Depth_Trans,
+      method = "REML",
+      random = ~ Date_Dec | Station_ID/depth_bin,
+      correlation = corCAR1(form=~Date_Dec|Station_ID/depth_bin),
+      data = multi_seq_bottle_co2sys,
+      control = list(maxIter=10000, niterEM=10000, opt = 'optim'),
+      na.action = na.omit
+    )
+
+omegaCAin_mod <- lme(
+      OmegaCAin_dtd ~ Date_Dec + Depth_Trans,
+      method = "REML",
+      random = ~ Date_Dec | Station_ID/depth_bin,
+      correlation = corCAR1(form=~Date_Dec|Station_ID/depth_bin),
+      data = multi_seq_bottle_co2sys,
+      control = list(maxIter=10000, niterEM=10000, opt = 'optim'),
+      na.action = na.omit
+    )
+
+summary(pCO2in_mod)
+summary(pCO2in_mod1)
+summary(pCO2in_mod2)
+summary(pCO2in_mod3)
+r.squaredGLMM(pCO2in_mod3)
+
+```
+
+```{r}
+library(tidyverse)
+library(lme4)
+library(lmerTest)
+library(gt)
+library(MuMIn)
+library(ModelMetrics)
+
+
+models <- list(T_degC_mod, Salnty_mod, TA_mod, DIC_mod, pCO2in_mod, RFin_mod, pHin_mod, CO3in_mod, omegaCAin_mod, omegaARin_mod)
+
+
+# format results into table
+lapply(
+  1:10,
+  function(i) {
+    c(qty = qty[i], coef(summary(models[[i]]))[2,], n = nobs(models[[i]]), r2 = r.squaredGLMM(models[[i]])[2])
+  }
+) %>%
+  # combine results into a dataframe
+  bind_rows() %>%
+  # convert appropriate columns to numeric
+  mutate(
+    across(-qty, as.numeric)
+  ) %>%
+  # rename quantities vector for tidier appearance in table
+  mutate(
+    qty = c("Temperature", "Salinity", "A~T~", "C~T~", "*p*CO2", "Revelle Factor", "pH", "CO~3~<sup>2-</sup>", "Ω~calcite~", "Ω~aragonite~"),
+    # add column of units for each quantity
+    units = c("degC yr^-1", "yr^-1", ":mu:mol kg^-1 yr^-1", ":mu:mol kg^-1 yr^-1", ":mu:atm yr^-1",
+              "yr^-1", "yr^-1", ":mu:mol kg^-1 yr^-1", "yr^-1", "yr^-1")
+  ) %>%
+  select(
+    -c("t-value", "DF")
+  ) %>%
+  gt(
+    rowname_col = "qty"
+  ) %>%
+  tab_header(
+    title = "CAR1 Autocorrelation Corrected Mixed Effect Regression Statistics for CalCOFI Stations"
+  ) %>%
+  tab_row_group(
+    label = "Seawater carbonate chemistry",
+    rows = c("C~T~", "A~T~", "*p*CO2", "Revelle Factor")
+  ) %>%
+  tab_row_group(
+    label = "Ocean acidification indicators",
+    rows = c("pH", "CO~3~<sup>2-</sup>", "Ω~calcite~", "Ω~aragonite~")
+  ) %>%
+  tab_row_group(
+    label = "Hydrography",
+    rows = c("Temperature", "Salinity")
+  ) %>%
+  # add label to row names
+  tab_stubhead(
+    label = "Parameter"
+  ) %>%
+  # rename columns
+  cols_label(
+    Value = "Slope",
+    `p-value` = "p-value",
+    `Std.Error` = "Std. Error",
+    units = "Units",
+    r2 = md("r<sup>2</sup>")
+  ) %>%
+  # move units to be next to estimate and standard error columns
+  cols_move(
+    units,
+    after = `Std.Error`
+  ) %>%
+  fmt_markdown(
+    columns = qty
+  ) %>%
+  fmt_units(
+    columns = units
+  ) %>%
+  fmt_number(
+    columns = c("Value", "Std.Error", "p-value", "r2"),
+    decimals = 4
+  ) %>%
+  sub_small_vals(
+    columns = `p-value`,
+    threshold = 0.0001
+  ) %>%
+  opt_stylize(
+    style = 3
+  )
+```
+
+# Model Diagnostics
+
+```{r}
+
+models1 <- list(pCO2in_mod, pCO2in_mod1, pCO2in_mod2)
+
+lapply(
+  1:3, 
+  function(i){
+    ggplot() + 
+      geom_point(aes(y = resid(models1[[i]]), x= fitted(models1[[i]]))) +
+      labs(x= paste0("fitted ", "pCO2 ")) +
+      labs(y = paste0("pCO2", " residuals ", i))
+  })
+
+resid(models[[1]])
+
+ggplot() + 
+      geom_point(aes(y = resid(models[[5]]), x = fitted(models[[5]])))
+
+ggplot() +
+      geom_point(aes(x = fitted(models[[5]]), y = (multi_seq_bottle_co2sys |> filter(!is.na(paste0(qty[5], "_dtd"))) |> select(paste0(qty[5],"_dtd")))))
+
+summary(T_degC_mod1)
+summary(T_degC_mod)
+
+ggplot() + 
+      geom_point(aes(y = resid(T_degC_mod1), x = fitted(T_degC_mod1)))
+
+paste0("(", signif((intervals(T_degC_mod, which = "fixed"))[[1]][2,1], digits = 3), " ", signif((intervals(T_degC_mod, which = "fixed")[[1]])[2,3], digits = 3), ")")
+```
+
+
+Sources:
+https://rpsychologist.com/r-guide-longitudinal-lme-lmer#data-format
+https://cran.r-project.org/web/packages/nlme/index.html
+
+# Bayesian Models
+
+```{r}
+library(rstan)
+library(rstanarm)
+
+multi_seq_bottle_co2sys <- multi_seq_bottle_co2sys |> mutate(ones = 1)
+
+pCo2_bayes <- stan_glmer(formula = pCO2in_dtd ~ -1 + ones + Date_Dec + Depth + (Date_Dec | Station_ID),
+                  data = multi_seq_bottle_co2sys,
+                  family = "gaussian",
+                  prior = normal(location = c(360, 0, 0), 2.5, autoscale = TRUE),
+                  prior_aux = exponential(1, autoscale = TRUE),
+                  prior_covariance = decov(reg = 1, conc = 1, shape = 1, scale = 1, autoscale = TRUE),
+                  chains = 4, iter = 5000*2, seed = 84735)
+
+pCo2_bayes1 <- stan_glmer(formula = pCO2in_dtd ~ -1 + ones + Date_Dec + Depth + (Date_Dec | Station_ID),
+                  data = multi_seq_bottle_co2sys,
+                  family = "gaussian",
+                  prior = normal(location = c(360, 0, 0), 2.5, autoscale = TRUE),
+                  prior_aux = exponential(1, autoscale = TRUE),
+                  prior_covariance = decov(reg = 1, conc = 1, shape = 1, scale = 1),
+                  dispformula = ~ depth_bin,
+                  chains = 4, iter = 5000*2, seed = 84735, adapt_delta = 0.997)
+```
+
+```{r}
+library(bayesrules)
+library(tidyverse)
+library(rstanarm)
+library(bayesplot)
+library(tidybayes)
+library(broom.mixed)
+library(forcats)
+mcmc_trace(pCo2_bayes, size = 0.1, pars = c("ones", "Depth", "Date_Dec"))
+mcmc_dens_overlay(pCo2_bayes, size = 0.1, pars = c("ones", "Depth", "Date_Dec"))
+mcmc_acf(pCo2_bayes, size = 0.1, pars = c("ones", "Depth", "Date_Dec"))
+neff_ratio(pCo2_bayes)
+rhat(pCo2_bayes)
+
+pp_check(pCo2_bayes) + 
+  xlab("pCO2")
+
+tidy(pCo2_bayes, effects = c("fixed", "aux"),
+     conf.int = TRUE, conf.level = 0.95)
+```
+
+
+```{r}
+multi_seq_bottle_co2sys |> 
+  filter(Depth > 1000) |> 
+  ggplot() + 
+  geom_density(aes(x = Depth))
+
+bottle_co2sys |> 
+  ggplot() +
+  geom_point(aes(y = RFin_dtd, x = Depth))
+```
+
+```{r}
+library(brms)
+
+# Standardize predictors (recommended for autoscaling priors)
+
+
+# Compute SD of variables (for autoscaling priors)
+pco2_sd <- sd(multi_seq_bottle_co2sys$pCO2in_dtd)
+depth_sd <- sd(multi_seq_bottle_co2sys$Depth)
+time_sd <- sd(multi_seq_bottle_co2sys$Date_Dec_cen)
+
+# Define priors
+priors <- c(
+  prior(normal(0, time_sd), class = "b", coef = "Date_Dec_cen"),
+  prior(normal(0, depth_sd), class = "b", coef = "Depth"),# Autoscaled fixed effects
+  prior(normal(360, 5), class = "Intercept"),               # Weakly informative intercept
+  prior(normal(0, pco2_sd), class = "sigma"),           # Autoscaled residual variance
+  prior(normal(0, pco2_sd), class = "sd"),              # Autoscaled group-level SD
+  prior(normal(0, 1), class = "b", dpar = "sigma")         # Weakly informative prior for sigma(x2)
+)
+
+# Fit hierarchical model
+fit <- brm(
+  bf(pCO2in_dtd ~ Date_Dec_cen + Depth + (1 | Station_ID),  # Random slopes & intercepts
+     sigma ~ Depth),                        # Variance modeled as function of x2
+  data = multi_seq_bottle_co2sys,
+  family = gaussian(),
+  prior = priors,
+  iter = 4000,       # Increase total iterations per chain
+  warmup = 1000,     # Set warmup (burn-in) period
+  chains = 4,        # Use 4 independent chains
+  cores = parallel::detectCores(),         # Use parallel processing
+  backend = "cmdstanr",
+  control = list(adapt_delta = 0.999)
+)
+
+# Check results
+summary(fit)
+
+```
+## Sample Data for Erika:
+
+```{r}
+top3_stations <- multi_seq_bottle_co2sys |> group_by(Station_ID) |> 
+  summarize(n = n()) |> 
+  arrange(-n) |> 
+  slice(1:3) |> 
+  select(Station_ID)
+
+multi_seq_bottle_co2sys_subset <- multi_seq_bottle_co2sys |> 
+  filter(Station_ID %in% top3_stations$Station_ID)
+
+write.csv(multi_seq_bottle_co2sys_subset, file = "bottle_subset_for_erika.csv")
+
+```
+

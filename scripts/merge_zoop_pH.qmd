@@ -1,0 +1,164 @@
+```{r}
+library(ggplot2)
+```
+
+
+```{r}
+# load new zooplankton data
+zoop_data <- read.csv('../data/zoop_data/Zooplankton-new.csv')
+
+# load carbonate chem bottle pH data
+cc_data <- read.csv('../data/merged_bottle_co2sys.csv') # [-1,]
+```
+
+```{r}
+head(cc_data)
+```
+
+```{r}
+# format Station_ID column
+zoop_data$Station_ID <- paste(
+  sprintf('%05.1f', zoop_data$line),
+  sprintf('%05.1f', zoop_data$station),
+  sep = ' '
+)
+```
+
+
+```{r}
+# format date in carbonate chem data
+cc_data <- cc_data %>%
+  mutate(
+    Date = as.Date(
+      paste(Month_UTC, Day_UTC, Year_UTC, sep = "/"),
+      tryFormats = c("%m/%d/%Y")
+    ),
+    .before = Year_UTC
+  ) %>%
+  mutate(
+    Depth = as.double(Depth)
+  )
+
+# format date in zooplankton data
+zoop_data$Date = as.Date(zoop_data$time)
+```
+
+# Monthly Average
+```{r}
+zoop_data$Month_UTC <- as.integer(format(zoop_data$Date, '%m'))
+zoop_data$Year_UTC <- as.integer(format(zoop_data$Date, '%Y'))
+```
+
+```{r}
+# numeric columns to be averaged
+zoop_data_num_cols <- names(select_if(zoop_data, is.numeric))
+
+# group zoop data by month
+zoop_data_by_month <- zoop_data[, c('Station_ID', zoop_data_num_cols)] %>%
+  group_by(Station_ID, Year_UTC, Month_UTC) %>%
+  summarise(across(everything(), mean), .groups = 'drop', na.rm=TRUE)  %>%
+  as.data.frame()
+```
+
+```{r}
+# numeric columns to be averaged
+cc_data_num_cols <- names(select_if(cc_data, is.numeric))
+
+# group cc data by month
+cc_data_by_month <- cc_data[, c('Station_ID', cc_data_num_cols)] %>%
+  group_by(Station_ID, Year_UTC, Month_UTC) %>%
+  summarise(across(everything(), mean), .groups = 'drop', na.rm=TRUE) %>%
+  as.data.frame()
+```
+
+## Join Data
+```{r}
+merged_cc_zoop_data <- inner_join(
+  cc_data_by_month,
+  zoop_data_by_month,
+  by = join_by(Station_ID, Year_UTC, Month_UTC)
+)
+```
+
+```{r}
+# save dataset
+write.csv(merged_cc_zoop_data, '../data/zoop_data/zooplankton_pH.csv', row.names=FALSE)
+```
+
+
+# Quarterly Average
+```{r}
+# add quarter column to zooplankton data
+zoop_data$Quarter <- ((zoop_data$Month_UTC - 1) %/% 3) + 1
+```
+
+
+```{r}
+# numeric columns to be averaged
+zoop_data_num_cols <- names(select_if(zoop_data, is.numeric))
+
+# group zoop data by month
+zoop_data_by_quarter <- zoop_data[, c('Station_ID', zoop_data_num_cols)] %>%
+  group_by(Station_ID, Year_UTC, Quarter) %>%
+  summarise(across(everything(), mean), .groups = 'drop', na.rm=TRUE)  %>%
+  as.data.frame()
+```
+
+
+```{r}
+# numeric columns to be averaged
+cc_data_num_cols <- names(select_if(cc_data, is.numeric))
+
+# group cc data by month
+cc_data_by_quarter <- cc_data[, c('Station_ID', cc_data_num_cols)] %>%
+  group_by(Station_ID, Year_UTC, Quarter) %>%
+  summarise(across(everything(), mean), .groups = 'drop', na.rm=TRUE) %>%
+  as.data.frame()
+```
+
+## Join Data
+```{r}
+merged_cc_zoop_data_quarter <- inner_join(
+  cc_data_by_quarter,
+  zoop_data_by_quarter,
+  by = join_by(Station_ID, Year_UTC, Quarter)
+)
+```
+
+```{r}
+head(merged_cc_zoop_data_quarter)
+```
+
+
+# pH EDA
+```{r}
+# monthly
+merged_cc_zoop_data$Date <- as.Date(with(merged_cc_zoop_data, sprintf('%d-%02d-01', Year_UTC, Month_UTC)))
+
+pH_ts <- as.ts(merged_cc_zoop_data$pHout, merged_cc_zoop_data$Date)
+plot.ts(pH_ts)
+```
+
+```{r}
+# quarterly
+merged_cc_zoop_data_quarter$Date <- as.Date(with(merged_cc_zoop_data_quarter, sprintf('%d-%02d-01', Year_UTC, 3*Quarter-2)))
+
+pH_ts_quarter <- as.ts(merged_cc_zoop_data_quarter$pHout, merged_cc_zoop_data_quarter$Date)
+plot.ts(pH_ts_quarter)
+```
+
+
+```{r}
+# monthly
+ggplot(data = merged_cc_zoop_data, aes(x=pHout, y=small_plankton)) + 
+  geom_point(size=1, shape=1) + 
+  theme_minimal()
+```
+
+```{r}
+# quarterly
+ggplot(data = merged_cc_zoop_data_quarter, aes(x=pHout, y=small_plankton)) + 
+  geom_point(size=1, shape=1) + 
+  theme_minimal()
+```
+

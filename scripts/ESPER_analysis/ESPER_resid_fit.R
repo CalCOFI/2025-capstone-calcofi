@@ -16,10 +16,6 @@ models <- c("Mixed", "LIR", "NN")
 inputs <- c("lim", "all")
 vars <- c("TA", "DIC")
 
-# detrend residuals
-source("scripts/detrend_data.R")
-
-
 # convert dates to decimal years for fitting
 esper_bottle_combined <- esper_bottle_combined %>%
   mutate(

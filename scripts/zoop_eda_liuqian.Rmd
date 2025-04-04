@@ -23,6 +23,8 @@ library(ggplot2)
 library(readr)
 # read in merged bottle data
 merged_zoop_avg_monthly <- read_csv("../data/merged_zoop_avg_monthly.csv")
+merged_zoop_avg_monthly <- merged_zoop_avg_monthly %>% mutate(large_plankton = total_plankton - small_plankton)
+
 # First plot: Date vs Station ID
 ggplot(merged_zoop_avg_monthly, aes(x = Date.x, y = Station_ID)) +
   geom_point(alpha = 0.5, size = 1) +
@@ -98,14 +100,14 @@ library(ggplot2)
 library(lubridate)
 
 # Get all unique station IDs and sort them
-all_stations <- sort(unique(merged_zoop_avg_monthly_filtered$Station_ID))
+all_stations <- sort(unique(merged_zoop_avg_monthly$Station_ID))
 
 # Compute indices for evenly spaced selection of 16 stations
 selected_indices <- round(seq(1, length(all_stations), length.out = 16))
 stations_to_plot <- all_stations[selected_indices]
 
 # Filter the dataset for these 16 stations
-subset_data <- merged_zoop_avg_monthly_filtered %>%
+subset_data <- merged_zoop_avg_monthly %>%
   filter(Station_ID %in% stations_to_plot)
 
 # Create the faceted time series plot
@@ -126,11 +128,10 @@ ggplot(subset_data, aes(x = YearMonth, y = total_plankton)) +
 ```{r}
 # remove outliers
 merged_zoop_avg_monthly_filtered <- merged_zoop_avg_monthly %>%
-  filter(total_plankton <= 2000, Year_UTC >= 2005) %>% 
-  #select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, total_plankton, small_plankton, large_plankton) %>%
-  drop_na()
+  #filter(total_plankton <= 2000, Year_UTC >= 2005) %>% 
+  select(YearMonth, CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, total_plankton, small_plankton, large_plankton, Station_ID)
 
-ggplot(zmerged_zoop_avg_monthly_filtered, aes(x = YearMonth, y = Station_ID, size = total_plankton, color = total_plankton)) +
+ggplot(merged_zoop_avg_monthly_filtered, aes(x = YearMonth, y = Station_ID, size = total_plankton, color = total_plankton)) +
   geom_point(alpha = 0.7) +
   scale_color_viridis_c() +          
   scale_size(range = c(2, 6)) +     # control the size range of the points
@@ -149,14 +150,18 @@ vis_miss(merged_zoop_avg_monthly)
 
 ```{r}
 library(ggcorrplot)
+library(tidyr)
+merged_zoop_avg_monthly_filtered <- merged_zoop_avg_monthly %>%
+  #filter(total_plankton <= 2000, Year_UTC >= 2005) %>% 
+  select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, total_plankton, small_plankton, large_plankton, Year_UTC, Month_UTC)
+
 merged_zoop_avg_monthly_filtered %>%
   pivot_longer(cols = everything(), names_to = "Variable", values_to = "Value") %>%
   ggplot(aes(x = Value)) +
   geom_histogram(bins = 30, fill = "blue", alpha = 0.5) +
-  facet_wrap(~Variable, scales = "free") +
+  facet_wrap(~Variable, scales = "free") + 
   theme_minimal() +
   labs(title = "Distribution of Environmental Factors and Plankton Counts")
-       
 
 ```
 
@@ -206,5 +211,146 @@ ggplot(merged_zoop_avg_monthly_filtered, aes(x = Season, y = CTDTEMP_ITS90, fill
 ```{r}
 ggplot(merged_zoop_avg_monthly_filtered, aes(x = Season, y = total_plankton, fill = Season)) +
   geom_boxplot() 
+```
+
+```{r}
+# GAM
+library(mgcv)
+gam_model <- gam(total_plankton ~ s(DIC) + s(CTDTEMP_ITS90) + s(TA), data = merged_zoop_avg_monthly_filtered)
+summary(gam_model)
+plot(gam_model)
+
+```
+
+```{r}
+# time serieslibrary(dplyr)
+library(tidyr)
+library(zoo)
+library(forecast)
+
+merged_zoop_avg_monthly_filtered <- merged_zoop_avg_monthly %>%
+  #filter(total_plankton <= 2000, Year_UTC >= 2005) %>% 
+  select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, total_plankton, small_plankton, large_plankton, Year_UTC, Month_UTC, Station_ID)
+
+# Create a proper Date column (assuming Year and Month exist)
+merged_zoop_avg_monthly_filtered <- merged_zoop_avg_monthly_filtered %>%
+  mutate(Date = as.Date(paste(Year_UTC, Month_UTC, "01", sep = "-")))  %>% 
+  filter(Station_ID == "093.3 030.0")
+
+  # First day of each month
+
+# Ensure data is sorted
+merged_zoop_avg_monthly_filtered <- merged_zoop_avg_monthly_filtered %>% arrange(Date)
+
+
+# Convert to a time series object
+ts_data <- ts(merged_zoop_avg_monthly_filtered$total_plankton, 
+              start = c(min(merged_zoop_avg_monthly_filtered$Year_UTC), min(merged_zoop_avg_monthly_filtered$Month_UTC)), frequency = 3)  # Monthly data
+
+stl_decomp <- stl(ts_data, s.window = "periodic")
+plot(stl_decomp)
+```
+
+```{r}
+# Merged with the pH output from CO2SYS
+library(readr)
+library(dplyr)
+library(ggplot2)
+zooplankton_pH <- read_csv("../data/zoop_data/zooplankton_pH.csv")
+zooplankton_pH <- zooplankton_pH %>%
+  mutate(YearMonth = as.Date(paste(Year_UTC, Month_UTC, "01", sep = "-"), 
+                             format = "%Y-%m-%d"))
+ggplot(zooplankton_pH, aes(x = YearMonth, y = Station_ID, size = pHout, color = pHout)) +
+  geom_point(alpha = 0.7) +
+  scale_color_viridis_c() +          
+  scale_size(range = c(1, 3)) +     # control the size range of the points
+  labs(title = "Scatter Plot with Size and Color Representing total_plankton",
+       x = "Year-Month",
+       y = "Station",
+       color = "pH_output",
+       size = "pH_output") +
+  theme_minimal()
+```
+
+```{r}
+library(corrplot)
+zooplankton_pH_filtered <- zooplankton_pH %>%
+  #filter(total_plankton <= 2000, Year_UTC >= 2005) %>% 
+  select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, total_plankton, small_plankton, Year_UTC, Month_UTC,pHout)
+
+# Compute correlation matrix
+cor_matrix <- cor(zooplankton_pH_filtered, use = "complete.obs")
+
+# Visualize the correlation matrix
+corrplot(cor_matrix, method = "color", type = "upper", tl.cex = 0.8, col = colorRampPalette(c("blue", "white", "red"))(200))
+```
+
+```{r}
+# lm
+
+# Fit the linear model
+model <- lm(total_plankton ~ CTDTEMP_ITS90 + Salinity_PSS78 + TA + DIC + pHout, data = zooplankton_pH_filtered)
+
+# Load car package and calculate VIF
+library(car)
+vif(model)
+
+```
+
+```{r message=FALSE, warning=FALSE}
+# Load necessary libraries
+library(GGally)
+library(ggplot2)
+library(dplyr)
+
+# Assuming you have a data frame called zooplankton_pH_filtered
+# and it contains the necessary columns:
+# CTDTEMP_ITS90, pHout, TA, DIC, Salinity_PSS78, total_plankton
+
+# Create a copy and add log-transformed total_plankton
+df_vis <- zooplankton_pH_filtered %>%
+  mutate(log_total_plankton = log1p(total_plankton)) %>%
+  select(log_total_plankton, CTDTEMP_ITS90, pHout, TA, DIC, Salinity_PSS78)
+
+# Plot pairwise relationships
+ggpairs(df_vis,
+        upper = list(continuous = wrap("cor", size = 3)),
+        lower = list(continuous = wrap("points", alpha = 0.5, size = 1)),
+        diag = list(continuous = wrap("densityDiag")),
+        title = "Pairwise Relationships with log(total_plankton)")
+
+```
+
+```{r}
+# Load required libraries
+library(dplyr)
+library(dtplyr)
+library(tidyr)
+library(car)         # for VIF if needed later
+library(stats)
+
+# Assume zooplankton_pH_filtered has your pre-processed data
+# Remove NA rows from the relevant columns
+df_std <- zooplankton_pH_filtered %>%
+  select(total_plankton, CTDTEMP_ITS90, pHout, TA, DIC, Salinity_PSS78) %>%
+  drop_na() %>%
+  mutate(
+    log_total_plankton = log1p(total_plankton),  # log(1 + x)
+    CTDTEMP_ITS90 = scale(CTDTEMP_ITS90)[,1],
+    pHout = scale(pHout)[,1],
+    TA = scale(TA)[,1],
+    DIC = scale(DIC)[,1],
+    Salinity_PSS78 = scale(Salinity_PSS78)[,1]
+  )
+
+# Fit the log-linear model with interaction terms
+model <- lm(
+  log_total_plankton ~ CTDTEMP_ITS90 * pHout + TA * Salinity_PSS78,
+  data = df_std
+)
+
+# View the summary
+summary(model)
+
 ```
 
