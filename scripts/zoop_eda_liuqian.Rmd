@@ -329,7 +329,6 @@ library(tidyr)
 library(car)         # for VIF if needed later
 library(stats)
 
-# Assume zooplankton_pH_filtered has your pre-processed data
 # Remove NA rows from the relevant columns
 df_std <- zooplankton_pH_filtered %>%
   select(total_plankton, CTDTEMP_ITS90, pHout, TA, DIC, Salinity_PSS78) %>%
@@ -345,12 +344,79 @@ df_std <- zooplankton_pH_filtered %>%
 
 # Fit the log-linear model with interaction terms
 model <- lm(
-  log_total_plankton ~ CTDTEMP_ITS90 * pHout + TA * Salinity_PSS78,
+  log_total_plankton ~ CTDTEMP_ITS90 * TA + CTDTEMP_ITS90 * Salinity_PSS78 + CTDTEMP_ITS90 * pHout + TA * Salinity_PSS78, 
   data = df_std
 )
 
 # View the summary
 summary(model)
 
+# 1. Basic Residual Plots
+par(mfrow = c(2, 2))
+plot(model)
+
+# 2. Histogram of Residuals
+residuals <- resid(model)
+hist(residuals, breaks = 30, main = "Histogram of Residuals", xlab = "Residuals")
+
+# 3. Q-Q Plot for Normality
+qqnorm(residuals)
+qqline(residuals, col = "red", lwd = 2)
+
+# 4. Check for multicollinearity (Variance Inflation Factor)
+library(car)
+vif(model)
+
+# 5. Leverage and Influence
+# Cook's distance plot
+cooksd <- cooks.distance(model)
+plot(cooksd, type = "h", main = "Cook's Distance", ylab = "Cook's distance")
+abline(h = 4 / nrow(df_std), col = "red", lty = 2)  # common threshold
+text(x = which(cooksd > 4 / nrow(df_std)), y = cooksd[cooksd > 4 / nrow(df_std)],
+     labels = names(cooksd)[cooksd > 4 / nrow(df_std)], pos = 4, cex = 0.7)
+
+# Reset plotting window
+par(mfrow = c(1, 1))
+```
+```{r}
+model1 <- lm(
+  log_total_plankton ~ CTDTEMP_ITS90 * pHout + CTDTEMP_ITS90 * pHout + TA * Salinity_PSS78,
+  data = df_std
+)
+
+# View the summary
+summary(model1)
+
+# 1. Basic Residual Plots
+par(mfrow = c(2, 2))
+plot(model)
+
+# 2. Histogram of Residuals
+residuals <- resid(model1)
+hist(residuals, breaks = 30, main = "Histogram of Residuals", xlab = "Residuals")
+
+# 3. Q-Q Plot for Normality
+qqnorm(residuals)
+qqline(residuals, col = "red", lwd = 2)
+
+# 4. Check for multicollinearity (Variance Inflation Factor)
+library(car)
+vif(model)
+
+# 5. Leverage and Influence
+# Cook's distance plot
+cooksd <- cooks.distance(model1)
+plot(cooksd, type = "h", main = "Cook's Distance", ylab = "Cook's distance")
+abline(h = 4 / nrow(df_std), col = "red", lty = 2)  # common threshold
+text(x = which(cooksd > 4 / nrow(df_std)), y = cooksd[cooksd > 4 / nrow(df_std)],
+     labels = names(cooksd)[cooksd > 4 / nrow(df_std)], pos = 4, cex = 0.7)
+
+# Reset plotting window
+par(mfrow = c(1, 1))
+```
+
+```{r}
+AIC(model)
+AIC(model1)
 ```
 
