@@ -300,3 +300,11 @@ main datasets
 -totals_data (contains carbonchem/oceanographic data, and the krill_total_data and krill_taxa_data)
 -krill_total_data (Total_Abundance)
 -krill_taxa_data (contains 10 taxa data including total per taxa, specifically looking at top 3 with least amount of 0 values)
+
+```{r}
+colnames(merged_krill)
+#colnames(krill_total_data)
+#colnames(krill_taxa_data)
+
+#write_csv(merged_krill, here::here("data/CV_merged_krill.csv"))
+```
