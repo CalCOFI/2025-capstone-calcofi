@@ -132,6 +132,10 @@ head(merged_cc_zoop_data_quarter)
 
 # pH EDA
 ```{r}
+merged_cc_zoop_data <- read.csv('../data/zoop_data/zooplankton_pH.csv')
+```
+
+```{r}
 # monthly
 merged_cc_zoop_data$Date <- as.Date(with(merged_cc_zoop_data, sprintf('%d-%02d-01', Year_UTC, Month_UTC)))
 
@@ -154,6 +158,7 @@ ggplot(data = merged_cc_zoop_data, aes(x=pHout, y=small_plankton)) +
   geom_point(size=1, shape=1) + 
   theme_minimal()
 ```
+
 
 ```{r}
 # quarterly
