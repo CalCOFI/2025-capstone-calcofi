@@ -179,16 +179,32 @@ head(krill_total_data)
 
 ```{r}
 krill_total_data %>%
-  ggplot(aes(x=Total_Abundance, y=pHin)) +
+  ggplot(aes(x=Total_Abundance, y=pHout)) +
   geom_jitter(width = 0.5, size = 1) +
   geom_smooth(method = "lm", se = F, col = "red") +
   labs(title = "pH vs. Total Krill Abundance")
+cor(krill_total_data$Total_Abundance, krill_total_data$pHout)
 
-cor(krill_total_data$Total_Abundance, krill_total_data$pHin)
-
-cor(krill_taxa_data$Euphausia_pacifica_Total, krill_total_data$pHin)
-cor(krill_taxa_data$Nematoscelis_difficilis_Total, krill_total_data$pHin)
-cor(krill_taxa_data$Thysanoessa_gregaria_Total, krill_total_data$pHin)
+# merged_krill %>%
+#   ggplot(aes(x=Euphausia_pacifica_Total, y=pHout)) +
+#   geom_jitter(width = 0.5, size = 1) +
+#   geom_smooth(method = "lm", se = F, col = "red") +
+#   labs(title = "pH vs. Total Krill Abundance")
+# cor(krill_taxa_data$Euphausia_pacifica_Total, krill_total_data$pHout)
+# 
+# merged_krill %>%
+#   ggplot(aes(x=Nematoscelis_difficilis_Total, y=pHout)) +
+#   geom_jitter(width = 0.5, size = 1) +
+#   geom_smooth(method = "lm", se = F, col = "red") +
+#   labs(title = "pH vs. Total Krill Abundance")
+# cor(krill_taxa_data$Nematoscelis_difficilis_Total, krill_total_data$pHout)
+# 
+# merged_krill %>%
+#   ggplot(aes(x=Thysanoessa_gregaria_Total, y=pHout)) +
+#   geom_jitter(width = 0.5, size = 1) +
+#   geom_smooth(method = "lm", se = F, col = "red") +
+#   labs(title = "pH vs. Total Krill Abundance")
+# cor(krill_taxa_data$Thysanoessa_gregaria_Total, krill_total_data$pHout)
 ```
 
 ```{r}
@@ -255,12 +271,12 @@ ggplot(krill_taxa_data, aes(x=Thysanoessa_gregaria_Total)) +
 ```{r}
 library(corrplot)
 krill_total_data %>%
-  select(TA, DIC, Depth, CTDTEMP_ITS90, Salinity_PSS78, pHin, MaxDepth, Total_Abundance) %>%
+  select(TA, DIC, Depth, CTDTEMP_ITS90, Salinity_PSS78, pHout, MaxDepth, Total_Abundance) %>%
   cor(use = "pairwise.complete.obs") %>% 
   corrplot(type = "lower", diag = FALSE, addCoef.col = 1)
 
 cor_matrix <- krill_taxa_data %>%
-  select(TA, DIC, Depth, CTDTEMP_ITS90, Salinity_PSS78, pHin, MaxDepth, 
+  select(TA, DIC, Depth, CTDTEMP_ITS90, Salinity_PSS78, pHout, MaxDepth, 
          Euphausia_pacifica_Total, Nematoscelis_difficilis_Total, Thysanoessa_gregaria_Total) %>%
   cor(use = "pairwise.complete.obs")
 
@@ -275,7 +291,7 @@ corrplot(cor_matrix,
          mar = c(2, 2, 2, 2))    
 
 cor_matrix <- totals_data %>%
-  select(TA, DIC, Depth, CTDTEMP_ITS90, Salinity_PSS78, pHin, MaxDepth, 
+  select(TA, DIC, Depth, CTDTEMP_ITS90, Salinity_PSS78, pHout, MaxDepth, 
          Euphausia_pacifica_Total, Nematoscelis_difficilis_Total, Thysanoessa_gregaria_Total, Total_Abundance) %>%
   cor(use = "pairwise.complete.obs")
 
@@ -307,4 +323,281 @@ colnames(merged_krill)
 #colnames(krill_taxa_data)
 
 #write_csv(merged_krill, here::here("data/CV_merged_krill.csv"))
+```
+
+```{r}
+merged_krill <- read_csv(here::here("data/krill_data/CV_merged_krill.csv"))
+
+total_krill_cor <- cor(merged_krill$Total_Abundance, merged_krill$pHout)
+ggplot(merged_krill, aes(x = pHout, y = Total_Abundance)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Total Krill Abundance vs. pH", 
+       caption = paste("Correlation Coefficient:", round(total_krill_cor, 3)))
+
+total_ep_cor <- cor(merged_krill$Euphausia_pacifica_Total, merged_krill$pHout)
+ggplot(merged_krill, aes(x = pHout, y = Euphausia_pacifica_Total)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Total Euphausia Pacifica Abundance vs. pH",
+       caption = paste("Correlation Coefficient:", round(total_ep_cor, 3)))
+
+total_nd_cor <- cor(merged_krill$Nematoscelis_difficilis_Total, merged_krill$pHout)
+ggplot(merged_krill, aes(x = pHout, y = Nematoscelis_difficilis_Total)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Total Nematoscelis Difficilis Abundance vs. pH",
+       caption = paste("Correlation Coefficient:", round(total_nd_cor, 3)))
+
+total_tg_cor <- cor(merged_krill$Thysanoessa_gregaria_Total, merged_krill$pHout)
+ggplot(merged_krill, aes(x = pHout, y = Thysanoessa_gregaria_Total)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  labs(title = "Total Thysanoessa Gregaria Abundance vs. pH",
+       caption = paste("Correlation Coefficient:", round(total_tg_cor, 3)))
+
+cor_matrix <- merged_krill %>%
+  select(TA, DIC, CTDTEMP_ITS90, Salinity_PSS78, pHout, 
+         Euphausia_pacifica_Total, Nematoscelis_difficilis_Total, Thysanoessa_gregaria_Total, Total_Abundance) %>%
+  cor(use = "pairwise.complete.obs")
+
+corrplot(cor_matrix, 
+         type = "lower", 
+         diag = FALSE, 
+         addCoef.col = "black",
+         tl.col = "black",
+         tl.cex = 0.6,
+         tl.srt = 45, 
+         number.cex = 0.5,  
+         mar = c(2, 2, 2, 2)) 
+```
+
+# Total Abundance Models
+
+```{r}
+# lm1: Linear model with all predictors
+total_clean <- merged_krill %>%
+  select(TA, DIC, CTDTEMP_ITS90, Salinity_PSS78, pHout, Total_Abundance) %>%
+  mutate(log_total_abundance = log1p(Total_Abundance)) %>%
+  select(-Total_Abundance) %>% na.omit
+nrow(total_clean)
+lm1 <- lm(log_total_abundance ~ . , data = total_clean)
+summary(lm1)
+library(car)
+vif(lm1)
+```
+```{r}
+# lm2: Linear model with fewer predictors, taking into consideration interaction terms according to corr plot
+
+library(leaps)
+best_subsets <- regsubsets(log_total_abundance ~ ., 
+                          data = total_clean,
+                          nbest = 1,
+                          nvmax = NULL,
+                          force.in = NULL, force.out = NULL,
+                          method = "exhaustive")
+summary(best_subsets)
+summary(best_subsets)$adjr2
+```
+
+```{r}
+lm2 <- lm(log_total_abundance ~ DIC + CTDTEMP_ITS90 + Salinity_PSS78 + pHout, data = total_clean)
+summary(lm2)
+vif(lm2)
+aic(lm2)
+```
+
+```{r}
+# Packages for diagnostics
+library(performance)
+library(broom)
+library(ggfortify)
+# Diagnostics for lm1
+check_model(lm1)
+glance(lm1)
+autoplot(lm1, ncol = 2)
+
+# Diagnostics for lm2
+check_model(lm2)
+glance(lm2)
+autoplot(lm2, ncol = 2)
+```
+
+
+```{r}
+# trying gam model?
+library(mgcv)
+gam_model <- gam(log_total_abundance ~ s(pHout) + s(DIC) + s(CTDTEMP_ITS90) + s(Salinity_PSS78), data = total_clean)
+summary(gam_model)
+```
+
+```{r}
+# GLM model
+
+# library(glmulti)
+# glmulti_best_models <- glmulti(
+#   log_total_abundance ~ DIC + TA + pHout + CTDTEMP_ITS90 + Salinity_PSS78,
+#   data = total_clean,
+#   level = 2,               # include pairwise interactions
+#   method = "h",            # exhaustive search
+#   crit = "aic",            # or "bic"
+#   fitfunction = "lm"       # for linear models
+# )
+
+# ***lm3 BEST for Total_Abundance
+# only interactions
+lm3 <- lm(log_total_abundance ~
+    pHout:DIC +
+    CTDTEMP_ITS90:DIC +
+    Salinity_PSS78:DIC,
+  data = total_clean)
+summary(lm3)
+vif(lm3)
+
+# Interpretation for lm3: This linear model explains ~25% of the variability in log-transformed total krill abundance and is statistically significant overall. The three interaction terms are all significant (with pH:DIC and temperature:DIC showing a positive interaction and salinity:DIC showing a negative interaction).
+
+## interaction and main effects
+# lm4 <- lm(log_total_abundance ~ 
+#     pHout*DIC + 
+#     CTDTEMP_ITS90*DIC + 
+#     Salinity_PSS78*DIC,
+#   data = total_clean)
+# summary(lm4)
+# vif(lm4)
+
+
+```
+
+```{r}
+# Trying models by scaling carb chem variables
+df_std <- merged_krill %>%
+  dplyr::select(Total_Abundance, CTDTEMP_ITS90, pHout, TA, DIC, Salinity_PSS78) %>%
+  drop_na() %>%
+  mutate(
+    log_total_abundance = log1p(Total_Abundance),  # log(1 + x)
+    CTDTEMP_ITS90 = scale(CTDTEMP_ITS90)[,1],
+    pHout = scale(pHout)[,1],
+    TA = scale(TA)[,1],
+    DIC = scale(DIC)[,1],
+    Salinity_PSS78 = scale(Salinity_PSS78)[,1]
+  )
+
+# glmulti_best_models <- glmulti(
+#   log_total_abundance ~ DIC + TA + pHout + CTDTEMP_ITS90 + Salinity_PSS78,
+#   data = df_std,
+#   level = 2,               # include pairwise interactions
+#   method = "h",            # exhaustive search
+#   crit = "aic",            # or "bic"
+#   fitfunction = "lm"       # for linear models
+# )
+
+lm5 <- lm(log_total_abundance ~ DIC + CTDTEMP_ITS90 + Salinity_PSS78 + pHout, data = df_std)
+summary(lm5)
+```
+
+# Total Euphausia Pacifica Models
+
+```{r}
+ep_clean <- merged_krill %>%
+  dplyr::select(TA, DIC, CTDTEMP_ITS90, Salinity_PSS78, pHout, Euphausia_pacifica_Total) %>%
+  mutate(log_ep_abundance = log1p(Euphausia_pacifica_Total)) %>%
+  dplyr::select(-Euphausia_pacifica_Total) %>% na.omit
+nrow(ep_clean)
+```
+
+```{r}
+ep_best_subsets <- regsubsets(log_ep_abundance ~ ., 
+                          data = ep_clean,
+                          nbest = 1,
+                          nvmax = NULL,
+                          force.in = NULL, force.out = NULL,
+                          method = "exhaustive")
+summary(ep_best_subsets)
+summary(ep_best_subsets)$adjr2
+```
+
+```{r}
+# ep_lm1 <- lm(log_ep_abundance ~ DIC + CTDTEMP_ITS90 + Salinity_PSS78 + pHout, data = ep_clean)
+# summary(ep_lm1)
+# 
+# ep_lm2 <- lm(log_ep_abundance ~ pHout*DIC + pHout*CTDTEMP_ITS90 + Salinity_PSS78*DIC + DIC*CTDTEMP_ITS90, data = ep_clean)
+# summary(ep_lm2)
+
+
+# library(glmulti)
+# ep_glmulti_best_models <- glmulti(
+#   log_ep_abundance ~ DIC + TA + pHout + CTDTEMP_ITS90 + Salinity_PSS78,
+#   data = ep_clean,
+#   level = 2,               # include pairwise interactions
+#   method = "h",            # exhaustive search
+#   crit = "aic",            # or "bic"
+#   fitfunction = "lm"       # for linear models
+# )
+
+# *was best model but not anymore
+ep_lm3 <- lm(
+  log_ep_abundance ~ 
+    DIC + 
+    pHout + 
+    CTDTEMP_ITS90 + 
+    Salinity_PSS78 +
+    pHout:DIC +
+    CTDTEMP_ITS90:pHout +
+    Salinity_PSS78:DIC +
+    Salinity_PSS78:pHout,
+  data = ep_clean
+)
+
+summary(ep_lm3)
+aic(ep_lm3)
+
+# Interpretation for ep_lm3: The model explains ~34% of the variation in euphausia pacifica abundance and is statistically significant. Both pH and DIC have positive effects on abundance, while temperature has a negative effect. However, these effects are modified by interactions: higher pH increases with DIC and temperature but is reduced at higher salinity and the positive effect of DIC is weakened when salinity is high. 
+
+```
+
+```{r}
+# Trying models by scaling carb chem variables
+df_std <- merged_krill %>%
+  dplyr::select(Euphausia_pacifica_Total, CTDTEMP_ITS90, pHout, TA, DIC, Salinity_PSS78) %>%
+  drop_na() %>%
+  mutate(
+    log_ep_abundance = log1p(Euphausia_pacifica_Total),  # log(1 + x)
+    CTDTEMP_ITS90 = scale(CTDTEMP_ITS90)[,1],
+    pHout = scale(pHout)[,1],
+    TA = scale(TA)[,1],
+    DIC = scale(DIC)[,1],
+    Salinity_PSS78 = scale(Salinity_PSS78)[,1]
+  )
+
+glmulti_best_models <- glmulti(
+  log_ep_abundance ~ DIC + TA + pHout + CTDTEMP_ITS90 + Salinity_PSS78,
+  data = df_std,
+  level = 2,               # include pairwise interactions
+  method = "h",            # exhaustive search
+  crit = "aic",            # or "bic"
+  fitfunction = "lm"       # for linear models
+)
+
+# ***ep_lm4 best model
+ep_lm4 <- lm(log_ep_abundance ~ DIC + pHout + pHout:DIC + CTDTEMP_ITS90:pHout + Salinity_PSS78:DIC + Salinity_PSS78:pHout, data = df_std)
+summary(ep_lm4)
+aic(ep_lm4)
+vif(ep_lm4)
+
+```
+
+# Diagnostics for Best Performing Models (Total Abundance and Total EP Abundance)
+```{r}
+# Diagnostics for best performing model of total abundance (lm3)
+check_model(lm3)
+glance(lm3)
+autoplot(lm3, ncol = 2)
+aic(lm3)
+
+#*Note lm3 is best model overall but only has interaction effects, lm2 is second best with no interaction effects only main effects
+
+# Diagnostics for best performing model of total EP abundance (ep_lm4)
+check_model(ep_lm4)
+glance(ep_lm4)
+autoplot(ep_lm4, ncol = 2)
 ```
