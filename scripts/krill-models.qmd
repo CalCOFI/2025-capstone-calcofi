@@ -601,3 +601,124 @@ check_model(ep_lm4)
 glance(ep_lm4)
 autoplot(ep_lm4, ncol = 2)
 ```
+
+# Zooplankton
+
+```{r}
+# Total Zooplankton
+zooplankton <- read_csv("../data/zoop_data/zooplankton_pH.csv")
+names(zooplankton)
+total_zooplankton <- zooplankton %>% 
+  dplyr::select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, total_plankton, pHout) %>%
+  drop_na() %>%
+  mutate(log_total_plankton = log1p(total_plankton)) %>%
+  dplyr::select(-total_plankton)
+total_zooplankton_scaled <- zooplankton %>%
+  dplyr::select(total_plankton, CTDTEMP_ITS90, pHout, TA, DIC, Salinity_PSS78) %>%
+  drop_na() %>%
+  mutate(
+    log_total_plankton = log1p(total_plankton),  # log(1 + x)
+    CTDTEMP_ITS90 = scale(CTDTEMP_ITS90)[,1],
+    pHout = scale(pHout)[,1],
+    TA = scale(TA)[,1],
+    DIC = scale(DIC)[,1],
+    Salinity_PSS78 = scale(Salinity_PSS78)[,1]
+  ) %>%
+  dplyr::select(-total_plankton)
+
+total_zooplankton_best_models <- glmulti(
+  log_total_plankton ~ .,
+  data = total_zooplankton,
+  level = 2,               # include pairwise interactions
+  method = "h",            # exhaustive search
+  crit = "aic",            # or "bic"
+  fitfunction = "lm"       # for linear models
+)
+
+total_zooplankton_scaled_best_models <- glmulti(
+  log_total_plankton ~ .,
+  data = total_zooplankton_scaled,
+  level = 2,               # include pairwise interactions
+  method = "h",            # exhaustive search
+  crit = "aic",            # or "bic"
+  fitfunction = "lm"       # for linear models
+)
+
+# not scaled
+total_zooplankton_lm1 <- lm(log_total_plankton ~ DIC + TA + Salinity_PSS78 + pHout:Salinity_PSS78, data = total_zooplankton)
+summary(total_zooplankton_lm1)
+aic(total_zooplankton_lm1)
+vif(total_zooplankton_lm1)
+
+# scaled
+total_zooplankton_lm2 <- lm(log_total_plankton ~ pHout + TA + DIC, data = total_zooplankton_scaled)
+summary(total_zooplankton_lm2)
+aic(total_zooplankton_lm2)
+vif(total_zooplankton_lm2)
+```
+
+
+```{r}
+# Diagnostics for total zooplankton models
+check_model(total_zooplankton_lm1)
+glance(total_zooplankton_lm1)
+autoplot(total_zooplankton_lm1, ncol = 2)
+
+check_model(total_zooplankton_lm2)
+glance(total_zooplankton_lm2)
+autoplot(total_zooplankton_lm2, ncol = 2)
+```
+
+```{r}
+# Small Zooplankton
+small_zooplankton <- zooplankton %>% 
+  dplyr::select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, small_plankton, pHout) %>%
+  drop_na() %>%
+  mutate(log_small_plankton = log1p(small_plankton)) %>%
+  dplyr::select(-small_plankton)
+small_zooplankton_scaled <- zooplankton %>%
+  dplyr::select(small_plankton, CTDTEMP_ITS90, pHout, TA, DIC, Salinity_PSS78) %>%
+  drop_na() %>%
+  mutate(
+    log_small_plankton = log1p(small_plankton),  # log(1 + x)
+    CTDTEMP_ITS90 = scale(CTDTEMP_ITS90)[,1],
+    pHout = scale(pHout)[,1],
+    TA = scale(TA)[,1],
+    DIC = scale(DIC)[,1],
+    Salinity_PSS78 = scale(Salinity_PSS78)[,1]
+  ) %>%
+  dplyr::select(-small_plankton)
+
+small_zooplankton_best_models <- glmulti(
+  log_small_plankton ~ .,
+  data = small_zooplankton,
+  level = 2,               # include pairwise interactions
+  method = "h",            # exhaustive search
+  crit = "aic",            # or "bic"
+  fitfunction = "lm"       # for linear models
+)
+
+small_zooplankton_scaled_best_models <- glmulti(
+  log_small_plankton ~ .,
+  data = small_zooplankton_scaled,
+  level = 2,               # include pairwise interactions
+  method = "h",            # exhaustive search
+  crit = "aic",            # or "bic"
+  fitfunction = "lm"       # for linear models
+)
+
+# not scaled
+small_zooplankton_lm1 <- lm(log_small_plankton ~ pHout + DIC:Salinity_PSS78 + pHout:TA, data = small_zooplankton)
+summary(small_zooplankton_lm1)
+aic(small_zooplankton_lm1)
+vif(small_zooplankton_lm1)
+
+# scaled
+small_zooplankton_lm2 <- lm(log_small_plankton ~ pHout + TA + DIC + Salinity_PSS78, data = small_zooplankton_scaled)
+summary(small_zooplankton_lm2)
+aic(small_zooplankton_lm2)
+vif(small_zooplankton_lm2)
+
+bic(small_zooplankton_lm1)
+bic(small_zooplankton_lm2)
+```
