@@ -20,7 +20,8 @@ co2sys_out <- read_csv("data/CO2SYS_out.csv")
 # Combine merged bottle data and CO2SYS output and filter out anomalies
 bottle_co2sys <- bind_cols(merged_bottle_data, co2sys_out) %>%
   filter(
-    Salnty > 30
+    Salnty > 30,
+    Depth < 1000
   )
 
 # Create vector of variables to be detrended
@@ -32,7 +33,10 @@ bottle_co2sys <- sea_dtd_data(qty, bottle_co2sys, "Date.cc")
 # log(1+x) transform depths for fitting
 bottle_co2sys <- bottle_co2sys %>%
   mutate(
-    Depth_Trans = log(Depth + 1, base = 10)
+    Depth_Log1 = log(Depth + 1),
+    Depth_Log10 = log(Depth + 10),
+    Depth_Log50 = log(Depth + 50),
+    Depth_Log200 = log(Depth + 200)
   )
 
 # Get the names of all CalCOFI stations in the data and their locations
@@ -50,6 +54,9 @@ stations <- bottle_co2sys %>%
 # create fits and results object
 fits <- NULL
 results <- NULL
+
+depth_dep <- c("Depth_Log10", "Depth_Log50", "Depth", "Depth_Log50", "Depth_Log50",
+               "Depth_Log1", "Depth_Log10", "Depth_Log1", "Depth_Log1", "Depth_Log1")
 
 # iterate through stations and fit linear models for each quantity
 for (i in 1:nrow(stations)) {
@@ -71,7 +78,7 @@ for (i in 1:nrow(stations)) {
         r2 = NA))
     }
     else { # fit the linear model
-      fit <- lm(as.formula(paste(paste0(qty[j],"_dtd"),"~","Date_Dec + Depth + I(Depth^2)")), data = data, na.action = na.exclude)
+      fit <- lm(as.formula(paste(paste0(qty[j],"_dtd"),"~","Date_Dec +", depth_dep[j])), data = data, na.action = na.exclude)
       # add fit to list of fits
       fits[[(i-1)*length(qty)+j]] <- fit
       # add coefficient estimate and regression statistics in a new row to results
@@ -112,7 +119,7 @@ for (i in 1:nrow(stations)) {
         r2 = NA))
     }
     else { # fit the linear model
-      fit <- lm(as.formula(paste(paste0(qty[j],"_dtd"),"~","Date_Dec + Depth")), data = data, na.action = na.exclude)
+      fit <- lm(as.formula(paste(paste0(qty[j],"_dtd"),"~","Date_Dec")), data = data, na.action = na.exclude)
       # add fit to list of fits
       surf_fits[[(i-1)*length(qty)+j]] <- fit
       # add coefficient estimate and regression statistics in a new row to surf_results
@@ -321,8 +328,64 @@ results %>%
     std = sd(Estimate, na.rm = TRUE),
     min = min(Estimate, na.rm = TRUE),
     max = max(Estimate, na.rm = TRUE),
-    n = sum(!is.na(Estimate)),
-    r2 = mean(r2, na.rm = TRUE)
+    n = sum(!is.na(Estimate))
+  ) %>%
+  arrange(
+    match(qty, c("T_degC","Salnty","TA","DIC","pCO2in","RFin","pHin","CO3in","OmegaCAin","OmegaARin"))
+  ) %>%
+  mutate(
+    qty = c("Temperature", "Salinity", "A~T~", "C~T~", "*p*CO2", "Revelle Factor", "pH", "CO~3~<sup>2-</sup>", "Ω~calcite~", "Ω~aragonite~"),
+    units = c("degC yr^-1", "yr^-1", ":mu:mol kg^-1 yr^-1", ":mu:mol kg^-1 yr^-1", ":mu:atm yr^-1",
+              "yr^-1", "yr^-1", ":mu:mol kg^-1 yr^-1", "yr^-1", "yr^-1")
+  ) %>%
+  gt(
+    rowname_col = "qty"
+  ) %>%
+  tab_header(
+    title = "Summary of By Station Regression Results"
+  ) %>%
+  tab_row_group(
+    label = "Seawater carbonate chemistry",
+    rows = c("C~T~", "A~T~", "*p*CO2", "Revelle Factor")
+  ) %>%
+  tab_row_group(
+    label = "Ocean acidification indicators",
+    rows = c("pH", "CO~3~<sup>2-</sup>", "Ω~calcite~", "Ω~aragonite~")
+  ) %>%
+  tab_row_group(
+    label = "Hydrography",
+    rows = c("Temperature", "Salinity")
+  ) %>%
+  tab_stubhead(
+    label = "Parameter"
+  ) %>%
+  cols_label(
+    mean = "Mean",
+    std = "Std. Dev.",
+    min = "Min",
+    max = "Max",
+    units = "Units",
+    n = "No. of Stations"
+  ) %>%
+  cols_move(
+    units,
+    after = max
+  ) %>%
+  fmt_markdown(
+    columns = qty
+  ) %>%
+  opt_stylize(
+    style = 3
+  ) %>%
+  fmt_units(
+    columns = units
+  ) %>%
+  fmt_number(
+    columns = c("mean", "std", "min", "max"),
+    decimals = 4
+  ) %>%
+  gtsave(
+    "images/OA_trends/lm_by_station_tab.png"
   )
 
 surf_results %>%
@@ -337,6 +400,62 @@ surf_results %>%
     std = sd(Estimate, na.rm = TRUE),
     min = min(Estimate, na.rm = TRUE),
     max = max(Estimate, na.rm = TRUE),
-    n = sum(!is.na(Estimate)),
-    r2 = mean(r2, na.rm = TRUE)
+    n = sum(!is.na(Estimate))
+  ) %>%
+  arrange(
+    match(qty, c("T_degC","Salnty","TA","DIC","pCO2in","RFin","pHin","CO3in","OmegaCAin","OmegaARin"))
+  ) %>%
+  mutate(
+    qty = c("Temperature", "Salinity", "A~T~", "C~T~", "*p*CO2", "Revelle Factor", "pH", "CO~3~<sup>2-</sup>", "Ω~calcite~", "Ω~aragonite~"),
+    units = c("degC yr^-1", "yr^-1", ":mu:mol kg^-1 yr^-1", ":mu:mol kg^-1 yr^-1", ":mu:atm yr^-1",
+              "yr^-1", "yr^-1", ":mu:mol kg^-1 yr^-1", "yr^-1", "yr^-1")
+  ) %>%
+  gt(
+    rowname_col = "qty"
+  ) %>%
+  tab_header(
+    title = "Summary of By Station Surface Data Regression Results (Depth≤20m)"
+  ) %>%
+  tab_row_group(
+    label = "Seawater carbonate chemistry",
+    rows = c("C~T~", "A~T~", "*p*CO2", "Revelle Factor")
+  ) %>%
+  tab_row_group(
+    label = "Ocean acidification indicators",
+    rows = c("pH", "CO~3~<sup>2-</sup>", "Ω~calcite~", "Ω~aragonite~")
+  ) %>%
+  tab_row_group(
+    label = "Hydrography",
+    rows = c("Temperature", "Salinity")
+  ) %>%
+  tab_stubhead(
+    label = "Parameter"
+  ) %>%
+  cols_label(
+    mean = "Mean",
+    std = "Std. Dev.",
+    min = "Min",
+    max = "Max",
+    units = "Units",
+    n = "No. of Stations"
+  ) %>%
+  cols_move(
+    units,
+    after = max
+  ) %>%
+  fmt_markdown(
+    columns = qty
+  ) %>%
+  opt_stylize(
+    style = 3
+  ) %>%
+  fmt_units(
+    columns = units
+  ) %>%
+  fmt_number(
+    columns = c("mean", "std", "min", "max"),
+    decimals = 4
+  ) %>%
+  gtsave(
+    "images/OA_trends/surf_lm_by_station_tab.png"
   )
