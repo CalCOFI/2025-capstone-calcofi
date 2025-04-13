@@ -1,0 +1,23 @@
+# ZooDB Calcifiers
+## data/zooDB
+*Mollusca* (4 taxa) - calcite or aragonite:
+- Mollusca Euthecosomata (mollusca1)
+- Mollusca Gymnosaomata (mollusca2)
+- Mollusca Heteropoda Atlantidae (mollusca3)
+- Mollusca Pseudothecosomata (mollusca4)
+*Ostracoda* - shell is complex arrangement of low-Mg calcite crystals and organic components (ostracoda)
+*Radiolaria* - non-calcifying (Silicate) (radiolaria)
+*Foraminifera* - calcite or aragonite (foraminifera)
+- (I'm assuming she meant foraminifera not formaminefera)
+
+* Next steps: merge with carb chem data
+
+```{r}
+mollusca1 <- read_csv(here::here("data/ZooDB/mollusca_euthecosomata.txt"), skip = 5)
+mollusca2 <- read_csv(here::here("data/ZooDB/mollusca_gymnosaomata.txt"), skip = 5)
+mollusca3 <- read_csv(here::here("data/ZooDB/mollusca_heteropoda_atlantidae.txt"), skip = 5)
+mollusca4 <- read_csv(here::here("data/ZooDB/mollusca_pseudothecosomata.txt"), skip = 5)
+ostracoda <- read_csv(here::here("data/ZooDB/ostracoda.txt"), skip = 5)
+radiolaria <- read_csv(here::here("data/ZooDB/radiolaria.txt"), skip = 5)
+foraminifera <- read_csv(here::here("data/ZooDB/foraminifera.txt"), skip = 5)
+```

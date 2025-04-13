@@ -722,3 +722,28 @@ vif(small_zooplankton_lm2)
 bic(small_zooplankton_lm1)
 bic(small_zooplankton_lm2)
 ```
+
+# Zooplankton: GAM with Spatial Spline
+```{r}
+# Loading/filtering in data
+total_zooplankton <- zooplankton %>% 
+  dplyr::select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, total_plankton, pHout, Latitude, Longitude) %>%
+  drop_na() %>%
+  mutate(log_total_plankton = log1p(total_plankton)) %>%
+  dplyr::select(-total_plankton)
+
+library(corrplot)
+corrplot::corrplot(cor(total_zooplankton), method = "number", type = "lower")
+```
+
+```{r}
+gam_mod1 <- gam(log_total_plankton ~ s(DIC) + s(TA) + s(Salinity_PSS78:TA) + s(DIC:Salinity_PSS78) + s(pHout) + s(Latitude) + s(Longitude), data = total_zooplankton)
+summary(gam_mod1)
+
+# total_zooplankton %>%
+#   select(log_total_plankton, DIC, TA, Salinity_PSS78, pHout:Salinity_PSS78) %>%
+#   pivot_longer(-log_total_plankton) %>%
+#   ggplot((aes(log_total_plankton, value)) +
+#   geom_smooth() +
+#   facet_wrap(~name, scales = "free"))
+```
