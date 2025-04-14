@@ -1,0 +1,86 @@
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(sdmTMB)
+library(mice)
+```
+
+```{r}
+zoop <- read.csv('../data/zoop_data/zooplankton_pH.csv') %>%
+  add_utm_columns(ll_names=c('Longitude', 'Latitude'), utm_names=c('X', 'Y')) %>%
+  # months since first observation
+  mutate(time = as.integer(difftime(Date, min(Date), units = 'days') / 30))   
+```
+
+Handle missing data in predictors
+```{r}
+# Removing all rows with NAs: 732 -> 486 obs
+zoop_clean <- zoop %>%
+  drop_na(total_plankton, pHout, T_degC, DIC, Salinity_PSS78)
+```
+
+```{r}
+# Fill missing values
+covars <- zoop[, c('pHout', 'T_degC', 'DIC', 'Salinity_PSS78')]
+
+# predictive mean matching
+imputed_vals <- mice(covars, method = 'pmm', m = 1, maxit = 5)
+
+complete_covars <- complete(imputed_vals)
+
+zoop[, c('pHout', 'T_degC', 'DIC', 'Salinity_PSS78')] <- complete_covars
+```
+
+
+
+```{r}
+mesh <- make_mesh(zoop, c('X', 'Y'), cutoff=10)
+plot(mesh)
+```
+
+
+
+Spatial model
+Tweedie distribution: models overdispersed data
+```{r}
+model <- sdmTMB(
+  data = zoop,
+  formula = total_plankton ~ pHout + T_degC + DIC + Salinity_PSS78,
+  mesh = mesh,
+  family = tweedie(link = 'log'),
+  spatial = 'on'
+)
+
+model
+```
+
+```{r}
+tidy(model, conf.int = TRUE)
+```
+
+```{r}
+zoop$resids <- residuals(model)
+
+qqnorm(zoop$resids)
+qqline(zoop$resids)
+```
+
+Plot Residuals
+```{r}
+ggplot(zoop, aes(X, Y, col = resids)) + 
+  scale_color_gradient2() + 
+  theme_minimal() + 
+  geom_point() + 
+  coord_fixed()
+```
+
+
+
+
+
+
+
+
+
+
+
