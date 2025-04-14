@@ -6,6 +6,8 @@ library(sf)
 library(rnaturalearth)
 library(scales)
 library(latex2exp)
+library(nlme)
+
 
 
 # READ AND PROCESS DATA ---------------------------------------------------
@@ -30,13 +32,63 @@ qty <- c("T_degC","Salnty","TA","DIC","pCO2in","RFin","pHin","CO3in","OmegaCAin"
 # Detrend variables of interest
 bottle_co2sys <- sea_dtd_data(qty, bottle_co2sys, "Date.cc")
 
-# log(1+x) transform depths for fitting
+bottle_co2sys <- bottle_co2sys |> group_by(Station_ID, Depth, Date.cc) |>
+  select(Station_ID, Depth, Date_Dec, TA_dtd, T_degC_dtd, DIC_dtd, pCO2in_dtd, Latitude, Longitude, RFin_dtd, pHin_dtd, CO3in_dtd, OmegaCAin_dtd, OmegaARin_dtd, Salnty_dtd) |> 
+  summarize(Station_ID = max(Station_ID),
+            Depth = max(Depth),
+            Date_Dec = max(Date_Dec),
+            TA_dtd = mean(TA_dtd, na.rm = T),
+            DIC_dtd = mean(DIC_dtd, na.rm = T),
+            T_degC_dtd = mean(T_degC_dtd, na.rm = T),
+            pCO2in_dtd = mean(pCO2in_dtd, na.rm = T),
+            RFin_dtd = mean(RFin_dtd),
+            pHin_dtd = mean(pHin_dtd),
+            CO3in_dtd = mean(CO3in_dtd, na.rm = T),
+            OmegaCAin_dtd = mean(OmegaCAin_dtd, na.rm = T),
+            OmegaARin_dtd = mean(OmegaARin_dtd, na.rm = T),
+            Salnty_dtd = mean(Salnty_dtd, na.rm = T),
+            Latitude = mean(Latitude, na.rm = T),
+            Longitude = mean(Longitude, na.rm = T)) |> 
+  ungroup()
+
+bottle_co2sys <- bottle_co2sys |> 
+  mutate(depth_bin = case_when(
+    Depth < 8 ~ "Surface",
+    Depth < 14 ~ "8 - 13 m",
+    Depth < 21 ~ "14 - 20 m",
+    Depth < 35 ~ "21 - 34 m",
+    Depth < 46 ~ "35 - 45 m",
+    Depth < 60 ~ "46 - 59 m",
+    Depth < 80 ~ "60 - 79 m",
+    Depth < 101 ~ "80 - 100 m",
+    Depth < 120 ~ "100 - 120 m",
+    Depth < 190 ~ "120 - 189 m",
+    Depth < 271 ~ "190 - 270 m",
+    Depth < 370 ~ "271 - 369 m",
+    Depth < 451 ~ "370 - 450 m",
+    Depth < 521 ~ "451 ~ 520 m",
+    TRUE ~ ">520 m"
+  ))
+
+keep_stations <- bottle_co2sys %>%
+  group_by(
+    Station_ID
+  ) %>%
+  summarize(
+    n = n()
+  ) %>%
+  filter(
+    n <= 30
+  ) %>%
+  pull(
+    Station_ID
+  ) %>%
+  setdiff(
+    x = unique(bottle_co2sys$Station_ID)
+  )
 bottle_co2sys <- bottle_co2sys %>%
-  mutate(
-    Depth_Log1 = log(Depth + 1),
-    Depth_Log10 = log(Depth + 10),
-    Depth_Log50 = log(Depth + 50),
-    Depth_Log200 = log(Depth + 200)
+  filter(
+    Station_ID %in% keep_stations
   )
 
 # Get the names of all CalCOFI stations in the data and their locations
@@ -55,8 +107,6 @@ stations <- bottle_co2sys %>%
 fits <- NULL
 results <- NULL
 
-depth_dep <- c("Depth_Log10", "Depth_Log50", "Depth", "Depth_Log50", "Depth_Log50",
-               "Depth_Log1", "Depth_Log10", "Depth_Log1", "Depth_Log1", "Depth_Log1")
 
 # iterate through stations and fit linear models for each quantity
 for (i in 1:nrow(stations)) {
@@ -78,7 +128,12 @@ for (i in 1:nrow(stations)) {
         r2 = NA))
     }
     else { # fit the linear model
-      fit <- lm(as.formula(paste(paste0(qty[j],"_dtd"),"~","Date_Dec +", depth_dep[j])), data = data, na.action = na.exclude)
+      fit <- gls(as.formula(paste(paste0(qty[j],"_dtd"),"~","Date_Dec + Depth")),
+                data = data,
+                na.action = na.exclude,
+                weights = varIdent(form =~1 | depth_bin),
+                control = list(maxIter=10000, niterEM=10000, opt = 'optim')
+                )
       # add fit to list of fits
       fits[[(i-1)*length(qty)+j]] <- fit
       # add coefficient estimate and regression statistics in a new row to results
@@ -87,9 +142,8 @@ for (i in 1:nrow(stations)) {
         lat = stations$lat[i],
         lon = stations$lon[i], 
         qty = qty[j], 
-        if(nrow(coef(summary(fit))) == 1) c(Estimate = NA, `Std. Error` = NA, `t value` = NA, `Pr(>|t|)` = NA) else coef(summary(fit))[2,], 
-        n = summary(fit)$df[2] + 2, 
-        r2 = summary(fit)$r.squared))
+        if(nrow(coef(summary(fit))) == 1) c(Value = NA, `Std.Error` = NA, `t-value` = NA, `p-value` = NA) else coef(summary(fit))[2,], 
+        n = length(fit$fitted)))
     }
   }
 }
@@ -145,7 +199,7 @@ results <- results %>%
   ) %>%
   # create vector indicating if p < 0.5
   mutate(
-    sigp = factor(ifelse(`Pr(>|t|)` < 0.5, 1, 0), levels = c(1,0), labels = c("Yes", "No"))
+    sigp = factor(ifelse(`p-value` < 0.05, 1, 0), levels = c(1,0), labels = c("Yes", "No"))
   )
 surf_results <- surf_results %>%
   # convert numeric columns to numeric vectors
@@ -154,7 +208,7 @@ surf_results <- surf_results %>%
   ) %>%
   # create vector indicating if p < 0.5
   mutate(
-    sigp = factor(ifelse(`Pr(>|t|)` < 0.5, 1, 0), levels = c(1,0), labels = c("Yes", "No"))
+    sigp = factor(ifelse(`Pr(>|t|)` < 0.05, 1, 0), levels = c(1,0), labels = c("Yes", "No"))
   )
 
 # import map for plotting
@@ -177,7 +231,7 @@ for (i in 1:10) {
     ) %>%
     # filter out stations with n<=30 observations used in the fit
     filter(
-      (!is.na(Estimate)) & (n > 30)
+      (!is.na(Value)) & (n > 30)
     )
   
   # create plot of slope by station
@@ -190,7 +244,7 @@ for (i in 1:10) {
       aes(
         x = lon,
         y = lat,
-        fill = Estimate, # estimated slope
+        fill = Value, # estimated slope
         size = n, # number of observations
         shape = sigp # if estimate is statistically significant
       ),
@@ -233,12 +287,12 @@ for (i in 1:10) {
       title = TeX(paste("Estimated Slope for", qty_names[i], "by Station (N>30)", paste0("[",units[i],"]"))),
       color = "Estimate",
       size = "N",
-      shape = TeX("$p<0.5$"),
-      caption = TeX(paste("Mean Slope (weighted by $N$):", format(round(weighted.mean(data$Estimate, data$n), 4), nsmall = 4), units[i]))
+      shape = TeX("$p<0.05$"),
+      caption = TeX(paste("Mean Slope (weighted by $N$):", format(round(weighted.mean(data$Value, data$n), 4), nsmall = 4), units[i]))
     )
   
   # save plots
-  ggsave(paste0("images/OA_trends/", qty[i], "_by_station.png"), bg = "white")
+  ggsave(paste0("images/OA_trends/", qty[i], "_by_station_weighted.png"), bg = "white")
 }
 
 # generate plots for surface fits
@@ -311,7 +365,7 @@ for (i in 1:10) {
     )
   
   # save plots
-  ggsave(paste0("images/OA_trends/surf_", qty[i], "_by_station.png"), bg = "white")
+  # ggsave(paste0("images/OA_trends/surf_", qty[i], "_by_station.png"), bg = "white")
 }
 
 # GENERATE TABULAR SUMMARY ------------------------------------------------
@@ -324,11 +378,11 @@ results %>%
     qty
   ) %>%
   summarize(
-    mean = weighted.mean(Estimate, n, na.rm = TRUE),
-    std = sd(Estimate, na.rm = TRUE),
-    min = min(Estimate, na.rm = TRUE),
-    max = max(Estimate, na.rm = TRUE),
-    n = sum(!is.na(Estimate))
+    mean = weighted.mean(Value, n, na.rm = TRUE),
+    std = sd(Value, na.rm = TRUE),
+    min = min(Value, na.rm = TRUE),
+    max = max(Value, na.rm = TRUE),
+    n = sum(!is.na(Value))
   ) %>%
   arrange(
     match(qty, c("T_degC","Salnty","TA","DIC","pCO2in","RFin","pHin","CO3in","OmegaCAin","OmegaARin"))
@@ -383,10 +437,10 @@ results %>%
   fmt_number(
     columns = c("mean", "std", "min", "max"),
     decimals = 4
-  ) %>%
-  gtsave(
-    "images/OA_trends/lm_by_station_tab.png"
-  )
+  )# %>%
+  #gtsave(
+  #  "images/OA_trends/lm_by_station_tab.png"
+  #)
 
 surf_results %>%
   filter(
@@ -455,7 +509,7 @@ surf_results %>%
   fmt_number(
     columns = c("mean", "std", "min", "max"),
     decimals = 4
-  ) %>%
-  gtsave(
-    "images/OA_trends/surf_lm_by_station_tab.png"
-  )
+  )# %>%
+  #gtsave(
+  #  "images/OA_trends/surf_lm_by_station_tab.png"
+  #)

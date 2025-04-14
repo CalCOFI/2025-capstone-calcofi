@@ -414,6 +414,7 @@ df_long <- df_long %>%
 df_long
 
 ```
+
 ```{r}
 df_long_nonzero <- df_long %>%
   filter(Abundance > 0)
@@ -509,6 +510,7 @@ ggsave(file.path("JJF Krill Plots (Analysis)", "Krill Abundance Across Temperatu
 head(df_long_nonzero)
 head(df_long)
 ```
+
 ```{r}
 ggplot(df_long, aes(x = DIC, y = Abundance)) +
   geom_point(aes(color = Stage), alpha = 0.6) +
@@ -560,3 +562,312 @@ ggcorr(broad_corr_data, label = TRUE, method = c("pairwise", "pearson"),
   theme_bw()
 
 ```
+
+# Thysanoessa_gregaria_Total: lm
+```{r}
+# 载入必要套件
+library(tidyverse)
+
+# 读取数据
+df <- read_csv("~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/krill_data/CV_merged_krill.csv")
+
+# 选择变量
+df_model <- df %>%
+  select(
+    Thysanoessa_gregaria_Total,
+    pHin, pHout, CTDTEMP_ITS90, 
+    Salinity_PSS78, TA, DIC
+  )
+
+# 去除缺失值
+df_model_clean <- df_model %>% drop_na()
+
+# 检查变量之间是否共线（建议：pHin 与 pHout）
+cor(df_model_clean %>% select(pHin, pHout))
+
+# 拟合线性回归模型（建议去掉一个共线变量，比如 pHout）
+model <- lm(Thysanoessa_gregaria_Total ~ pHin + CTDTEMP_ITS90 + 
+              Salinity_PSS78 + TA + DIC, data = df_model_clean)
+
+# 查看模型摘要
+summary(model)
+
+# 可视化拟合效果（可选）
+plot(model$fitted.values, df_model_clean$Thysanoessa_gregaria_Total,
+     xlab = "Predicted", ylab = "Observed", main = "Predicted vs Observed")
+abline(0, 1, col = "red")
+
+```
+
+```{r}
+df_model_clean <- df_model_clean %>%
+  filter(Thysanoessa_gregaria_Total > 0) %>%
+  mutate(log_abundance = log(Thysanoessa_gregaria_Total))
+
+model_log <- lm(log_abundance ~ pHin + CTDTEMP_ITS90 + Salinity_PSS78 + TA + DIC,
+                data = df_model_clean)
+
+summary(model_log)
+
+```
+
+# Thysanoessa_gregaria_Total: RandomForest
+```{r}
+# 安装和加载必要的包
+# install.packages("randomForest")
+library(randomForest)
+
+# 确保数据无缺失
+df_model_clean <- df %>%
+  select(Thysanoessa_gregaria_Total, pHin, CTDTEMP_ITS90, Salinity_PSS78, TA, DIC) %>%
+  drop_na()
+
+# 训练 Random Forest 模型
+set.seed(123)  # 保持结果可重复
+rf_model <- randomForest(
+  Thysanoessa_gregaria_Total ~ pHin + CTDTEMP_ITS90 + Salinity_PSS78 + TA + DIC,
+  data = df_model_clean,
+  importance = TRUE,
+  ntree = 500
+)
+
+# 查看模型摘要
+print(rf_model)
+
+# 可视化变量重要性
+varImpPlot(rf_model)
+
+
+```
+add Depth and Month_UTC
+```{r}
+# 加载必要的套件
+library(tidyverse)
+library(randomForest)
+
+# 读取数据
+df <- read_csv("~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/krill_data/CV_merged_krill.csv")
+
+# 构建模型用数据框，加入 Depth 和 Month_UTC，并清除缺失值
+df_model <- df %>%
+  select(
+    Thysanoessa_gregaria_Total,
+    pHin, CTDTEMP_ITS90, Salinity_PSS78, TA, DIC,
+    Depth, Month_UTC
+  ) %>%
+  mutate(Month_UTC = as.factor(Month_UTC)) %>%  # 将月份转为类别型
+  drop_na()
+
+# 训练 Random Forest 模型
+set.seed(123)
+rf_model_depth_month <- randomForest(
+  Thysanoessa_gregaria_Total ~ .,
+  data = df_model,
+  importance = TRUE,
+  ntree = 500
+)
+
+# 查看模型表现
+print(rf_model_depth_month)
+
+# 可视化变量重要性
+varImpPlot(rf_model_depth_month)
+
+```
+
+Presence/Absence Classification
+```{r}
+library(tidyverse)
+library(randomForest)
+
+# Step 1: 准备数据
+df_model <- read_csv("~/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/krill_data/CV_merged_krill.csv") %>%
+  select(
+    Thysanoessa_gregaria_Total,
+    pHin, CTDTEMP_ITS90, Salinity_PSS78, TA, DIC,
+    Depth, Month_UTC
+  ) %>%
+  mutate(
+    Month_UTC = as.factor(Month_UTC),
+    present = as.factor(if_else(Thysanoessa_gregaria_Total > 0, "yes", "no"))
+  ) %>%
+  drop_na()
+
+# Step 2: Random Forest 分类模型
+set.seed(123)
+rf_class <- randomForest(
+  present ~ pHin + CTDTEMP_ITS90 + Salinity_PSS78 + TA + DIC + Depth + Month_UTC,
+  data = df_model,
+  importance = TRUE,
+  ntree = 500
+)
+
+# Step 3: 输出模型表现
+print(rf_class)
+varImpPlot(rf_class)
+
+```
+PCA
+```{r}
+library(tidyverse)
+library(FactoMineR)
+library(factoextra)
+
+# 准备 PCA 数据
+df_pca <- df_model %>%
+  mutate(log_abundance = log1p(Thysanoessa_gregaria_Total)) %>%
+  select(log_abundance, pHin, CTDTEMP_ITS90, Salinity_PSS78, TA, DIC, Depth)
+
+# 运行 PCA
+pca_res <- PCA(df_pca, scale.unit = TRUE, graph = FALSE)
+
+# 可视化个体（采样点）
+fviz_pca_ind(pca_res,
+             geom.ind = "point",
+             col.ind = df_model$Month_UTC,  # 用月份分色
+             palette = "Dark2",
+             title = "PCA: Sampling Sites by Month")
+
+# 可视化变量
+fviz_pca_var(pca_res,
+             col.var = "contrib",
+             gradient.cols = c("blue", "yellow", "red"),
+             title = "PCA: Environmental Variables")
+
+```
+
+```{r}
+df_model <- df %>%
+  select(
+    Thysanoessa_gregaria_Total,
+    pHin, CTDTEMP_ITS90, Salinity_PSS78, TA, DIC,
+    Depth, Month_UTC, Station_ID
+  ) %>%
+  mutate(
+    Month_UTC = as.factor(Month_UTC),
+    Station_ID = as.factor(Station_ID),
+    present = as.factor(if_else(Thysanoessa_gregaria_Total > 0, "yes", "no"))
+  ) %>%
+  drop_na()
+
+set.seed(123)
+rf_class_station <- randomForest(
+  present ~ pHin + CTDTEMP_ITS90 + Salinity_PSS78 + TA + DIC + 
+    Depth + Month_UTC + Station_ID,
+  data = df_model,
+  importance = TRUE,
+  ntree = 500
+)
+
+print(rf_class_station)
+varImpPlot(rf_class_station)
+
+```
+```{r}
+library(tidyverse)
+library(FactoMineR)
+library(factoextra)
+library(cluster)
+
+# Step 1: 准备数据（log 转换后的丰度 + 环境变量）
+df_pca <- df_model %>%
+  mutate(log_abundance = log1p(Thysanoessa_gregaria_Total)) %>%
+  select(log_abundance, pHin, CTDTEMP_ITS90, Salinity_PSS78, TA, DIC, Depth) %>%
+  drop_na()
+
+# Step 2: PCA 分析
+pca_res <- PCA(df_pca, scale.unit = TRUE, graph = FALSE)
+
+# Step 3: 用 Elbow Method 确定聚类数 K
+fviz_nbclust(as.data.frame(pca_res$ind$coord), kmeans, method = "wss") +
+  labs(title = "Elbow Method for Optimal Clusters")
+
+# Step 4: 执行 k-means 聚类（假设 K = 3）
+set.seed(123)
+kmeans_res <- kmeans(pca_res$ind$coord, centers = 3, nstart = 25)
+
+# Step 5: 聚类 + PCA 可视化
+fviz_pca_ind(pca_res,
+             geom.ind = "point",
+             col.ind = as.factor(kmeans_res$cluster),
+             palette = "Set2",
+             addEllipses = TRUE,
+             legend.title = "Cluster") +
+  labs(title = "PCA + K-means Clustering")
+
+# Step 6: 聚类组平均 log 丰度（可选统计）
+df_pca %>%
+  mutate(cluster = as.factor(kmeans_res$cluster)) %>%
+  group_by(cluster) %>%
+  summarise(mean_log_abundance = mean(log_abundance), .groups = "drop")
+```
+
+# Nematoscelis_difficilis_Total
+```{r}
+
+library(randomForest)
+library(tidyverse)
+
+df_nema <- df %>%
+  select(
+    Nematoscelis_difficilis_Total,
+    pHin, CTDTEMP_ITS90, Salinity_PSS78, TA, DIC,
+    Depth, Month_UTC, Station_ID
+  ) %>%
+  mutate(
+    Month_UTC = as.factor(Month_UTC),
+    Station_ID = as.factor(Station_ID),
+    present = as.factor(if_else(Nematoscelis_difficilis_Total > 0, "yes", "no"))
+  ) %>%
+  drop_na()
+
+set.seed(123)
+rf_nema <- randomForest(
+  present ~ pHin + CTDTEMP_ITS90 + Salinity_PSS78 + TA + DIC + 
+    Depth + Month_UTC + Station_ID,
+  data = df_nema,
+  importance = TRUE,
+  ntree = 500
+)
+
+print(rf_nema)
+varImpPlot(rf_nema)
+
+```
+```{r}
+library(FactoMineR)
+library(factoextra)
+library(cluster)
+
+# Step 1: 构造 log 丰度 + 环境变量数据
+df_pca_nema <- df_nema %>%
+  mutate(log_abundance = log1p(Nematoscelis_difficilis_Total)) %>%
+  select(log_abundance, pHin, CTDTEMP_ITS90, Salinity_PSS78, TA, DIC, Depth)
+
+# Step 2: PCA
+pca_nema <- PCA(df_pca_nema, scale.unit = TRUE, graph = FALSE)
+
+# Step 3: Elbow 法则找最优 K
+fviz_nbclust(as.data.frame(pca_nema$ind$coord), kmeans, method = "wss") +
+  labs(title = "Elbow Method (Nematoscelis difficilis)")
+
+# Step 4: K-means（K = 3 先试试）
+set.seed(123)
+kmeans_nema <- kmeans(pca_nema$ind$coord, centers = 3, nstart = 25)
+
+# Step 5: 可视化聚类
+fviz_pca_ind(pca_nema,
+             geom.ind = "point",
+             col.ind = as.factor(kmeans_nema$cluster),
+             palette = "Set2",
+             addEllipses = TRUE,
+             legend.title = "Cluster") +
+  labs(title = "PCA + K-means (Nematoscelis difficilis)")
+
+# Step 6: 平均 log 丰度
+df_pca_nema %>%
+  mutate(cluster = as.factor(kmeans_nema$cluster)) %>%
+  group_by(cluster) %>%
+  summarise(mean_log_abundance = mean(log_abundance), .groups = "drop")
+```
+
