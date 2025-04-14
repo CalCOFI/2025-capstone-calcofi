@@ -542,5 +542,30 @@ multi_seq_bottle_co2sys_subset <- multi_seq_bottle_co2sys |>
 
 write.csv(multi_seq_bottle_co2sys_subset, file = "bottle_subset_for_erika.csv")
 
+library(RobustGaSP)
+```
+
+```{r}
+library(lme4)
+library(tune)
+
+TA_orig <- lme4::lmer(TA_dtd ~ Date_Dec + Depth_Trans + (Date_Dec | Station_ID),
+      data = bottle_co2sys, na.action = na.omit)
+
+
+ggplot() +
+      geom_point(aes(y = fitted(TA_mod), x = na.omit(TA_mod$data$TA_dtd))) + 
+  labs(y = "Fitted TA", x = "Original TA", title = "Adjusted Model") + 
+  geom_abline(slope = 1, intercept = 0) + 
+  coord_obs_pred()
+
+ggplot() +
+      geom_point(aes(y = fitted(TA_orig), x = na.omit(bottle_co2sys$TA_dtd))) + 
+  geom_abline(slope = 1, intercept = 0) +
+  labs(y = "Fitted TA", x = "Original TA", title = "Original Model") + 
+  coord_obs_pred()
+
+AIC(TA_orig)
+AIC(TA_mod)
 ```
 

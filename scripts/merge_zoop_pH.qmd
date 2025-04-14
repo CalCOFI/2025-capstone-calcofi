@@ -1,5 +1,8 @@
 ```{r}
 library(ggplot2)
+library(forecast)
+library(lubridate)
+library(zoo)
 ```
 
 
@@ -165,5 +168,79 @@ ggplot(data = merged_cc_zoop_data, aes(x=pHout, y=small_plankton)) +
 ggplot(data = merged_cc_zoop_data_quarter, aes(x=pHout, y=small_plankton)) + 
   geom_point(size=1, shape=1) + 
   theme_minimal()
+```
+
+```{r}
+total_ts <- ts(merged_cc_zoop_data$total_plankton,
+               merged_cc_zoop_data$Date,
+               frequency = 12)
+
+png('../images/merged_zoop_EDA/total_plankton_ts_plot.png', width=800, height=500)
+total_ts_plot <- plot.ts(total_ts, xaxt='n', ylab='Total Plankton', main='Total Plankton Time Series Plot')
+dev.off()
+```
+
+
+## ARIMA
+```{r}
+ts_data <-  ts(merged_cc_zoop_data$small_plankton, 
+               start = c(year(min(merged_cc_zoop_data$Date)), month(min(merged_cc_zoop_data$Date))),
+               frequency=12)
+
+decomp <- stl(ts_data, s.window='periodic')
+plot(decomp)
+```
+
+```{r}
+arima_fit <- auto.arima(total_ts)
+summary(arima_fit)
+```
+
+```{r}
+forecast_12 <- forecast(arima_fit, h=12)
+
+png('../images/merged_zoop_EDA/total_plankton_forecast_plot.png', width=800, height=500)
+autoplot(forecast_12) + 
+  ylab('Total Plankton') + 
+  xlab('Date') + 
+  theme(axis.text.x = element_blank(), axis.ticks.x = element_blank())
+dev.off()
+```
+
+```{r}
+checkresiduals(arima_fit)
+```
+
+
+# ARIMAX
+```{r}
+xreg <- as.matrix(merged_cc_zoop_data$pHout)
+
+fit_arimax <- auto.arima(ts_data, xreg=xreg)
+summary(fit_arimax)
+```
+
+```{r}
+future_pHout <- rep(tail(merged_cc_zoop_data$pHout, 1), 12)
+forecast_arimax <- forecast(fit_arimax, xreg=future_pHout, h=12)
+
+autoplot(forecast_arimax) + 
+  ylab('Small Plankton') + 
+  xlab('Date')
+```
+
+# Regression with ARIMA
+```{r}
+fit_reg_arima <- Arima(small_ts, xreg=xreg, order=c(2,1,1))
+summary(fit_reg_arima)
+```
+
+```{r}
+future_pHout <- rep(tail(merged_cc_zoop_data$pHout, 1), 12)
+forecast_reg_arima <- forecast(fit_reg_arima, xreg=future_pHout, h=12)
+
+autoplot(forecast_reg_arima) + 
+  xlab('Date') + 
+  ylab('Small Plankton')
 ```
 
