@@ -747,3 +747,65 @@ summary(gam_mod1)
 #   geom_smooth() +
 #   facet_wrap(~name, scales = "free"))
 ```
+
+#-----------------------------------------------------------
+# 4/14 Prep
+
+## Zooplankton models
+
+### total_plankton
+
+
+```{r}
+total_zooplankton <- zooplankton %>% 
+  dplyr::select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, total_plankton, pHout, Latitude, Longitude, Year_UTC, Month_UTC, Station_ID) %>%
+  drop_na() %>%
+  mutate(log_total_plankton = log1p(total_plankton)) %>%
+  dplyr::select(-total_plankton) %>%
+  mutate(Station_ID = as.factor(Station_ID))
+
+
+corrplot::corrplot(cor(total_zooplankton), method = "number", type = "lower")
+
+# Best LM
+summary(total_zooplankton_lm1)
+
+# GAM model
+gam_mod <- gam(log_total_plankton ~ te(Latitude, Longitude) +
+                         s(pHout) +
+                         DIC + TA +
+                         s(Salinity_PSS78) +
+                         pHout:Salinity_PSS78 +
+                         s(Year_UTC) + s(Month_UTC),
+    data = total_zooplankton)
+summary(gam_mod)
+
+# GAM model 2
+gam_mod2 <- gam(log_total_plankton ~ te(Latitude, Longitude) +
+                         s(pHout) +
+                         DIC + TA +
+                         s(Salinity_PSS78) +
+                        pHout:Salinity_PSS78 +
+                         s(Year_UTC) + s(Month_UTC) + s(Station_ID, bs = "re"),
+    data = total_zooplankton)
+summary(gam_mod2)
+
+# GAM model 3
+gam_mod3 <- gam(log_total_plankton ~ s(Latitude) + s(Longitude) +
+                         s(pHout) +
+                         TA +
+                         s(Salinity_PSS78) +
+                        pHout:Salinity_PSS78 +
+                         s(Year_UTC) + s(Month_UTC),
+    data = total_zooplankton)
+summary(gam_mod3)
+
+aic(gam_mod)
+aic(gam_mod2)
+aic(gam_mod3)
+
+vif(total_zooplankton_lm1)
+
+test_lm <- gam(log_total_plankton ~ s(Latitude) + s(Longitude) + pHout + s(Year_UTC) + s(Month_UTC) + DIC, data = total_zooplankton)
+summary(test_lm)
+```
