@@ -1,0 +1,116 @@
+```{r}
+# zooDB data
+# remove rows without line, station, or date
+# create year and month columns
+# create Station_ID column
+
+mollusca1 <- read.csv("../data/ZooDB/mollusca_euthecosomata.txt", skip = 5) %>%
+  filter(Line != 'N/A', Station != 'N/A', Date != 'N/A') %>%
+  mutate(month = month(Date), year = year(Date)) %>%
+  mutate(Station_ID = paste(
+    sprintf('%05.1f', as.numeric(Line)),
+    sprintf('%05.1f', as.numeric(Station)),
+    sep = ' '))
+mollusca2 <- read.csv("../data/ZooDB/mollusca_gymnosaomata.txt", skip = 5) %>%
+  filter(Line != 'N/A', Station != 'N/A', Date != 'N/A') %>%
+  mutate(month = month(Date), year = year(Date)) %>%
+  mutate(Station_ID = paste(
+    sprintf('%05.1f', as.numeric(Line)),
+    sprintf('%05.1f', as.numeric(Station)),
+    sep = ' '))
+mollusca3 <- read.csv("../data/ZooDB/mollusca_heteropoda_atlantidae.txt", skip = 5) %>%
+  filter(Line != 'N/A', Station != 'N/A', Date != 'N/A') %>%
+  mutate(month = month(Date), year = year(Date)) %>%
+  mutate(Station_ID = paste(
+    sprintf('%05.1f', as.numeric(Line)),
+    sprintf('%05.1f', as.numeric(Station)),
+    sep = ' '))
+mollusca4 <- read.csv("../data/ZooDB/mollusca_pseudothecosomata.txt", skip = 5) %>%
+  filter(Line != 'N/A', Station != 'N/A', Date != 'N/A') %>%
+  mutate(month = month(Date), year = year(Date)) %>%
+  mutate(Station_ID = paste(
+    sprintf('%05.1f', as.numeric(Line)),
+    sprintf('%05.1f', as.numeric(Station)),
+    sep = ' '))
+ostracoda <- read.csv("../data/ZooDB/ostracoda.txt", skip = 5) %>%
+  filter(Line != 'N/A', Station != 'N/A', Date != 'N/A') %>%
+  mutate(month = month(Date), year = year(Date)) %>%
+  mutate(Station_ID = paste(
+    sprintf('%05.1f', as.numeric(Line)),
+    sprintf('%05.1f', as.numeric(Station)),
+    sep = ' '))
+radiolaria <- read.csv("../data/ZooDB/radiolaria.txt", skip = 5) %>%
+  filter(Line != 'N/A', Station != 'N/A', Date != 'N/A') %>%
+  mutate(month = month(Date), year = year(Date)) %>%
+  mutate(Station_ID = paste(
+    sprintf('%05.1f', as.numeric(Line)),
+    sprintf('%05.1f', as.numeric(Station)),
+    sep = ' '))
+foraminifera <- read.csv("../data/ZooDB/foraminifera.txt", skip = 5) %>%
+  filter(Line != 'N/A', Station != 'N/A', Date != 'N/A') %>%
+  mutate(month = month(Date), year = year(Date)) %>%
+  mutate(Station_ID = paste(
+    sprintf('%05.1f', as.numeric(Line)),
+    sprintf('%05.1f', as.numeric(Station)),
+    sep = ' '))
+```
+
+
+```{r}
+# CO2SYS data
+# filter depth < 212
+
+co2sys <- read.csv('../data/merged_bottle_co2sys.csv') %>%
+  filter(Depth < 212) 
+```
+
+
+```{r}
+# merge on Station_ID, Year, and Month
+
+mollusca1_co2sys <- inner_join(
+  mollusca1,
+  co2sys,
+  by = join_by(Station_ID, year == Year_UTC, month == Month_UTC)
+)
+
+mollusca2_co2sys <- inner_join(
+  mollusca2,
+  co2sys,
+  by = join_by(Station_ID, year == Year_UTC, month == Month_UTC)
+)
+
+mollusca3_co2sys <- inner_join(
+  mollusca3,
+  co2sys,
+  by = join_by(Station_ID, year == Year_UTC, month == Month_UTC)
+)
+
+mollusca4_co2sys <- inner_join(
+  mollusca4,
+  co2sys,
+  by = join_by(Station_ID, year == Year_UTC, month == Month_UTC)
+)
+
+ostracoda_co2sys <- inner_join(
+  ostracoda,
+  co2sys,
+  by = join_by(Station_ID, year == Year_UTC, month == Month_UTC)
+)
+
+radiolaria_co2sys <- inner_join(
+  radiolaria,
+  co2sys,
+  by = join_by(Station_ID, year == Year_UTC, month == Month_UTC)
+)
+
+foraminifera_co2sys <- inner_join(
+  foraminifera,
+  co2sys,
+  by = join_by(Station_ID, year == Year_UTC, month == Month_UTC)
+)
+```
+
+
+
+
