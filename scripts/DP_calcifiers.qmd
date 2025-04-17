@@ -57,6 +57,44 @@ foraminifera <- read.csv("../data/ZooDB/foraminifera.txt", skip = 5) %>%
 
 
 ```{r}
+# PRPOOS data
+
+byrozoan <- read.csv('../data/PRPOOS/byrozoan_larvae.csv', skip = 2) %>%
+  filter(Line != 'N/A', Station != 'N/A', Station.date != 'N/A') %>%
+  mutate(month = month(Station.date), year = year(Station.date)) %>%
+  mutate(Station_ID = paste(
+    sprintf('%05.1f', as.numeric(Line)),
+    sprintf('%05.1f', as.numeric(Station)),
+    sep = ' '))
+
+ostracods <-  read.csv('../data/PRPOOS/ostracods.csv', skip = 2) %>%
+  filter(Line != 'N/A', Station != 'N/A', Station.date != 'N/A') %>%
+  mutate(month = month(Station.date), year = year(Station.date)) %>%
+  mutate(Station_ID = paste(
+    sprintf('%05.1f', as.numeric(Line)),
+    sprintf('%05.1f', as.numeric(Station)),
+    sep = ' '))
+
+pteropoda <- read.csv('../data/PRPOOS/pteropoda_heteropoda.csv', skip = 2) %>%
+  filter(Line != 'N/A', Station != 'N/A', Station.date != 'N/A') %>%
+  mutate(month = month(Station.date), year = year(Station.date)) %>%
+  mutate(Station_ID = paste(
+    sprintf('%05.1f', as.numeric(Line)),
+    sprintf('%05.1f', as.numeric(Station)),
+    sep = ' '))
+
+rhizaria <- read.csv('../data/PRPOOS/rhizaria.csv', skip = 2) %>%
+  filter(Line != 'N/A', Station != 'N/A', Station.date != 'N/A') %>%
+  mutate(month = month(Station.date), year = year(Station.date)) %>%
+  mutate(Station_ID = paste(
+    sprintf('%05.1f', as.numeric(Line)),
+    sprintf('%05.1f', as.numeric(Station)),
+    sep = ' '))
+```
+
+
+
+```{r}
 # CO2SYS data
 # filter depth < 212
 
@@ -66,6 +104,7 @@ co2sys <- read.csv('../data/merged_bottle_co2sys.csv') %>%
 
 
 ```{r}
+# merge zooDB data
 # merge on Station_ID, Year, and Month
 
 mollusca1_co2sys <- inner_join(
@@ -111,6 +150,33 @@ foraminifera_co2sys <- inner_join(
 )
 ```
 
+```{r}
+# merge PRPOOS data
+
+byrozoan_co2sys <- inner_join(
+  byrozoan,
+  co2sys,
+  by = join_by(Station_ID, year == Year_UTC, month == Month_UTC)
+)
+
+ostracods_co2sys <- inner_join(
+  ostracods,
+  co2sys,
+  by = join_by(Station_ID, year == Year_UTC, month == Month_UTC)
+)
+
+pteropoda_co2sys <- inner_join(
+  pteropoda,
+  co2sys,
+  by = join_by(Station_ID, year == Year_UTC, month == Month_UTC)
+)
+
+rhizaria_co2sys <- inner_join(
+  rhizaria,
+  co2sys,
+  by = join_by(Station_ID, year == Year_UTC, month == Month_UTC)
+)
+```
 
 
 

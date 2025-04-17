@@ -17,21 +17,43 @@ zoop <- read.csv('../data/zoop_data/Zooplankton-new.csv') %>%
 
 ```{r}
 # bins for x, y coords
-xbreaks <- seq(floor(min(zoop$latitude)), ceiling(max(zoop$latitude)), by = 1)
-ybreaks <- seq(floor(min(zoop$longitude)), ceiling(max(zoop$longitude)), by = 1)
+xbreaks <- seq(floor(min(zoop$latitude)), ceiling(max(zoop$latitude)), by = 0.75)
+ybreaks <- seq(floor(min(zoop$longitude)), ceiling(max(zoop$longitude)), by = 0.75)
 
 # allocate data points into bins
 zoop$latbin <- xbreaks[cut(zoop$latitude, breaks = xbreaks, labels=F)]
 zoop$longbin <- ybreaks[cut(zoop$longitude, breaks = ybreaks, labels=F)]
 
 # avg total_plankton for each bin
-datamat <- zoop[, list(avg_total_plankton = mean(total_plankton)), by = c("latbin", "longbin")]
+zoop_agg <- aggregate(zoop[, 'total_plankton'], list(zoop$latbin, zoop$longbin), mean) %>%
+  rename(latitude = Group.1, longitude = Group.2, total_plankton = x)
+```
+
+
+```{r}
+# check for spatial patterns
+total_plankton_map <- ggplot(zoop_agg, aes(longitude, latitude)) + 
+  geom_point(aes(col = total_plankton), alpha = 0.7, size = 0.7) + 
+  scale_color_viridis_c(option = 'viridis', name = 'Total Plankton') +
+  coord_fixed() + 
+  theme_minimal()
+
+total_plankton_map
 ```
 
 ```{r}
-max(zoop$total_plankton)
-```
+api_key <- 'AIzaSyAOaUr5AdjGqdE3roRO-zKh51HizzuRC9I'
+register_google(key = api_key)
 
+ca_map <- get_map(location = c(lon = -125, lat = 30), maptype = 'satellite', zoom = 3)
+
+ggmap(ca_map) + 
+  geom_point(data = zoop_agg,
+             aes(x = longitude, y = latitude, color = total_plankton),
+             alpha = 0.7, size = 0.6) + 
+  # scale_color_viridis_c(option = 'plasma', name = 'Total Plankton') +
+  scale_color_gradient(low = '#FAFFE8', high = '#00FF99')
+```
 
 
 ```{r}
@@ -41,6 +63,19 @@ zoop <- read.csv('../data/zoop_data/zooplankton_pH.csv') %>%
   # months since first observation
   # mutate(time = as.integer(difftime(Date, min(Date), units = 'days') / 30))   
 ```
+
+
+
+
+```{r}
+glimpse(pcod)
+```
+
+```{r}
+glimpse(predictions)
+```
+
+
 
 Handle missing data in predictors
 ```{r}
