@@ -5,6 +5,69 @@ output: html_document
 
 # omegaCA 
 ```{r}
+library(readr)
+library(dplyr)
+library(lubridate)
+merged_bottle_co2sys <- read_csv("../data/merged_bottle_co2sys.csv")
+
+mollusca1 <- read_csv(here::here("data/ZooDB/mollusca_euthecosomata.txt"), skip = 5)
+mollusca2 <- read_csv(here::here("data/ZooDB/mollusca_gymnosaomata.txt"), skip = 5)
+mollusca3 <- read_csv(here::here("data/ZooDB/mollusca_heteropoda_atlantidae.txt"), skip = 5)
+mollusca4 <- read_csv(here::here("data/ZooDB/mollusca_pseudothecosomata.txt"), skip = 5)
+ostracoda <- read_csv(here::here("data/ZooDB/ostracoda.txt"), skip = 5)
+radiolaria <- read_csv(here::here("data/ZooDB/radiolaria.txt"), skip = 5)
+foraminifera <- read_csv(here::here("data/ZooDB/foraminifera.txt"), skip = 5)
+```
+
+```{r}
+# format Station_ID column
+mollusca1$Station_ID <- paste(
+  sprintf('%05.1f', as.numeric(mollusca1$Line)),
+  sprintf('%05.1f', as.numeric(mollusca1$Station)),
+  sep = ' '
+)
+
+mollusca1_unpool <- mollusca1 %>% 
+  filter(Source == "Unpooled") %>% 
+  na.omit()
+
+mollusca1_unpool <- mollusca1_unpool %>%
+  mutate(
+    Year = year(Date),
+    Month = month(Date),
+    Day = day(Date)
+  )
+
+merged_bottle_co2sys <- merged_bottle_co2sys %>% mutate(DIC = as.numeric(DIC),
+                                  TA = as.numeric(TA),
+                                  Depth = as.numeric(Depth),
+                                  CTDTEMP_ITS90 = as.numeric(CTDTEMP_ITS90),
+                                  Salinity_PSS78 = as.numeric(Salinity_PSS78),
+                                  Longitude = as.numeric(Longitude),
+                                  Latitude = as.numeric(Latitude)
+                                  )
+```
+
+```{r}
+# merge
+mollusca1_unpool_merged <- inner_join(
+  merged_bottle_co2sys, 
+  mollusca1_unpool,
+  by = join_by(Year_UTC == Year, Station_ID == Station_ID)
+)
+# no matching
+```
+
+```{r}
+# eda plots
+ggplot() +
+  geom_point(aes(x = Date, y = Station_ID, color = "ZooDB Data"), 
+             alpha = 0.7, data = mollusca1_unpool) +
+  geom_point(aes(x = Date_cc, y = Station_ID, color = "CO2SYS Data"), 
+             alpha = 0.7, data = merged_bottle_co2sys) +
+  scale_color_manual(values = c("ZooDB Data" = "red", "CO2SYS Data" = "blue")) +
+  labs(color = "Dataset") +
+  theme_minimal()
 
 ```
 
