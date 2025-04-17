@@ -1,0 +1,10 @@
+---
+title: "krill_eda_liuqian"
+output: html_document
+---
+
+# omegaCA 
+```{r}
+
+```
+

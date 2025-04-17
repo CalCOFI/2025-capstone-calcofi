@@ -1,15 +1,45 @@
 ```{r}
 library(ggplot2)
+library(ggmap)
+library(RColorBrewer)
 library(tidyverse)
 library(sdmTMB)
 library(mice)
 ```
 
+
+```{r}
+# original unmerged data
+zoop <- read.csv('../data/zoop_data/Zooplankton-new.csv') %>%
+  add_utm_columns(ll_names=c('longitude', 'latitude'), utm_names=c('X', 'Y')) %>%
+  mutate(lon = round(longitude, 2), lat = round(latitude, 2), year = year(time))
+```
+
+```{r}
+# bins for x, y coords
+xbreaks <- seq(floor(min(zoop$latitude)), ceiling(max(zoop$latitude)), by = 1)
+ybreaks <- seq(floor(min(zoop$longitude)), ceiling(max(zoop$longitude)), by = 1)
+
+# allocate data points into bins
+zoop$latbin <- xbreaks[cut(zoop$latitude, breaks = xbreaks, labels=F)]
+zoop$longbin <- ybreaks[cut(zoop$longitude, breaks = ybreaks, labels=F)]
+
+# avg total_plankton for each bin
+datamat <- zoop[, list(avg_total_plankton = mean(total_plankton)), by = c("latbin", "longbin")]
+```
+
+```{r}
+max(zoop$total_plankton)
+```
+
+
+
 ```{r}
 zoop <- read.csv('../data/zoop_data/zooplankton_pH.csv') %>%
-  add_utm_columns(ll_names=c('Longitude', 'Latitude'), utm_names=c('X', 'Y')) %>%
+  add_utm_columns(ll_names=c('longitude', 'latitude'), utm_names=c('X', 'Y')) %>%
+  mutate(lon = round(longitude, 2), lat = round(latitude, 2))
   # months since first observation
-  mutate(time = as.integer(difftime(Date, min(Date), units = 'days') / 30))   
+  # mutate(time = as.integer(difftime(Date, min(Date), units = 'days') / 30))   
 ```
 
 Handle missing data in predictors
@@ -45,7 +75,7 @@ Tweedie distribution: models overdispersed data
 ```{r}
 model <- sdmTMB(
   data = zoop,
-  formula = total_plankton ~ pHout + T_degC + DIC + Salinity_PSS78,
+  formula = total_plankton ~ 1,
   mesh = mesh,
   family = tweedie(link = 'log'),
   spatial = 'on'
@@ -75,7 +105,41 @@ ggplot(zoop, aes(X, Y, col = resids)) +
 ```
 
 
+```{r}
+zoop$total_plankton
+```
 
+```{r}
+ggplot(data=zoop, aes(x=total_plankton)) + 
+  geom_histogram()
+```
+
+```{r}
+# Create raster plot
+ggplot(zoop, aes(x = lon, y = lat, fill = total_plankton)) +
+  geom_raster(interpolate = TRUE) +
+  scale_fill_viridis_c(option = "plasma", name = "Total Plankton") +
+  # facet_wrap(~ Year_UTC) +
+  coord_fixed() +
+  labs(
+    title = "Spatial Distribution of Total Plankton",
+    x = "Longitude",
+    y = "Latitude"
+  ) +
+  theme_minimal()
+```
+
+
+
+
+
+
+
+
+# GAM spatial spline
+```{r}
+
+```
 
 
 
