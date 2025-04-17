@@ -1,0 +1,384 @@
+# CO2SYS
+## data/merged_bottle_co2sys.csv
+- Filter <= 212 m depth for net tows
+- Summary Stats for `pH` and `OmegaCA`
+```{r}
+# Read in dataset
+co2sys <- read_csv(here::here("data/merged_bottle_co2sys.csv"))
+# Filter depth
+co2sys <- co2sys %>%
+  dplyr::select(Year_UTC, Month_UTC, Station_ID, Depth, pHin, OmegaCAin) %>%
+  filter(Depth <= 212)
+```
+
+# PRPOOS
+## data/PRPOOS
+```{r}
+# Read in datasets
+byrozoan_larvae <- read_csv(here::here("data/PRPOOS/byrozoan_larvae.csv"), skip = 2)
+pteropoda_heteropoda <- read_csv(here::here("data/PRPOOS/pteropoda_heteropoda.csv"), skip = 2)
+ostracods <- read_csv(here::here("data/PRPOOS/ostracods.csv"), skip = 2)
+rhizaria <- read_csv(here::here("data/PRPOOS/rhizaria.csv"), skip = 2)
+```
+
+```{r}
+# Preprocessing datasets
+## Combine `Line` and `Station` (in that order) to create `Station_ID` variable
+## Extract Month and Year from `Station date` into separate variables
+
+### byrozoan_larvae
+byrozoan_larvae$Station_ID <- paste(
+  sprintf('%05.1f', byrozoan_larvae$Line),
+  sprintf('%05.1f', byrozoan_larvae$Station),
+  sep = ' '
+)
+byrozoan_larvae <- byrozoan_larvae %>%
+  relocate(Station_ID, .after = Line)
+byrozoan_larvae <- byrozoan_larvae %>%
+  mutate(
+    Year_UTC = year(`Station date`),
+    Month_UTC = month(`Station date`),
+    Day_UTC = day(`Station date`),
+    .after = `Station date`
+  ) %>%
+  rename (Abundance = `Abundance (No. per m2)`)
+
+### pteropoda_heteropoda
+pteropoda_heteropoda$Station_ID <- paste(
+  sprintf('%05.1f', pteropoda_heteropoda$Line),
+  sprintf('%05.1f', pteropoda_heteropoda$Station),
+  sep = ' '
+)
+pteropoda_heteropoda <- pteropoda_heteropoda %>%
+  relocate(Station_ID, .after = Line)
+pteropoda_heteropoda <- pteropoda_heteropoda %>%
+  mutate(
+    Year_UTC = year(`Station date`),
+    Month_UTC = month(`Station date`),
+    Day_UTC = day(`Station date`),
+    .after = `Station date`
+  ) %>%
+  rename (Abundance = `Abundance (No. per m2)`)
+
+### ostracods
+ostracods$Station_ID <- paste(
+  sprintf('%05.1f', ostracods$Line),
+  sprintf('%05.1f', ostracods$Station),
+  sep = ' '
+)
+ostracods <- ostracods %>%
+  relocate(Station_ID, .after = Line)
+ostracods <- ostracods %>%
+  mutate(
+    Year_UTC = year(`Station date`),
+    Month_UTC = month(`Station date`),
+    Day_UTC = day(`Station date`),
+    .after = `Station date`
+  ) %>%
+  rename (Abundance = `Abundance (No. per m2)`)
+
+### rhizaria
+rhizaria$Station_ID <- paste(
+  sprintf('%05.1f', rhizaria$Line),
+  sprintf('%05.1f', rhizaria$Station),
+  sep = ' '
+)
+rhizaria <- rhizaria %>%
+  relocate(Station_ID, .after = Line)
+rhizaria <- rhizaria %>%
+  mutate(
+    Year_UTC = year(`Station date`),
+    Month_UTC = month(`Station date`),
+    Day_UTC = day(`Station date`),
+    .after = `Station date`
+  ) %>%
+  rename (Abundance = `Abundance (No. per m2)`)
+```
+
+```{r}
+# Merge
+
+### byrozoan_larvae
+byrozoan_larvae_merge <- co2sys %>%
+  left_join(byrozoan_larvae, by = c("Station_ID", "Month_UTC", "Year_UTC")) %>%
+  na.omit()
+
+### pteropoda_heteropoda
+pteropoda_heteropoda_merge <- co2sys %>%
+  left_join(pteropoda_heteropoda, by = c("Station_ID", "Month_UTC", "Year_UTC")) %>%
+  na.omit()
+
+### ostracods
+ostracods_merge <- co2sys %>%
+  left_join(ostracods, by = c("Station_ID", "Month_UTC", "Year_UTC")) %>%
+  na.omit()
+
+### rhizaria
+rhizaria_merge <- co2sys %>%
+  left_join(rhizaria, by = c("Station_ID", "Month_UTC", "Year_UTC")) %>%
+  na.omit()
+```
+
+```{r}
+# Visualization: Scatterplots for y (abundance) vs. x (pH)
+
+### byrozoan_larvae
+ggplot(byrozoan_larvae_merge) +
+  aes(x = pHin, y = log1p(Abundance)) +
+  geom_point() +
+  stat_cor(method = 'pearson')
+
+cor(byrozoan_larvae_merge$pHin, byrozoan_larvae_merge$Abundance)
+
+### pteropoda_heteropoda
+ggplot(pteropoda_heteropoda_merge) +
+  aes(x = pHin, y = log1p(Abundance)) +
+  geom_point() +
+  stat_cor(method = 'pearson')
+
+cor(pteropoda_heteropoda_merge$pHin, pteropoda_heteropoda_merge$Abundance)
+
+### ostracods
+ggplot(ostracods_merge) +
+  aes(x = pHin, y = log1p(Abundance)) +
+  geom_point() +
+  stat_cor(method = 'pearson')
+
+cor(ostracods_merge$pHin, ostracods_merge$Abundance)
+
+### rhizaria
+ggplot(rhizaria_merge) +
+  aes(x = pHin, y = log1p(Abundance)) +
+  geom_point() +
+  stat_cor(method = 'pearson')
+
+cor(rhizaria_merge$pHin, rhizaria_merge$Abundance)
+```
+
+```{r}
+# Visualization: Scatterplots for y (abundance) vs. x (total calcium)
+
+### byrozoan_larvae
+ggplot(byrozoan_larvae_merge) +
+  aes(x = OmegaCAin, y = log1p(Abundance)) +
+  geom_point() +
+  stat_cor(method = 'pearson')
+
+cor(byrozoan_larvae_merge$OmegaCAin, byrozoan_larvae_merge$Abundance)
+
+### pteropoda_heteropoda
+ggplot(pteropoda_heteropoda_merge) +
+  aes(x = OmegaCAin, y = log1p(Abundance)) +
+  geom_point() +
+  stat_cor(method = 'pearson')
+
+cor(pteropoda_heteropoda_merge$OmegaCAin, pteropoda_heteropoda_merge$Abundance)
+
+### ostracods
+ggplot(ostracods_merge) +
+  aes(x = OmegaCAin, y = log1p(Abundance)) +
+  geom_point() +
+  stat_cor(method = 'pearson')
+
+cor(ostracods_merge$OmegaCAin, ostracods_merge$Abundance)
+
+### rhizaria
+ggplot(rhizaria_merge) +
+  aes(x = OmegaCAin, y = log1p(Abundance)) +
+  geom_point() +
+  stat_cor(method = 'pearson')
+
+cor(rhizaria_merge$OmegaCAin, rhizaria_merge$Abundance)
+```
+
+# ZooDB Calcifiers
+## data/ZooDB
+**Mollusca** (4 taxa) - calcite or aragonite:
+- Mollusca Euthecosomata (mollusca1)
+- Mollusca Gymnosaomata (mollusca2)
+- Mollusca Heteropoda Atlantidae (mollusca3)
+- Mollusca Pseudothecosomata (mollusca4)
+**Ostracoda** - shell is complex arrangement of low-Mg calcite crystals and organic components (ostracoda)
+**Radiolaria** - non-calcifying (Silicate) (radiolaria)
+**Foraminifera** - calcite or aragonite (foraminifera)
+- (I'm assuming she meant foraminifera not formaminefera)
+
+* Next steps: merge with carb chem data
+
+```{r}
+# Read in datasets
+mollusca1 <- read_csv(here::here("data/ZooDB/mollusca_euthecosomata.txt"), skip = 5)
+mollusca2 <- read_csv(here::here("data/ZooDB/mollusca_gymnosaomata.txt"), skip = 5)
+mollusca3 <- read_csv(here::here("data/ZooDB/mollusca_heteropoda_atlantidae.txt"), skip = 5)
+mollusca4 <- read_csv(here::here("data/ZooDB/mollusca_pseudothecosomata.txt"), skip = 5)
+ostracoda <- read_csv(here::here("data/ZooDB/ostracoda.txt"), skip = 5)
+radiolaria <- read_csv(here::here("data/ZooDB/radiolaria.txt"), skip = 5)
+foraminifera <- read_csv(here::here("data/ZooDB/foraminifera.txt"), skip = 5)
+```
+
+```{r}
+# Preprocessing datasets
+## Combine `Line` and `Station` (in that order) to create `Station_ID` variable
+## Extract Month and Year from `Station date` into separate variables
+
+### mollusca1
+mollusca1$Station_ID <- paste(
+  sprintf('%05.1f', as.numeric(mollusca1$Line)),
+  sprintf('%05.1f', as.numeric(mollusca1$Station)),
+  sep = ' '
+)
+mollusca1 <- mollusca1 %>%
+  relocate(Station_ID, .after = Station)
+mollusca1 <- mollusca1 %>%
+  mutate(
+    Year_UTC = year(Date),
+    Month_UTC = month(Date),
+    Day_UTC = day(Date),
+    .after = Date
+  )
+
+### mollusca2
+mollusca2$Station_ID <- paste(
+  sprintf('%05.1f', as.numeric(mollusca2$Line)),
+  sprintf('%05.1f', as.numeric(mollusca2$Station)),
+  sep = ' '
+)
+mollusca2 <- mollusca2 %>%
+  relocate(Station_ID, .after = Station)
+mollusca2 <- mollusca2 %>%
+  mutate(
+    Year_UTC = year(Date),
+    Month_UTC = month(Date),
+    Day_UTC = day(Date),
+    .after = Date
+  )
+
+### mollusca3
+mollusca3$Station_ID <- paste(
+  sprintf('%05.1f', as.numeric(mollusca3$Line)),
+  sprintf('%05.1f', as.numeric(mollusca3$Station)),
+  sep = ' '
+)
+mollusca3 <- mollusca3 %>%
+  relocate(Station_ID, .after = Station)
+mollusca3 <- mollusca3 %>%
+  mutate(
+    Year_UTC = year(Date),
+    Month_UTC = month(Date),
+    Day_UTC = day(Date),
+    .after = Date
+  )
+
+### mollusca4
+mollusca4$Station_ID <- paste(
+  sprintf('%05.1f', as.numeric(mollusca4$Line)),
+  sprintf('%05.1f', as.numeric(mollusca4$Station)),
+  sep = ' '
+)
+mollusca4 <- mollusca4 %>%
+  relocate(Station_ID, .after = Station)
+mollusca4 <- mollusca4 %>%
+  mutate(
+    Year_UTC = year(Date),
+    Month_UTC = month(Date),
+    Day_UTC = day(Date),
+    .after = Date
+  )
+
+### ostracoda
+ostracoda$Station_ID <- paste(
+  sprintf('%05.1f', as.numeric(ostracoda$Line)),
+  sprintf('%05.1f', as.numeric(ostracoda$Station)),
+  sep = ' '
+)
+ostracoda <- ostracoda %>%
+  relocate(Station_ID, .after = Station)
+ostracoda <- ostracoda %>%
+  mutate(
+    Year_UTC = year(Date),
+    Month_UTC = month(Date),
+    Day_UTC = day(Date),
+    .after = Date
+  )
+
+### radiolaria
+radiolaria$Station_ID <- paste(
+  sprintf('%05.1f', as.numeric(radiolaria$Line)),
+  sprintf('%05.1f', as.numeric(radiolaria$Station)),
+  sep = ' '
+)
+radiolaria <- radiolaria %>%
+  relocate(Station_ID, .after = Station)
+radiolaria <- radiolaria %>%
+  mutate(
+    Year_UTC = year(Date),
+    Month_UTC = month(Date),
+    Day_UTC = day(Date),
+    .after = Date
+  )
+
+### foraminifera
+foraminifera$Station_ID <- paste(
+  sprintf('%05.1f', as.numeric(foraminifera$Line)),
+  sprintf('%05.1f', as.numeric(foraminifera$Station)),
+  sep = ' '
+)
+foraminifera <- foraminifera %>%
+  relocate(Station_ID, .after = Station)
+foraminifera <- foraminifera %>%
+  mutate(
+    Year_UTC = year(Date),
+    Month_UTC = month(Date),
+    Day_UTC = day(Date),
+    .after = Date
+  )
+```
+
+```{r}
+# Merge
+
+### mollusca1
+mollusca1_merge <- co2sys %>%
+  left_join(mollusca1, by = c("Station_ID", "Month_UTC", "Year_UTC")) %>%
+  na.omit()
+
+### mollusca2
+mollusca2_merge <- co2sys %>%
+  left_join(mollusca2, by = c("Station_ID", "Month_UTC", "Year_UTC")) %>%
+  na.omit()
+
+### mollusca3
+mollusca3_merge <- co2sys %>%
+  left_join(mollusca3, by = c("Station_ID", "Month_UTC", "Year_UTC")) %>%
+  na.omit()
+
+### mollusca4
+mollusca4_merge <- co2sys %>%
+  left_join(mollusca4, by = c("Station_ID", "Month_UTC", "Year_UTC")) %>%
+  na.omit()
+
+### ostracoda
+ostracoda_merge <- co2sys %>%
+  left_join(ostracoda, by = c("Station_ID", "Month_UTC", "Year_UTC")) %>%
+  na.omit()
+
+### radiolaria
+radiolaria_merge <- co2sys %>%
+  left_join(radiolaria, by = c("Station_ID", "Month_UTC", "Year_UTC")) %>%
+  na.omit()
+
+### foraminifera
+foraminifera_merge <- co2sys %>%
+  left_join(foraminifera, by = c("Station_ID", "Month_UTC", "Year_UTC")) %>%
+  na.omit()
+
+length(intersect(mollusca1$Station_ID, co2sys$Station_ID))
+length(intersect(mollusca2$Station_ID, co2sys$Station_ID))
+length(intersect(mollusca3$Station_ID, co2sys$Station_ID))
+length(intersect(mollusca4$Station_ID, co2sys$Station_ID))
+length(intersect(ostracoda$Station_ID, co2sys$Station_ID))
+length(intersect(radiolaria$Station_ID, co2sys$Station_ID))
+length(intersect(foraminifera$Station_ID, co2sys$Station_ID))
+```
+
+
