@@ -137,7 +137,7 @@ models <- lapply(
 lapply(
   1:10,
   function(i) {
-    c(qty = qty[i], coef(summary(models[[i]]))[2,], n = nobs(models[[i]]), r2 = r.squaredGLMM(models[[i]])[2])
+    c(qty = qty[i], coef(summary(models[[i]]))[2,], n = nobs(models[[i]]), AIC = extractAIC(models[[i]])[2], r2 = r.squaredGLMM(models[[i]])[2])
   }
 ) %>%
   # combine results into a dataframe
@@ -184,7 +184,8 @@ lapply(
     `Pr(>|t|)` = "p-value",
     `Std. Error` = "Std. Error",
     units = "Units",
-    r2 = md("r<sup>2</sup>")
+    r2 = md("r<sup>2</sup>"), 
+    AIC = "AIC"
   ) %>%
   # move units to be next to estimate and standard error columns
   cols_move(
@@ -198,7 +199,7 @@ lapply(
     columns = units
   ) %>%
   fmt_number(
-    columns = c("Estimate", "Std. Error", "Pr(>|t|)", "r2"),
+    columns = c("Estimate", "Std. Error", "Pr(>|t|)", "r2", "AIC"),
     decimals = 4
   ) %>%
   sub_small_vals(
