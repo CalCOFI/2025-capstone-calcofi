@@ -137,7 +137,30 @@ colnames(prpoos_summary) <- colnames(prpoos_summary) %>%
 write.csv(prpoos_summary, "../data/PRPOOS/prpoos_summary_namecleaned.csv", row.names = FALSE)
 ```
 
+## eda plots
 ```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
 
+# Step 1: Select abundance columns + OmegaCA
+abundance_df <- prpoos_summary %>%
+  select(contains("Abundance"), OmegaCA_mean)
+
+# Step 2: Reshape data into long format for easy plotting
+long_df <- abundance_df %>%
+  pivot_longer(
+    cols = ends_with("Abundance"),
+    names_to = "Taxa",
+    values_to = "Abundance"
+  )
+long_df$Taxa <- gsub("Abundance$", "", long_df$Taxa)
+
+# Step 3: Plot all abundance variables vs. mean OmegaCA using facets
+ggplot(long_df, aes(x = OmegaCA_mean, y = Abundance)) +
+  geom_point(alpha = 0.3, size = 0.2) +
+  facet_wrap(~ Taxa, scales = "free_y") +
+  labs(x = "Mean OmegaCA", y = "Abundance", title = "Abundance vs. Mean OmegaCA") +
+  theme_minimal()
 ```
 
