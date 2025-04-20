@@ -71,3 +71,73 @@ ggplot() +
 
 ```
 
+# PRPOOS
+## data/PRPOOS
+```{r message=FALSE}
+# Read in datasets
+byrozoan_larvae <- read_csv(here::here("data/PRPOOS/byrozoan_larvae.csv"), skip = 2)
+pteropoda_heteropoda <- read_csv(here::here("data/PRPOOS/pteropoda_heteropoda.csv"), skip = 2)
+ostracods <- read_csv(here::here("data/PRPOOS/ostracods.csv"), skip = 2)
+rhizaria <- read_csv(here::here("data/PRPOOS/rhizaria.csv"), skip = 2)
+```
+
+```{r}
+library(dplyr)
+library(lubridate)
+
+# Step 1: Put your datasets into a named list
+data_list <- list(
+  byrozoan_larvae = byrozoan_larvae,
+  pteropoda_heteropoda = pteropoda_heteropoda,
+  ostracods = ostracods,
+  rhizaria = rhizaria
+)
+
+# Step 2: Loop through the list and preprocess each
+data_list <- lapply(data_list, function(df) {
+  df$Station_ID <- paste(
+    sprintf('%05.1f', df$Line),
+    sprintf('%05.1f', df$Station),
+    sep = ' '
+  )
+  
+  df <- df %>%
+    relocate(Station_ID, .after = Line) %>%
+    mutate(
+      Year_UTC = year(`Station date`),
+      Month_UTC = month(`Station date`),
+      Day_UTC = day(`Station date`),
+      .after = `Station date`
+    ) %>%
+    rename(Abundance = `Abundance (No. per m2)`)
+  
+  return(df)
+})
+byrozoan_larvae <- data_list$byrozoan_larvae
+pteropoda_heteropoda <- data_list$pteropoda_heteropoda
+ostracods <- data_list$ostracods
+rhizaria <- data_list$rhizaria
+
+```
+
+# all taxa of Prpoos data
+```{r}
+prpoos_summary <- read_csv("../data/PRPOOS/prpoos_summary.csv")
+```
+
+```{r}
+library(dplyr)
+library(stringr)
+
+# Clean column names by removing units and converting to camelCase style
+colnames(prpoos_summary) <- colnames(prpoos_summary) %>%
+  str_replace(" Abundance \\(No\\. per m2\\)", "Abundance") %>%
+  str_replace(" Estimated C Biomass \\(mgC m-2\\)", "EstimatedBiomass") %>%
+  str_replace_all(" ", "")  # Remove any remaining spaces
+write.csv(prpoos_summary, "../data/PRPOOS/prpoos_summary_namecleaned.csv", row.names = FALSE)
+```
+
+```{r}
+
+```
+
