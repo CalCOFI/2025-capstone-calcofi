@@ -120,6 +120,18 @@ rhizaria_merge <- co2sys %>%
 ```
 
 ```{r}
+# Generate summary stats for pH
+
+### byrozoan_larvae
+
+### pteropoda_heteropoda
+
+### ostracods
+
+### rhizaria
+```
+
+```{r}
 # Visualization: Scatterplots for y (abundance) vs. x (pH)
 
 ### byrozoan_larvae

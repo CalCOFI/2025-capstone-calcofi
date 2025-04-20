@@ -7,7 +7,11 @@ library(rnaturalearth)
 library(scales)
 library(latex2exp)
 library(nlme)
-
+library(lme4)
+library(lmerTest)
+library(MuMIn)
+library(ModelMetrics)
+library(FDRestimation)
 
 
 # READ AND PROCESS DATA ---------------------------------------------------
@@ -106,47 +110,260 @@ stations <- bottle_co2sys %>%
 # create fits and results object
 fits <- NULL
 results <- NULL
-
-
-# iterate through stations and fit linear models for each quantity
-for (i in 1:nrow(stations)) {
-  # extract data for station i
-  data <- bottle_co2sys %>% filter(Station_ID == stations$Station_ID[i])
-  for (j in 1:length(qty)) {
-    # check if all values are NA
-    if (data %>% select(paste0(qty[j],"_dtd")) %>% is.na() %>% `!`() %>% sum() == 0) {
-      # if so, add NA to list of fits
-      fits[[(i-1)*length(qty)+j]] <- NA
-      # and add row of NA values to results for the corresponding quantity and station
-      results <- bind_rows(results, c(
-        station = stations$Station_ID[i],
-        lat = stations$lat[i],
-        lon = stations$lon[i],
-        qty = qty[j], 
-        c(Estimate = NA, `Std. Error` = NA, `t value` = NA, `Pr(>|t|)` = NA), 
-        n = NA, 
-        r2 = NA))
-    }
-    else { # fit the linear model
-      fit <- gls(as.formula(paste(paste0(qty[j],"_dtd"),"~","Date_Dec + Depth")),
-                data = data,
-                na.action = na.exclude,
-                weights = varIdent(form =~1 | depth_bin),
-                control = list(maxIter=10000, niterEM=10000, opt = 'optim')
-                )
-      # add fit to list of fits
-      fits[[(i-1)*length(qty)+j]] <- fit
-      # add coefficient estimate and regression statistics in a new row to results
-      results <- bind_rows(results, c(
-        station = stations$Station_ID[i],
-        lat = stations$lat[i],
-        lon = stations$lon[i], 
-        qty = qty[j], 
-        if(nrow(coef(summary(fit))) == 1) c(Value = NA, `Std.Error` = NA, `t-value` = NA, `p-value` = NA) else coef(summary(fit))[2,], 
-        n = length(fit$fitted)))
-    }
-  }
+for (i in 1:nrow(stations)){
+  data <- bottle_co2sys |> filter(Station_ID == stations$Station_ID[i])
+  fit <- gls(OmegaARin_dtd ~ Date_Dec + Depth,
+             data = data,
+             na.action = na.omit,
+             weights = varIdent(form =~1 | depth_bin),
+             control = list(maxIter=10000, niterEM=10000, opt = 'optim')
+  )
+  fits[[i]] <- fit
+  results <- bind_rows(results, tibble(station = stations$Station_ID[i],
+                                  lat = as.double(stations$lat[i]),
+                                  lon = as.double(stations$lon[i]), 
+                                  qty = "OmegaARin", 
+                                  Value =coef(summary(fit))[2,1],
+                                  Std.Error =coef(summary(fit))[2,2],
+                                  `t-value` =coef(summary(fit))[2,3],
+                                  `p-value` =coef(summary(fit))[2,4],
+                                  n = length(fit$fitted),
+                                  AIC = summary(fit)$AIC))
 }
+
+
+for (i in 1:nrow(stations)){
+  data <- bottle_co2sys |> filter(Station_ID == stations$Station_ID[i])
+  fit <- gls(TA_dtd ~ Date_Dec + Depth,
+             data = data,
+             na.action = na.omit,
+             weights = varIdent(form =~1 | depth_bin),
+             control = list(maxIter=10000, niterEM=10000, opt = 'optim')
+  )
+  fits[[i]] <- fit
+  results <- bind_rows(results, tibble(station = stations$Station_ID[i],
+                                  lat = as.double(stations$lat[i]),
+                                  lon = as.double(stations$lon[i]), 
+                                  qty = "TA", 
+                                  Value =coef(summary(fit))[2,1],
+                                  Std.Error =coef(summary(fit))[2,2],
+                                  `t-value` =coef(summary(fit))[2,3],
+                                  `p-value` =coef(summary(fit))[2,4],
+                                  n = length(fit$fitted),
+                                  AIC = summary(fit)$AIC))
+}
+
+for (i in 1:nrow(stations)){
+  data <- bottle_co2sys |> filter(Station_ID == stations$Station_ID[i])
+  fit <- gls(OmegaCAin_dtd ~ Date_Dec + Depth,
+             data = data,
+             na.action = na.omit,
+             weights = varIdent(form =~1 | depth_bin),
+             control = list(maxIter=10000, niterEM=10000, opt = 'optim')
+  )
+  fits[[i]] <- fit
+  results <- bind_rows(results, tibble(station = stations$Station_ID[i],
+                                  lat = as.double(stations$lat[i]),
+                                  lon = as.double(stations$lon[i]), 
+                                  qty = "OmegaCAin", 
+                                  Value =coef(summary(fit))[2,1],
+                                  Std.Error =coef(summary(fit))[2,2],
+                                  `t-value` =coef(summary(fit))[2,3],
+                                  `p-value` =coef(summary(fit))[2,4],
+                                  n = length(fit$fitted),
+                                  AIC = summary(fit)$AIC))
+}
+
+for (i in 1:nrow(stations)){
+  data <- bottle_co2sys |> filter(Station_ID == stations$Station_ID[i])
+  fit <- gls(CO3in_dtd ~ Date_Dec + Depth,
+             data = data,
+             na.action = na.omit,
+             weights = varIdent(form =~1 | depth_bin),
+             control = list(maxIter=10000, niterEM=10000, opt = 'optim')
+  )
+  fits[[i]] <- fit
+  results <- bind_rows(results, tibble(station = stations$Station_ID[i],
+                                  lat = as.double(stations$lat[i]),
+                                  lon = as.double(stations$lon[i]), 
+                                  qty = "CO3in", 
+                                  Value =coef(summary(fit))[2,1],
+                                  Std.Error =coef(summary(fit))[2,2],
+                                  `t-value` =coef(summary(fit))[2,3],
+                                  `p-value` =coef(summary(fit))[2,4],
+                                  n = length(fit$fitted),
+                                  AIC = summary(fit)$AIC))
+}
+
+for (i in 1:nrow(stations)){
+  data <- bottle_co2sys |> filter(Station_ID == stations$Station_ID[i])
+  fit <- gls(pHin_dtd ~ Date_Dec + Depth,
+             data = data,
+             na.action = na.omit,
+             weights = varIdent(form =~1 | depth_bin),
+             control = list(maxIter=10000, niterEM=10000, opt = 'optim')
+  )
+  fits[[i]] <- fit
+  results <- bind_rows(results, tibble(station = stations$Station_ID[i],
+                                  lat = as.double(stations$lat[i]),
+                                  lon = as.double(stations$lon[i]), 
+                                  qty = "pHin", 
+                                  Value =coef(summary(fit))[2,1],
+                                  Std.Error =coef(summary(fit))[2,2],
+                                  `t-value` =coef(summary(fit))[2,3],
+                                  `p-value` =coef(summary(fit))[2,4],
+                                  n = length(fit$fitted),
+                                  AIC = summary(fit)$AIC))
+}
+
+for (i in 1:nrow(stations)){
+  data <- bottle_co2sys |> filter(Station_ID == stations$Station_ID[i])
+  fit <- gls(RFin_dtd ~ Date_Dec + Depth,
+             data = data,
+             na.action = na.omit,
+             weights = varIdent(form =~1 | depth_bin),
+             control = list(maxIter=10000, niterEM=10000, opt = 'optim')
+  )
+  fits[[i]] <- fit
+  results <- bind_rows(results, tibble(station = stations$Station_ID[i],
+                                  lat = as.double(stations$lat[i]),
+                                  lon = as.double(stations$lon[i]), 
+                                  qty = "RFin", 
+                                  Value =coef(summary(fit))[2,1],
+                                  Std.Error =coef(summary(fit))[2,2],
+                                  `t-value` =coef(summary(fit))[2,3],
+                                  `p-value` =coef(summary(fit))[2,4],
+                                  n = length(fit$fitted),
+                                  AIC = summary(fit)$AIC))
+}
+
+for (i in 1:nrow(stations)){
+  data <- bottle_co2sys |> filter(Station_ID == stations$Station_ID[i])
+  fit <- gls(pCO2in_dtd ~ Date_Dec + Depth,
+             data = data,
+             na.action = na.omit,
+             weights = varIdent(form =~1 | depth_bin),
+             control = list(maxIter=10000, niterEM=10000, opt = 'optim')
+  )
+  fits[[i]] <- fit
+  results <- bind_rows(results, tibble(station = stations$Station_ID[i],
+                                  lat = as.double(stations$lat[i]),
+                                  lon = as.double(stations$lon[i]), 
+                                  qty = "pCO2in", 
+                                  Value =coef(summary(fit))[2,1],
+                                  Std.Error =coef(summary(fit))[2,2],
+                                  `t-value` =coef(summary(fit))[2,3],
+                                  `p-value` =coef(summary(fit))[2,4],
+                                  n = length(fit$fitted),
+                                  AIC = summary(fit)$AIC))
+}
+
+for (i in 1:nrow(stations)){
+  data <- bottle_co2sys |> filter(Station_ID == stations$Station_ID[i])
+  fit <- gls(Salnty_dtd ~ Date_Dec + Depth,
+             data = data,
+             na.action = na.omit,
+             weights = varIdent(form =~1 | depth_bin),
+             control = list(maxIter=10000, niterEM=10000, opt = 'optim')
+  )
+  fits[[i]] <- fit
+  results <- bind_rows(results, tibble(station = stations$Station_ID[i],
+                                  lat = as.double(stations$lat[i]),
+                                  lon = as.double(stations$lon[i]), 
+                                  qty = "Salnty", 
+                                  Value =coef(summary(fit))[2,1],
+                                  Std.Error =coef(summary(fit))[2,2],
+                                  `t-value` =coef(summary(fit))[2,3],
+                                  `p-value` =coef(summary(fit))[2,4],
+                                  n = length(fit$fitted),
+                                  AIC = summary(fit)$AIC))
+}
+
+for (i in 1:nrow(stations)){
+  data <- bottle_co2sys |> filter(Station_ID == stations$Station_ID[i])
+  fit <- gls(T_degC_dtd ~ Date_Dec + Depth,
+             data = data,
+             na.action = na.omit,
+             weights = varIdent(form =~1 | depth_bin),
+             control = list(maxIter=10000, niterEM=10000, opt = 'optim')
+  )
+  fits[[i]] <- fit
+  results <- bind_rows(results, tibble(station = stations$Station_ID[i],
+                                  lat = as.double(stations$lat[i]),
+                                  lon = as.double(stations$lon[i]), 
+                                  qty = "T_degC", 
+                                  Value =coef(summary(fit))[2,1],
+                                  Std.Error =coef(summary(fit))[2,2],
+                                  `t-value` =coef(summary(fit))[2,3],
+                                  `p-value` =coef(summary(fit))[2,4],
+                                  n = length(fit$fitted),
+                                  AIC = summary(fit)$AIC))
+}
+
+for (i in 1:nrow(stations)){
+  data <- bottle_co2sys |> filter(Station_ID == stations$Station_ID[i])
+  fit <- gls(DIC_dtd ~ Date_Dec + Depth,
+             data = data,
+             na.action = na.omit,
+             weights = varIdent(form =~1 | depth_bin),
+             control = list(maxIter=10000, niterEM=10000, opt = 'optim')
+  )
+  fits[[i]] <- fit
+  results <- bind_rows(results, tibble(station = stations$Station_ID[i],
+                                  lat = as.double(stations$lat[i]),
+                                  lon = as.double(stations$lon[i]), 
+                                  qty = "DIC", 
+                                  Value =coef(summary(fit))[2,1],
+                                  Std.Error =coef(summary(fit))[2,2],
+                                  `t-value` =coef(summary(fit))[2,3],
+                                  `p-value` =coef(summary(fit))[2,4],
+                                  n = length(fit$fitted),
+                                  AIC = summary(fit)$AIC))
+}
+
+# # iterate through stations and fit linear models for each quantity
+# for (i in 1:nrow(stations)) {
+#   # extract data for station i
+#   data <- bottle_co2sys %>% filter(Station_ID == stations$Station_ID[i])
+#   for (j in 1:length(qty)) {
+#     # check if all values are NA
+#     if (data %>% select(paste0(qty[j],"_dtd")) %>% is.na() %>% `!`() %>% sum() == 0) {
+#       # if so, add NA to list of fits
+#       fits[[(i-1)*length(qty)+j]] <- NA
+#       # and add row of NA values to results for the corresponding quantity and station
+#       results <- bind_rows(results, c(
+#         station = stations$Station_ID[i],
+#         lat = stations$lat[i],
+#         lon = stations$lon[i],
+#         qty = qty[j], 
+#         c(Value = NA, `Std.Error` = NA, `t-value` = NA, `p-value` = NA), 
+#         n = NA, 
+#         AIC = NA))
+#     }
+#     else { # fit the linear model
+#       fit <- gls(as.formula(paste(paste0(qty[j],"_dtd"),"~","Date_Dec + Depth")),
+#                 data = data,
+#                 na.action = na.omit,
+#                 weights = varIdent(form =~1 | depth_bin),
+#                 control = list(maxIter=10000, niterEM=10000, opt = 'optim')
+#                 )
+#       # add fit to list of fits
+#       fits[[(i-1)*length(qty)+j]] <- fit
+#       # add coefficient estimate and regression statistics in a new row to results
+#       results <- bind_rows(results, c(
+#         station = stations$Station_ID[i],
+#         lat = stations$lat[i],
+#         lon = stations$lon[i], 
+#         qty = qty[j], 
+#         Value =coef(summary(fit))[2,1],
+#         Std.Error =coef(summary(fit))[2,2],
+#         `t-value` =coef(summary(fit))[2,3],
+#         `p-value` =coef(summary(fit))[2,4],
+#         n = length(fit$fitted),
+#         AIC = summary(fit)$AIC))
+#     }
+#   }
+# }
 
 
 # create fits and results objects for surface (<20m)
@@ -170,7 +387,8 @@ for (i in 1:nrow(stations)) {
         qty = qty[j], 
         c(Estimate = NA, `Std. Error` = NA, `t value` = NA, `Pr(>|t|)` = NA), 
         n = NA, 
-        r2 = NA))
+        r2 = NA,
+        AIC = NA))
     }
     else { # fit the linear model
       fit <- lm(as.formula(paste(paste0(qty[j],"_dtd"),"~","Date_Dec")), data = data, na.action = na.exclude)
@@ -184,7 +402,8 @@ for (i in 1:nrow(stations)) {
         qty = qty[j], 
         if(nrow(coef(summary(fit))) == 1) c(Estimate = NA, `Std. Error` = NA, `t value` = NA, `Pr(>|t|)` = NA) else coef(summary(fit))[2,], 
         n = summary(fit)$df[2] + 2, 
-        r2 = summary(fit)$r.squared))
+        r2 = summary(fit)$r.squared,
+        AIC = extractAIC(fit)[2]))
     }
   }
 }
@@ -192,14 +411,40 @@ for (i in 1:nrow(stations)) {
 # PLOT FIT RESULTS ----------------------------------------------------
 
 # modify results objects for plotting
+
+# Benjamini-Hochberg Adjusted p-values
+surf_results <- surf_results %>%
+  # convert numeric columns to numeric vectors
+  mutate(
+    across(-c(station, qty), as.numeric))
+    
+results <- results |> 
+  mutate(surface = 0)
+
+surf_results <- surf_results |> 
+  mutate(surface = 1) |> 
+  rename(Value = Estimate, Std.Error = `Std. Error`, `t-value` = `t value`, `p-value` = `Pr(>|t|)`) |> 
+  select(-r2)
+
+total_results <- bind_rows(results, surf_results)
+
+total_results <- total_results |> 
+  mutate(adj_p_value = (p.fdr(pvalues = total_results$`p-value`))$fdrs)
+
+results <- total_results |> 
+  filter(surface == 0)
+
+surf_results <- total_results |> 
+  filter(surface == 1)
+
 results <- results %>%
   # convert numeric columns to numeric vectors
   mutate(
     across(-c(station, qty), as.numeric)
   ) %>%
-  # create vector indicating if p < 0.5
+  # create vector indicating if p < 0.05
   mutate(
-    sigp = factor(ifelse(`p-value` < 0.05, 1, 0), levels = c(1,0), labels = c("Yes", "No"))
+    sigp = factor(ifelse(adj_p_value < 0.05 , 1, 0), levels = c(1,0), labels = c("Yes", "No"))
   )
 surf_results <- surf_results %>%
   # convert numeric columns to numeric vectors
@@ -208,7 +453,7 @@ surf_results <- surf_results %>%
   ) %>%
   # create vector indicating if p < 0.5
   mutate(
-    sigp = factor(ifelse(`Pr(>|t|)` < 0.05, 1, 0), levels = c(1,0), labels = c("Yes", "No"))
+    sigp = factor(ifelse(adj_p_value < 0.05, 1, 0), levels = c(1,0), labels = c("Yes", "No"))
   )
 
 # import map for plotting
@@ -251,6 +496,7 @@ for (i in 1:10) {
       color = "black",
       show.legend=TRUE # force shape to always show in legend
     ) +
+    geom_text(data = data, nudge_y = -.07 , size = 1.4, aes(x = lon, y = lat, label=paste("(",station,",",signif(Value, digits = 4), ")"))) + 
     # manually adjust coordinates
     coord_sf(
       xlim = c(results$lon %>% min() - 2, results$lon %>% max() + 2),
@@ -287,7 +533,7 @@ for (i in 1:10) {
       title = TeX(paste("Estimated Slope for", qty_names[i], "by Station (N>30)", paste0("[",units[i],"]"))),
       color = "Estimate",
       size = "N",
-      shape = TeX("$p<0.05$"),
+      shape = TeX("$Significance$"),
       caption = TeX(paste("Mean Slope (weighted by $N$):", format(round(weighted.mean(data$Value, data$n), 4), nsmall = 4), units[i]))
     )
   
@@ -304,7 +550,7 @@ for (i in 1:10) {
     ) %>%
     # filter out stations with n<=15 observations used in the fit
     filter(
-      (!is.na(Estimate)) & (n > 15)
+      (!is.na(Value)) & (n > 15)
     )
   
   # create plot of slope by station
@@ -317,13 +563,14 @@ for (i in 1:10) {
       aes(
         x = lon,
         y = lat,
-        fill = Estimate, # estimated slope
+        fill = Value, # estimated slope
         size = n, # number of observations
         shape = sigp # if estimate is statistically significant
       ),
       color = "black",
       show.legend=TRUE # force shape to always show in legend
     ) +
+    geom_text(data = data, aes(x= lon, y = lat, label=paste("(",station,",",Value, ")"))) +
     # manually adjust coordinates
     coord_sf(
       xlim = c(surf_results$lon %>% min() - 2, surf_results$lon %>% max() + 2),
@@ -361,7 +608,7 @@ for (i in 1:10) {
       color = "Estimate",
       size = "N",
       shape = TeX("$p<0.5$"),
-      caption = TeX(paste("Mean Slope (weighted by $N$):", format(round(weighted.mean(data$Estimate, data$n), 4), nsmall = 4), units[i]))
+      caption = TeX(paste("Mean Slope (weighted by $N$):", format(round(weighted.mean(data$Value, data$n), 4), nsmall = 4), units[i]))
     )
   
   # save plots
@@ -513,3 +760,16 @@ surf_results %>%
   #gtsave(
   #  "images/OA_trends/surf_lm_by_station_tab.png"
   #)
+
+
+# Analysis 
+
+sig_stations <- results |> 
+  filter(sigp == "Yes") |> 
+  select(station) |> 
+  unique()
+
+non_sig_stations <- results |> 
+  filter(sigp == "No") |> 
+  select(station) |> 
+  unique()
