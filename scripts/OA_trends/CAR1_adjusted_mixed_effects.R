@@ -203,7 +203,7 @@ models <- list(T_degC_mod, Salnty_mod, TA_mod, DIC_mod, pCO2in_mod, RFin_mod, pH
 lapply(
   1:10,
   function(i) {
-    c(qty = qty[i], coef(summary(models[[i]]))[2,], n = nobs(models[[i]]), r2 = r.squaredGLMM(models[[i]])[2],
+    c(qty = qty[i], coef(summary(models[[i]]))[2,], n = nobs(models[[i]]), AIC = summary(models[[i]])$AIC, r2 = r.squaredGLMM(models[[i]])[2],
       CI = paste0("(", format(round((intervals(models[[i]], which = "fixed"))[[1]][2,1], 5), nsmall = 5), ", ", format(round((intervals(models[[i]], which = "fixed"))[[1]][2,3], 5), nsmall = 5), ")"))
   }
 ) %>%
@@ -252,6 +252,7 @@ lapply(
     `Std.Error` = "Std. Error",
     units = "Units",
     r2 = md("r<sup>2</sup>"),
+    AIC = "AIC",
     CI = "95% CI"
   ) %>%
   # move units to be next to estimate and standard error columns
@@ -270,7 +271,7 @@ lapply(
     columns = units
   ) %>%
   fmt_number(
-    columns = c("Value", "Std.Error", "p-value", "r2"),
+    columns = c("Value", "Std.Error", "p-value", "r2", "AIC"),
     decimals = 4
   ) %>%
   sub_small_vals(
