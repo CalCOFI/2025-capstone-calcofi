@@ -5,6 +5,7 @@ library(RColorBrewer)
 library(tidyverse)
 library(sdmTMB)
 library(mice)
+library(ape)
 ```
 
 
@@ -42,6 +43,8 @@ total_plankton_map
 ```
 
 ```{r}
+# overlay on map
+
 api_key <- 'AIzaSyAOaUr5AdjGqdE3roRO-zKh51HizzuRC9I'
 register_google(key = api_key)
 
@@ -50,13 +53,19 @@ ca_map <- get_map(location = c(lon = -125, lat = 30), maptype = 'satellite', zoo
 ggmap(ca_map) + 
   geom_point(data = zoop_agg,
              aes(x = longitude, y = latitude, color = total_plankton),
-             alpha = 0.7, size = 0.6) + 
+             alpha = 0.5, size = 0.6) + 
   # scale_color_viridis_c(option = 'plasma', name = 'Total Plankton') +
-  scale_color_gradient(low = '#FAFFE8', high = '#00FF99')
+  scale_color_gradient2(low = '#1e9600', mid = '#fff200', high = '#ff0000')
+```
+
+```{r}
+# filter to data in CALCOFI grid
+
 ```
 
 
 ```{r}
+# merged data
 zoop <- read.csv('../data/zoop_data/zooplankton_pH.csv') %>%
   add_utm_columns(ll_names=c('longitude', 'latitude'), utm_names=c('X', 'Y')) %>%
   mutate(lon = round(longitude, 2), lat = round(latitude, 2))
@@ -64,25 +73,65 @@ zoop <- read.csv('../data/zoop_data/zooplankton_pH.csv') %>%
   # mutate(time = as.integer(difftime(Date, min(Date), units = 'days') / 30))   
 ```
 
-
-
-
 ```{r}
-glimpse(pcod)
-```
+# Moran's I test for spatial autocorrelation
 
-```{r}
-glimpse(predictions)
+zoop_dists <- as.matrix(dist(cbind(zoop$longitude, zoop$latitude)))
+
+zoop_dists_inv <- 1 / zoop_dists
+zoop_dists_inv[is.infinite(zoop_dists_inv)] <- 0
+diag(zoop_dists_inv) <- 0
+
+Moran.I(zoop$total_plankton, zoop_dists_inv)
 ```
+p-value indicates there is not enough evidence to suggest spatial autocorrelation in total plankton counts
 
 
 
 Handle missing data in predictors
 ```{r}
-# Removing all rows with NAs: 732 -> 486 obs
-zoop_clean <- zoop %>%
-  drop_na(total_plankton, pHout, T_degC, DIC, Salinity_PSS78)
+# calculate proportion of NAs per column
+# remove columns with high proportion of NA
+
+prop_na <- zoop %>%
+  summarise(across(everything(), ~mean(is.na(.)))) %>%
+  pivot_longer(cols = everything(), names_to = 'variable', values_to = 'na_proportion') %>%
+  filter(na_proportion < 0.1)
+
+# want balance between variables to choose from and low amount of NAs
+# 0.5: 181
+# 0.4: 174
+# 0.3: 133
+# 0.2: 132
+# 0.1: 119
+# 0.05: 111
+
+# only keep columns with less than 10% missingness
+zoop_filtered <- zoop %>%
+  select(prop_na$variable)
 ```
+
+
+```{r}
+# Removing all rows with NAs: 732 -> 522 obs
+zoop_clean <- zoop_filtered %>%
+  drop_na()
+
+# Remove columns that are not suitable predictors
+# flag variables, cruise info
+# Only keep chemistry variables
+
+variables <- c('Depth', 'Salinity_PSS78', 'DIC', 'T_degC', 'Salnty', 'O2ml_L', 'STheta', 'O2Sat', 'Oxy__mol_Kg', 'TCO2', 'TEMPOUT', 'PRESOUT', 'K0output', 'K1output', 'K2output', 'pK1output', 'pK2output', 'KWoutput', 'KBoutput', 'KFoutput', 'KSoutput', 'KP1output', 'KP2output', 'KP3output', 'KSioutput', 'TB', 'TF', 'TS')
+
+zoop_clean_filtered <- zoop_clean %>%
+  select(variables)
+```
+
+```{r}
+zoop_clean
+```
+
+
 
 ```{r}
 # Fill missing values
@@ -140,29 +189,7 @@ ggplot(zoop, aes(X, Y, col = resids)) +
 ```
 
 
-```{r}
-zoop$total_plankton
-```
 
-```{r}
-ggplot(data=zoop, aes(x=total_plankton)) + 
-  geom_histogram()
-```
-
-```{r}
-# Create raster plot
-ggplot(zoop, aes(x = lon, y = lat, fill = total_plankton)) +
-  geom_raster(interpolate = TRUE) +
-  scale_fill_viridis_c(option = "plasma", name = "Total Plankton") +
-  # facet_wrap(~ Year_UTC) +
-  coord_fixed() +
-  labs(
-    title = "Spatial Distribution of Total Plankton",
-    x = "Longitude",
-    y = "Latitude"
-  ) +
-  theme_minimal()
-```
 
 
 
