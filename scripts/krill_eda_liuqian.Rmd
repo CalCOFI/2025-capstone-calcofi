@@ -135,6 +135,7 @@ colnames(prpoos_summary) <- colnames(prpoos_summary) %>%
   str_replace(" Estimated C Biomass \\(mgC m-2\\)", "EstimatedBiomass") %>%
   str_replace_all(" ", "")  # Remove any remaining spaces
 write.csv(prpoos_summary, "../data/PRPOOS/prpoos_summary_namecleaned.csv", row.names = FALSE)
+names(prpoos_summary)
 ```
 
 ## eda plots
@@ -143,9 +144,37 @@ library(dplyr)
 library(tidyr)
 library(ggplot2)
 
+# Define taxa to highlight
+highlight_taxa <- c("bryozoan_larvae", "pteropoda_heteropoda", "ostracods", "rhizaria")
+
+# Prepare data
+long_df <- prpoos_summary %>%
+  select(contains("Abundance"), OmegaCA_mean) %>%
+  pivot_longer(
+    cols = ends_with("Abundance"),
+    names_to = "Taxa",
+    values_to = "Abundance"
+  ) %>%
+  mutate(
+    Taxa = gsub("Abundance$", "", Taxa),
+    highlight = ifelse(Taxa %in% highlight_taxa, "Highlighted", "Normal")
+  )
+
+# Plot with color based on highlight status
+ggplot(long_df, aes(x = OmegaCA_mean, y = Abundance, color = highlight)) +
+  geom_point(alpha = 0.3, size = 0.2) +
+  facet_wrap(~ Taxa, scales = "free_y") +
+  scale_color_manual(values = c("Highlighted" = "red", "Normal" = "black")) +
+  labs(x = "Mean OmegaCA", y = "Abundance", title = "Abundance vs. Mean OmegaCA") +
+  theme_minimal() +
+  theme(legend.position = "none")  # Remove legend if not needed
+
+```
+
+```{r}
 # Step 1: Select abundance columns + OmegaCA
 abundance_df <- prpoos_summary %>%
-  select(contains("Abundance"), OmegaCA_mean)
+  select(contains("Abundance"), pH_mean)
 
 # Step 2: Reshape data into long format for easy plotting
 long_df <- abundance_df %>%
@@ -157,10 +186,10 @@ long_df <- abundance_df %>%
 long_df$Taxa <- gsub("Abundance$", "", long_df$Taxa)
 
 # Step 3: Plot all abundance variables vs. mean OmegaCA using facets
-ggplot(long_df, aes(x = OmegaCA_mean, y = Abundance)) +
+ggplot(long_df, aes(x = pH_mean, y = Abundance)) +
   geom_point(alpha = 0.3, size = 0.2) +
   facet_wrap(~ Taxa, scales = "free_y") +
-  labs(x = "Mean OmegaCA", y = "Abundance", title = "Abundance vs. Mean OmegaCA") +
+  labs(x = "Mean pH", y = "Abundance", title = "Abundance vs. Mean pH") +
   theme_minimal()
 ```
 
