@@ -137,6 +137,12 @@ colnames(prpoos_summary) <- colnames(prpoos_summary) %>%
   str_replace_all(" ", "")  # Remove any remaining spaces
 write.csv(prpoos_summary, "../data/PRPOOS/prpoos_summary_namecleaned.csv", row.names = FALSE)
 prpoos_summary$YearMonth <- ym(paste(prpoos_summary$Year_UTC, prpoos_summary$Month_UTC))
+unique_stations <- merged_zoop_avg_monthly %>%
+  select(Station_ID, Longitude, Latitude) %>%
+  distinct()
+prpoos_summary <- prpoos_summary %>%
+  inner_join(unique_stations, by = "Station_ID")
+
 names(prpoos_summary)
 ```
 
@@ -553,3 +559,25 @@ print("⚫ Other Species Summary:",)
 print(other_species_summary)
 ```
 
+```{r}
+# GAM
+# Spatial Splines
+library(splines)
+library(mgcv)
+# Fit a GAM with spatial spline over longitude and latitude
+gam_model <- gam(bryozoan_larvaeAbundance ~ s(Longitude, Latitude, k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean), data = prpoos_summary)
+
+# View summary of the model
+summary(gam_model)
+# Extract spatial smooth range
+spatial_term <- predict(gam_model, type = "terms")[, "s(Longitude,Latitude)"]
+spatial_range <- range(spatial_term, na.rm = TRUE)
+
+# Plot spatial smooth (let plot.gam choose colors)
+plot(gam_model, select = 1, scheme = 2, 
+     xlim = range(prpoos_summary$Longitude) + c(-0.5, 0.5),
+     ylim = range(prpoos_summary$Latitude) + c(-0.5, 0.5),
+     main = "bryozoan_larvaeAbundance ~ Location + pH + OmegaCA + CO3",
+     xlab = "Longitude", ylab = "Latitude")
+
+```
