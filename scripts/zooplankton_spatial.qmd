@@ -6,6 +6,7 @@ library(tidyverse)
 library(sdmTMB)
 library(mice)
 library(ape)
+library(glmnet)
 ```
 
 
@@ -75,7 +76,6 @@ zoop <- read.csv('../data/zoop_data/zooplankton_pH.csv') %>%
 
 ```{r}
 # Moran's I test for spatial autocorrelation
-
 zoop_dists <- as.matrix(dist(cbind(zoop$longitude, zoop$latitude)))
 
 zoop_dists_inv <- 1 / zoop_dists
@@ -96,7 +96,7 @@ Handle missing data in predictors
 prop_na <- zoop %>%
   summarise(across(everything(), ~mean(is.na(.)))) %>%
   pivot_longer(cols = everything(), names_to = 'variable', values_to = 'na_proportion') %>%
-  filter(na_proportion < 0.1)
+  filter(na_proportion < 0.4)
 
 # want balance between variables to choose from and low amount of NAs
 # 0.5: 181
@@ -111,6 +111,17 @@ zoop_filtered <- zoop %>%
   select(prop_na$variable)
 ```
 
+```{r}
+zoop_clean <- zoop_filtered %>%
+  drop_na()
+```
+
+```{r}
+zoop_clean
+```
+
+
+
 
 ```{r}
 # Removing all rows with NAs: 732 -> 522 obs
@@ -121,16 +132,64 @@ zoop_clean <- zoop_filtered %>%
 # flag variables, cruise info
 # Only keep chemistry variables
 
-variables <- c('Depth', 'Salinity_PSS78', 'DIC', 'T_degC', 'Salnty', 'O2ml_L', 'STheta', 'O2Sat', 'Oxy__mol_Kg', 'TCO2', 'TEMPOUT', 'PRESOUT', 'K0output', 'K1output', 'K2output', 'pK1output', 'pK2output', 'KWoutput', 'KBoutput', 'KFoutput', 'KSoutput', 'KP1output', 'KP2output', 'KP3output', 'KSioutput', 'TB', 'TF', 'TS')
+variables <- c('Depth', 'CTDTEMP_ITS90', 'Salinity_PSS78', 'DIC', 'TA', 'T_degC', 'O2ml_L', 'STheta', 'O2Sat', 'Oxy__mol_Kg', 'PO4uM', 'SiO3uM', 'NO2uM', 'NO3uM', 'NH3uM', 'TCO2', 'pHout', 'pCO2out', 'fCO2out', 'HCO3out', 'CO3out', 'CO2out', 'BAlkout', 'OHout', 'PAlkout', 'SiAlkout', 'Hfreeout', 'RFout', 'OmegaCAout', 'OmegaARout', 'xCO2out', 'TEMPOUT', 'PRESOUT', 'PO4', 'SI', 'K0output', 'K1output', 'K2output', 'pK1output', 'pK2output', 'KWoutput', 'KBoutput', 'KFoutput', 'KSoutput', 'KP1output', 'KP2output', 'KP3output', 'KSioutput', 'TB', 'TF', 'TS')
+
+coords <- c('Latitude', 'Longitude', 'X', 'Y')
 
 zoop_clean_filtered <- zoop_clean %>%
-  select(variables)
+  select(variables, total_plankton) %>%
+  scale() %>%
+  as.data.frame() 
+
+zoop_clean_filtered <- cbind(zoop_clean[, coords], zoop_clean_filtered)
 ```
 
 ```{r}
-zoop_clean
+zoop_clean_filtered[, 5:56]
 ```
 
+```{r}
+# perform LASSO
+fit_lasso <- glmnet(x = zoop_clean_filtered[, 5:55],
+                    y = zoop_clean_filtered$total_plankton,
+                    alpha = 1,
+                    family = 'gaussian')
+
+fit_lasso
+```
+
+```{r}
+plot(fit_lasso,label = TRUE)
+```
+
+
+
+```{r}
+plot(fit_lasso, xvar = 'dev')
+```
+
+
+```{r}
+# compute R^2
+pred <- predict(fit_lasso, newx = as.matrix(zoop_clean_filtered[, 5:55]), s = 0.001)
+
+r2 <- 1 - sum((zoop_clean_filtered$total_plankton - pred)^2) / sum((zoop_clean_filtered$total_plankton - mean(zoop_clean_filtered$total_plankton))^2)
+
+r2
+```
+
+
+
+```{r}
+# get top 5 predictors
+get_nparam <- function(mod, numvar) {
+
+  coef(mod, s = with(fit_lasso, min(lambda[df == numvar])))
+
+}
+
+get_nparam(fit_lasso, 5)
+```
 
 
 ```{r}
@@ -147,21 +206,23 @@ zoop[, c('pHout', 'T_degC', 'DIC', 'Salinity_PSS78')] <- complete_covars
 
 
 
-```{r}
-mesh <- make_mesh(zoop, c('X', 'Y'), cutoff=10)
-plot(mesh)
-```
+
 
 
 
 Spatial model
-Tweedie distribution: models overdispersed data
+```{r}
+mesh <- make_mesh(zoop_clean_filtered, c('X', 'Y'), cutoff=10)
+plot(mesh)
+```
+
+
 ```{r}
 model <- sdmTMB(
-  data = zoop,
-  formula = total_plankton ~ 1,
+  data = zoop_clean_filtered,
+  formula = total_plankton ~ NO3uM + NH3uM + SiAlkout + KP1output + KP2output,
   mesh = mesh,
-  family = tweedie(link = 'log'),
+  family = gaussian(link = 'identity'),
   spatial = 'on'
 )
 
@@ -173,35 +234,42 @@ tidy(model, conf.int = TRUE)
 ```
 
 ```{r}
-zoop$resids <- residuals(model)
+zoop_clean_filtered$resids <- residuals(model)
+zoop_clean_filtered <- zoop_clean_filtered[is.finite(rowSums(zoop_clean_filtered)),]
 
-qqnorm(zoop$resids)
-qqline(zoop$resids)
+qqnorm(zoop_clean_filtered$resids)
+qqline(zoop_clean_filtered$resids)
 ```
 
 Plot Residuals
 ```{r}
-ggplot(zoop, aes(X, Y, col = resids)) + 
+ggplot(zoop_clean_filtered, aes(X, Y, col = resids)) + 
   scale_color_gradient2() + 
   theme_minimal() + 
   geom_point() + 
   coord_fixed()
 ```
 
-
-
-
-
-
-
-
-
-
-
-# GAM spatial spline
 ```{r}
+# compute R^2
+pred_grid <- zoop_clean_filtered[, 3:55]
+spatial_pred <- predict(model, newdata = pred_grid)
 
+r2 <- 1 - sum((zoop_clean_filtered$total_plankton - spatial_pred$est)^2) / sum((zoop_clean_filtered$total_plankton - mean(zoop_clean_filtered$total_plankton))^2)
+
+r2
 ```
+
+
+```{r}
+spatial_pred
+```
+
+
+
+
+
+
 
 
 
