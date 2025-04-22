@@ -6,6 +6,7 @@ library(sf)
 library(rnaturalearth)
 library(scales)
 library(latex2exp)
+library(FDRestimation)
 
 
 # READ AND PROCESS DATA ---------------------------------------------------
@@ -24,6 +25,12 @@ bottle_co2sys <- bind_cols(merged_bottle_data, co2sys_out) %>%
     Depth < 1000
   )
 
+# Filter for surface data
+bottle_co2sys <- bottle_co2sys %>%
+  filter(
+    Depth >= 20
+  )
+
 # Create vector of variables to be detrended
 qty <- c("T_degC","Salnty","TA","DIC","pCO2in","RFin","pHin","CO3in","OmegaCAin","OmegaARin")
 
@@ -39,14 +46,26 @@ bottle_co2sys <- bottle_co2sys %>%
     Depth_Log200 = log(Depth + 200)
   )
 
-# Get the names of all CalCOFI stations in the data and their locations
+# Get the names of a subset of CalCOFI stations and their locations
+min_unique <- 8 # minimum number of unique years per station
+min_n <- 100 # minimum number of observations per station
 stations <- bottle_co2sys %>%
+  filter(
+    if_all(c(T_degC_dtd, Depth, Date_Dec), ~!is.na(.x))
+  ) %>%
   group_by(
     Station_ID
   ) %>%
   summarize(
+    length = max(Year_UTC) - min(Year_UTC),
+    n = n(),
+    unique = length(unique(Year_UTC)),
     lat = mean(Latitude),
-    lon = mean(Longitude),
+    lon = mean(Longitude)
+  ) %>% 
+  filter(
+    unique >= 8,
+    n >= 100
   )
 
 # FIT LINEAR MODELS -------------------------------------------------------
@@ -55,85 +74,44 @@ stations <- bottle_co2sys %>%
 fits <- NULL
 results <- NULL
 
-depth_dep <- c("Depth_Log10", "Depth_Log50", "Depth", "Depth_Log50", "Depth_Log50",
-               "Depth_Log1", "Depth_Log10", "Depth_Log1", "Depth_Log1", "Depth_Log1")
-
 # iterate through stations and fit linear models for each quantity
 for (i in 1:nrow(stations)) {
   # extract data for station i
-  data <- bottle_co2sys %>% filter(Station_ID == stations$Station_ID[i])
+  data <- bottle_co2sys %>% filter((Station_ID == stations$Station_ID[i]))
   for (j in 1:length(qty)) {
-    # check if all values are NA
-    if (data %>% select(paste0(qty[j],"_dtd")) %>% is.na() %>% `!`() %>% sum() == 0) {
-      # if so, add NA to list of fits
-      fits[[(i-1)*length(qty)+j]] <- NA
-      # and add row of NA values to results for the corresponding quantity and station
-      results <- bind_rows(results, c(
-        station = stations$Station_ID[i],
-        lat = stations$lat[i],
-        lon = stations$lon[i],
-        qty = qty[j], 
-        c(Estimate = NA, `Std. Error` = NA, `t value` = NA, `Pr(>|t|)` = NA), 
-        n = NA, 
-        r2 = NA))
-    }
-    else { # fit the linear model
-      fit <- lm(as.formula(paste(paste0(qty[j],"_dtd"),"~","Date_Dec +", depth_dep[j])), data = data, na.action = na.exclude)
-      # add fit to list of fits
-      fits[[(i-1)*length(qty)+j]] <- fit
-      # add coefficient estimate and regression statistics in a new row to results
-      results <- bind_rows(results, c(
+    # fit the linear model
+    fit <- lm(as.formula(paste(paste0(qty[j],"_dtd"),"~","Date_Dec")), data = data, na.action = na.exclude)
+    
+    # add fit to list of fits
+    fits[[(i-1)*length(qty)+j]] <- fit
+    
+    # add coefficient estimate and regression statistics in a new row to surf_results
+    results <- bind_rows(
+      results, 
+      c(
         station = stations$Station_ID[i],
         lat = stations$lat[i],
         lon = stations$lon[i], 
         qty = qty[j], 
         if(nrow(coef(summary(fit))) == 1) c(Estimate = NA, `Std. Error` = NA, `t value` = NA, `Pr(>|t|)` = NA) else coef(summary(fit))[2,], 
-        n = summary(fit)$df[2] + 2, 
-        r2 = summary(fit)$r.squared))
-    }
+        n = summary(fit)$df[2] + 2
+      )
+    )
   }
 }
 
-
-# create fits and results objects for surface (<20m)
-surf_fits <- NULL
-surf_results <- NULL
-
-# iterate through stations and fit linear models for each quantity
-for (i in 1:nrow(stations)) {
-  # extract data for station i
-  data <- bottle_co2sys %>% filter((Station_ID == stations$Station_ID[i]) & (Depth <= 20))
-  for (j in 1:length(qty)) {
-    # check if all values are NA
-    if (data %>% select(paste0(qty[j],"_dtd")) %>% is.na() %>% `!`() %>% sum() == 0) {
-      # if so, add NA to list of fits
-      surf_fits[[(i-1)*length(qty)+j]] <- NA
-      # and add row of NA values to surf_results for the corresponding quantity and station
-      surf_results <- bind_rows(surf_results, c(
-        station = stations$Station_ID[i],
-        lat = stations$lat[i],
-        lon = stations$lon[i],
-        qty = qty[j], 
-        c(Estimate = NA, `Std. Error` = NA, `t value` = NA, `Pr(>|t|)` = NA), 
-        n = NA, 
-        r2 = NA))
-    }
-    else { # fit the linear model
-      fit <- lm(as.formula(paste(paste0(qty[j],"_dtd"),"~","Date_Dec")), data = data, na.action = na.exclude)
-      # add fit to list of fits
-      surf_fits[[(i-1)*length(qty)+j]] <- fit
-      # add coefficient estimate and regression statistics in a new row to surf_results
-      surf_results <- bind_rows(surf_results, c(
-        station = stations$Station_ID[i],
-        lat = stations$lat[i],
-        lon = stations$lon[i], 
-        qty = qty[j], 
-        if(nrow(coef(summary(fit))) == 1) c(Estimate = NA, `Std. Error` = NA, `t value` = NA, `Pr(>|t|)` = NA) else coef(summary(fit))[2,], 
-        n = summary(fit)$df[2] + 2, 
-        r2 = summary(fit)$r.squared))
-    }
-  }
+for (i in 1:length(fits)) {
+  print(
+    ggplot() +
+      geom_point(
+        aes(
+          x = fitted(fits[[i]]),
+          y = resid(fits[[i]])
+        )
+      )
+  )
 }
+
 
 # PLOT FIT RESULTS ----------------------------------------------------
 
@@ -143,14 +121,9 @@ results <- results %>%
   mutate(
     across(-c(station, qty), as.numeric)
   ) %>%
-  # create vector indicating if p < 0.5
+  # implement multiple testing correction
   mutate(
-    sigp = factor(ifelse(`Pr(>|t|)` < 0.5, 1, 0), levels = c(1,0), labels = c("Yes", "No"))
-  )
-surf_results <- surf_results %>%
-  # convert numeric columns to numeric vectors
-  mutate(
-    across(-c(station, qty), as.numeric)
+    adj_p_value = (p.fdr(pvalues = .data$`Pr(>|t|)`))$fdrs
   ) %>%
   # create vector indicating if p < 0.5
   mutate(
@@ -181,6 +154,7 @@ for (i in 1:10) {
     )
   
   # create plot of slope by station
+  print(
   ggplot(
     data = world
   ) +
@@ -191,9 +165,9 @@ for (i in 1:10) {
         x = lon,
         y = lat,
         fill = Estimate, # estimated slope
-        size = n, # number of observations
         shape = sigp # if estimate is statistically significant
       ),
+      size = 8,
       color = "black",
       show.legend=TRUE # force shape to always show in legend
     ) +
@@ -230,88 +204,15 @@ for (i in 1:10) {
     labs(
       x = NULL,
       y = NULL,
-      title = TeX(paste("Estimated Slope for", qty_names[i], "by Station (N>30)", paste0("[",units[i],"]"))),
+      title = TeX(paste("Estimated Slope for", qty_names[i], "by Station (Depth >= 20m)", paste0("[",units[i],"]"))),
       color = "Estimate",
       size = "N",
-      shape = TeX("$p<0.5$"),
+      shape = TeX("$p<0.05$"),
       caption = TeX(paste("Mean Slope (weighted by $N$):", format(round(weighted.mean(data$Estimate, data$n), 4), nsmall = 4), units[i]))
-    )
+    ))
   
   # save plots
   ggsave(paste0("images/OA_trends/", qty[i], "_by_station.png"), bg = "white")
-}
-
-# generate plots for surface fits
-for (i in 1:10) {
-  # extract data for quantity i
-  data <- surf_results %>%
-    filter(
-      qty == qty[i]
-    ) %>%
-    # filter out stations with n<=15 observations used in the fit
-    filter(
-      (!is.na(Estimate)) & (n > 15)
-    )
-  
-  # create plot of slope by station
-  ggplot(
-    data = world
-  ) +
-    geom_sf(fill = "antiquewhite1") +
-    geom_point(
-      data = data,
-      aes(
-        x = lon,
-        y = lat,
-        fill = Estimate, # estimated slope
-        size = n, # number of observations
-        shape = sigp # if estimate is statistically significant
-      ),
-      color = "black",
-      show.legend=TRUE # force shape to always show in legend
-    ) +
-    # manually adjust coordinates
-    coord_sf(
-      xlim = c(surf_results$lon %>% min() - 2, surf_results$lon %>% max() + 2),
-      ylim = c(surf_results$lat %>% min(), surf_results$lat %>% max())
-    ) +
-    # create color scale for slope estimates
-    scale_fill_gradient2(
-      low = "#d7191c",
-      high = "#2c7bb6",
-      mid = "#ffffbf"
-    ) +
-    # create custom shape scale
-    scale_shape_manual(
-      values = c("Yes" = 24, "No" = 21),
-      drop = FALSE # force both shapes to always show in legend
-    ) +
-    theme(
-      panel.grid.major = element_line(
-        color = gray(0.5), 
-        linetype = "solid", 
-        linewidth = 0.5
-      ), 
-      panel.background = element_rect(fill = "aliceblue")
-    ) +
-    # fix the order of the legends
-    guides(
-      fill = guide_colorbar(order = 1),
-      size = guide_legend(order = 50),
-      shape = guide_legend(order = 98)
-    ) +
-    labs(
-      x = NULL,
-      y = NULL,
-      title = TeX(paste("Estimated Slope for", qty_names[i], "by Station at Surface (Depth<=20m, N>15)", paste0("[",units[i],"]"))),
-      color = "Estimate",
-      size = "N",
-      shape = TeX("$p<0.5$"),
-      caption = TeX(paste("Mean Slope (weighted by $N$):", format(round(weighted.mean(data$Estimate, data$n), 4), nsmall = 4), units[i]))
-    )
-  
-  # save plots
-  ggsave(paste0("images/OA_trends/surf_", qty[i], "_by_station.png"), bg = "white")
 }
 
 # GENERATE TABULAR SUMMARY ------------------------------------------------
@@ -342,7 +243,7 @@ results %>%
     rowname_col = "qty"
   ) %>%
   tab_header(
-    title = "Summary of By Station Regression Results"
+    title = "Summary of By Station Regression Results (Depth >= 20m)"
   ) %>%
   tab_row_group(
     label = "Seawater carbonate chemistry",
@@ -386,76 +287,4 @@ results %>%
   ) %>%
   gtsave(
     "images/OA_trends/lm_by_station_tab.png"
-  )
-
-surf_results %>%
-  filter(
-    n>15
-  ) %>%
-  group_by(
-    qty
-  ) %>%
-  summarize(
-    mean = weighted.mean(Estimate, n, na.rm = TRUE),
-    std = sd(Estimate, na.rm = TRUE),
-    min = min(Estimate, na.rm = TRUE),
-    max = max(Estimate, na.rm = TRUE),
-    n = sum(!is.na(Estimate))
-  ) %>%
-  arrange(
-    match(qty, c("T_degC","Salnty","TA","DIC","pCO2in","RFin","pHin","CO3in","OmegaCAin","OmegaARin"))
-  ) %>%
-  mutate(
-    qty = c("Temperature", "Salinity", "A~T~", "C~T~", "*p*CO2", "Revelle Factor", "pH", "CO~3~<sup>2-</sup>", "Ω~calcite~", "Ω~aragonite~"),
-    units = c("degC yr^-1", "yr^-1", ":mu:mol kg^-1 yr^-1", ":mu:mol kg^-1 yr^-1", ":mu:atm yr^-1",
-              "yr^-1", "yr^-1", ":mu:mol kg^-1 yr^-1", "yr^-1", "yr^-1")
-  ) %>%
-  gt(
-    rowname_col = "qty"
-  ) %>%
-  tab_header(
-    title = "Summary of By Station Surface Data Regression Results (Depth≤20m)"
-  ) %>%
-  tab_row_group(
-    label = "Seawater carbonate chemistry",
-    rows = c("C~T~", "A~T~", "*p*CO2", "Revelle Factor")
-  ) %>%
-  tab_row_group(
-    label = "Ocean acidification indicators",
-    rows = c("pH", "CO~3~<sup>2-</sup>", "Ω~calcite~", "Ω~aragonite~")
-  ) %>%
-  tab_row_group(
-    label = "Hydrography",
-    rows = c("Temperature", "Salinity")
-  ) %>%
-  tab_stubhead(
-    label = "Parameter"
-  ) %>%
-  cols_label(
-    mean = "Mean",
-    std = "Std. Dev.",
-    min = "Min",
-    max = "Max",
-    units = "Units",
-    n = "No. of Stations"
-  ) %>%
-  cols_move(
-    units,
-    after = max
-  ) %>%
-  fmt_markdown(
-    columns = qty
-  ) %>%
-  opt_stylize(
-    style = 3
-  ) %>%
-  fmt_units(
-    columns = units
-  ) %>%
-  fmt_number(
-    columns = c("mean", "std", "min", "max"),
-    decimals = 4
-  ) %>%
-  gtsave(
-    "images/OA_trends/surf_lm_by_station_tab.png"
   )
