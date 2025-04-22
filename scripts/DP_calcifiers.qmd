@@ -1,4 +1,11 @@
 ```{r}
+library(tidyverse)
+library(sf)
+library(maps)
+```
+
+
+```{r}
 # zooDB data
 # remove rows without line, station, or date
 # create year and month columns
@@ -67,7 +74,7 @@ byrozoan <- read.csv('../data/PRPOOS/byrozoan_larvae.csv', skip = 2) %>%
     sprintf('%05.1f', as.numeric(Station)),
     sep = ' '))
 
-ostracods <-  read.csv('../data/PRPOOS/ostracods.csv', skip = 2) %>%
+ostracods <- read.csv('../data/PRPOOS/ostracods.csv', skip = 2) %>%
   filter(Line != 'N/A', Station != 'N/A', Station.date != 'N/A') %>%
   mutate(month = month(Station.date), year = year(Station.date)) %>%
   mutate(Station_ID = paste(
@@ -177,6 +184,55 @@ rhizaria_co2sys <- inner_join(
   by = join_by(Station_ID, year == Year_UTC, month == Month_UTC)
 )
 ```
+
+
+```{r}
+rhizaria_by_station <- aggregate(rhizaria_co2sys[, 'Abundance..No..per.m2.'],
+                                 list(rhizaria_co2sys$Latitude,
+                                      rhizaria_co2sys$Longitude),
+                                 mean) %>%
+  rename(latitude = Group.1, longitude = Group.2, abundance = x)
+
+rhizaria_by_station
+```
+
+```{r}
+# distance from shore 
+distance_from_shore <- data.frame(
+  latitude = c(30.4179, 32.8167, 33.1500, 33.4833, 31.4179, 33.8167, 31.7513, 34.1500, 34.3167, 34.4500, 32.4179, 32.6513, 32.9179, 33.1846, 33.4179, 33.4846),
+  longitude = c(-123.9989, -123.9060, -123.2210, -122.5333, -121.9900, -121.8430, -121.3156, -121.1500, -120.8024, -120.5239, -119.9593, -119.4823, -118.9355, -118.3871, -117.9058, -117.7681),
+  distance = c(682, 367, 293, 219, 461, 145, 387, 72, 35, 5, 239, 187, 128, 69, 18, 3)
+)
+
+# add distance from shore to each dataset
+inner_join(rhizaria_by_station,
+          distance_from_shore,
+          by = join_by(latitude, longitude))
+```
+
+```{r}
+distance_from_shore
+```
+
+
+```{r}
+ggplot(rhizaria_by_station, aes(x = longitude, y = latitude)) + 
+  geom_point(aes(col = abundance))
+```
+
+
+
+
+
+
+
+```{r}
+unique(byrozoan_co2sys[, c('longitude', 'latitude')])
+```
+
+
+
+
 
 
 
