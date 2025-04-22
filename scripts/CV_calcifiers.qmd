@@ -7,7 +7,7 @@
 co2sys <- read_csv(here::here("data/merged_bottle_co2sys.csv"))
 # Filter depth
 co2sys <- co2sys %>%
-  dplyr::select(Year_UTC, Month_UTC, Station_ID, Depth, pHin, OmegaCAin) %>%
+  dplyr::select(Year_UTC, Month_UTC, Station_ID, Depth, pHin, OmegaCAin, CO3in) %>%
   filter(Depth <= 212)
 ```
 
@@ -19,6 +19,9 @@ byrozoan_larvae <- read_csv(here::here("data/PRPOOS/byrozoan_larvae.csv"), skip 
 pteropoda_heteropoda <- read_csv(here::here("data/PRPOOS/pteropoda_heteropoda.csv"), skip = 2)
 ostracods <- read_csv(here::here("data/PRPOOS/ostracods.csv"), skip = 2)
 rhizaria <- read_csv(here::here("data/PRPOOS/rhizaria.csv"), skip = 2)
+
+### all taxa
+prpoos <- read_csv(here::here("data/PRPOOS/PRPOOS_all.csv"), skip = 2)
 ```
 
 ```{r}
@@ -93,6 +96,23 @@ rhizaria <- rhizaria %>%
     .after = `Station date`
   ) %>%
   rename (Abundance = `Abundance (No. per m2)`)
+
+### all taxa
+prpoos$Station_ID <- paste(
+  sprintf('%05.1f', prpoos$Station),
+  sprintf('%05.1f', prpoos$Line),
+  sep = ' '
+)
+prpoos <- prpoos %>%
+  relocate(Station_ID, .after = Line)
+prpoos <- prpoos %>%
+  mutate(
+    Year_UTC = year(`Station date`),
+    Month_UTC = month(`Station date`),
+    Day_UTC = day(`Station date`),
+    .after = `Station date`
+  ) %>%
+  rename (`appendicularia Abundance (No. per m2)` = `Day or Night`)
 ```
 
 ```{r}
@@ -102,105 +122,245 @@ rhizaria <- rhizaria %>%
 byrozoan_larvae_merge <- co2sys %>%
   left_join(byrozoan_larvae, by = c("Station_ID", "Month_UTC", "Year_UTC")) %>%
   na.omit()
+write_csv(byrozoan_larvae_merge, here::here("data/PRPOOS/byrozoan_larvae_merge.csv"))
 
 ### pteropoda_heteropoda
 pteropoda_heteropoda_merge <- co2sys %>%
   left_join(pteropoda_heteropoda, by = c("Station_ID", "Month_UTC", "Year_UTC")) %>%
   na.omit()
+write_csv(pteropoda_heteropoda_merge, here::here("data/PRPOOS/pteropoda_heteropoda_merge.csv"))
 
 ### ostracods
 ostracods_merge <- co2sys %>%
   left_join(ostracods, by = c("Station_ID", "Month_UTC", "Year_UTC")) %>%
   na.omit()
+write_csv(ostracods_merge, here::here("data/PRPOOS/ostracods_merge.csv"))
 
 ### rhizaria
 rhizaria_merge <- co2sys %>%
   left_join(rhizaria, by = c("Station_ID", "Month_UTC", "Year_UTC")) %>%
   na.omit()
+write_csv(rhizaria_merge, here::here("data/PRPOOS/rhizaria_merge.csv"))
+
+### all
+prpoos_merge <- co2sys %>%
+  left_join(prpoos, by = c("Station_ID", "Month_UTC", "Year_UTC")) %>%
+  na.omit()
+write_csv(prpoos_merge, here::here("data/PRPOOS/prpoos_merge.csv"))
 ```
 
 ```{r}
-# Generate summary stats for pH
+# Generate summary stats for pH, total calcium, and carbonate
 
 ### byrozoan_larvae
+byrozoan_larvae_summary <- byrozoan_larvae_merge %>%
+  group_by(Station_ID, Month_UTC, Year_UTC, Abundance) %>%
+  summarise(
+    pH_min = min(pHin, na.rm = TRUE),
+    pH_max = max(pHin, na.rm = TRUE),
+    pH_mean = mean(pHin, na.rm = TRUE),
+    pH_median = median(pHin, na.rm = TRUE),
+    pH_var = var(pHin, na.rm = TRUE),
+    pH_range = max(pHin, na.rm = TRUE) - min(pHin, na.rm = TRUE),
+    depth_at_pH_min = Depth[which.min(pHin)],
+    depth_at_pH_max = Depth[which.max(pHin)],
+    
+    OmegaCA_min = min(OmegaCAin, na.rm = TRUE),
+    OmegaCA_max = max(OmegaCAin, na.rm = TRUE),
+    OmegaCA_mean = mean(OmegaCAin, na.rm = TRUE),
+    OmegaCA_median = median(OmegaCAin, na.rm = TRUE),
+    OmegaCA_var = var(OmegaCAin, na.rm = TRUE),
+    OmegaCA_range = max(OmegaCAin, na.rm = TRUE) - min(OmegaCAin, na.rm = TRUE),
+    depth_at_OmegaCA_min = Depth[which.min(OmegaCAin)],
+    depth_at_OmegaCA_max = Depth[which.max(OmegaCAin)],
+    .groups = "drop"
+  )
+write_csv(byrozoan_larvae_summary, here::here("data/PRPOOS/byrozoan_larvae_summary.csv"))
 
 ### pteropoda_heteropoda
+pteropoda_heteropoda_summary <- pteropoda_heteropoda_merge %>%
+  group_by(Station_ID, Month_UTC, Year_UTC, Abundance) %>%
+  summarise(
+    pH_min = min(pHin, na.rm = TRUE),
+    pH_max = max(pHin, na.rm = TRUE),
+    pH_mean = mean(pHin, na.rm = TRUE),
+    pH_median = median(pHin, na.rm = TRUE),
+    pH_var = var(pHin, na.rm = TRUE),
+    pH_range = max(pHin, na.rm = TRUE) - min(pHin, na.rm = TRUE),
+    depth_at_pH_min = Depth[which.min(pHin)],
+    depth_at_pH_max = Depth[which.max(pHin)],
+    
+    OmegaCA_min = min(OmegaCAin, na.rm = TRUE),
+    OmegaCA_max = max(OmegaCAin, na.rm = TRUE),
+    OmegaCA_mean = mean(OmegaCAin, na.rm = TRUE),
+    OmegaCA_median = median(OmegaCAin, na.rm = TRUE),
+    OmegaCA_var = var(OmegaCAin, na.rm = TRUE),
+    OmegaCA_range = max(OmegaCAin, na.rm = TRUE) - min(OmegaCAin, na.rm = TRUE),
+    depth_at_OmegaCA_min = Depth[which.min(OmegaCAin)],
+    depth_at_OmegaCA_max = Depth[which.max(OmegaCAin)],
+    .groups = "drop"
+  )
+write_csv(pteropoda_heteropoda_summary, here::here("data/PRPOOS/pteropoda_heteropoda_summary.csv"))
 
 ### ostracods
+ostracods_summary <- ostracods_merge %>%
+  group_by(Station_ID, Month_UTC, Year_UTC, Abundance) %>%
+  summarise(
+    pH_min = min(pHin, na.rm = TRUE),
+    pH_max = max(pHin, na.rm = TRUE),
+    pH_mean = mean(pHin, na.rm = TRUE),
+    pH_median = median(pHin, na.rm = TRUE),
+    pH_var = var(pHin, na.rm = TRUE),
+    pH_range = max(pHin, na.rm = TRUE) - min(pHin, na.rm = TRUE),
+    depth_at_pH_min = Depth[which.min(pHin)],
+    depth_at_pH_max = Depth[which.max(pHin)],
+    
+    OmegaCA_min = min(OmegaCAin, na.rm = TRUE),
+    OmegaCA_max = max(OmegaCAin, na.rm = TRUE),
+    OmegaCA_mean = mean(OmegaCAin, na.rm = TRUE),
+    OmegaCA_median = median(OmegaCAin, na.rm = TRUE),
+    OmegaCA_var = var(OmegaCAin, na.rm = TRUE),
+    OmegaCA_range = max(OmegaCAin, na.rm = TRUE) - min(OmegaCAin, na.rm = TRUE),
+    depth_at_OmegaCA_min = Depth[which.min(OmegaCAin)],
+    depth_at_OmegaCA_max = Depth[which.max(OmegaCAin)],
+    .groups = "drop"
+  )
+write_csv(ostracods_summary, here::here("data/PRPOOS/ostracods_summary.csv"))
 
 ### rhizaria
+rhizaria_summary <- rhizaria_merge %>%
+  group_by(Station_ID, Month_UTC, Year_UTC, Abundance) %>%
+  summarise(
+    pH_min = min(pHin, na.rm = TRUE),
+    pH_max = max(pHin, na.rm = TRUE),
+    pH_mean = mean(pHin, na.rm = TRUE),
+    pH_median = median(pHin, na.rm = TRUE),
+    pH_var = var(pHin),
+    pH_range = max(pHin, na.rm = TRUE) - min(pHin, na.rm = TRUE),
+    depth_at_pH_min = Depth[which.min(pHin)],
+    depth_at_pH_max = Depth[which.max(pHin)],
+    
+    OmegaCA_min = min(OmegaCAin, na.rm = TRUE),
+    OmegaCA_max = max(OmegaCAin, na.rm = TRUE),
+    OmegaCA_mean = mean(OmegaCAin, na.rm = TRUE),
+    OmegaCA_median = median(OmegaCAin, na.rm = TRUE),
+    OmegaCA_var = var(OmegaCAin, na.rm = TRUE),
+    OmegaCA_range = max(OmegaCAin, na.rm = TRUE) - min(OmegaCAin, na.rm = TRUE),
+    depth_at_OmegaCA_min = Depth[which.min(OmegaCAin)],
+    depth_at_OmegaCA_max = Depth[which.max(OmegaCAin)],
+    .groups = "drop"
+  )
+write_csv(rhizaria_summary, here::here("data/PRPOOS/rhizaria_summary.csv"))
+
+### all
+id_cols <- c("Station_ID", "Month_UTC", "Year_UTC")
+taxa_cols <- setdiff(names(prpoos), id_cols)
+taxa_cols <- taxa_cols[-c(1:7)]
+
+prpoos_summary <- prpoos_merge %>%
+  group_by(across(all_of(c(id_cols, taxa_cols)))) %>%
+  summarise(
+    pH_min = min(pHin, na.rm = TRUE),
+    pH_max = max(pHin, na.rm = TRUE),
+    pH_mean = mean(pHin, na.rm = TRUE),
+    pH_median = median(pHin, na.rm = TRUE),
+    pH_var = var(pHin),
+    pH_range = max(pHin, na.rm = TRUE) - min(pHin, na.rm = TRUE),
+    depth_at_pH_min = Depth[which.min(pHin)],
+    depth_at_pH_max = Depth[which.max(pHin)],
+    
+    OmegaCA_min = min(OmegaCAin, na.rm = TRUE),
+    OmegaCA_max = max(OmegaCAin, na.rm = TRUE),
+    OmegaCA_mean = mean(OmegaCAin, na.rm = TRUE),
+    OmegaCA_median = median(OmegaCAin, na.rm = TRUE),
+    OmegaCA_var = var(OmegaCAin, na.rm = TRUE),
+    OmegaCA_range = max(OmegaCAin, na.rm = TRUE) - min(OmegaCAin, na.rm = TRUE),
+    depth_at_OmegaCA_min = Depth[which.min(OmegaCAin)],
+    depth_at_OmegaCA_max = Depth[which.max(OmegaCAin)],
+    
+    CO3_min = min(CO3in, na.rm = TRUE),
+    CO3_max = max(CO3in, na.rm = TRUE),
+    CO3_mean = mean(CO3in, na.rm = TRUE),
+    CO3_median = median(CO3in, na.rm = TRUE),
+    CO3_var = var(CO3in, na.rm = TRUE),
+    CO3_range = max(CO3in, na.rm = TRUE) - min(CO3in, na.rm = TRUE),
+    depth_at_CO3_min = Depth[which.min(CO3in)],
+    depth_at_CO3_max = Depth[which.max(CO3in)],
+    .groups = "drop"
+  )
+write_csv(prpoos_summary, here::here("data/PRPOOS/prpoos_summary.csv"))
 ```
 
 ```{r}
 # Visualization: Scatterplots for y (abundance) vs. x (pH)
 
 ### byrozoan_larvae
-ggplot(byrozoan_larvae_merge) +
-  aes(x = pHin, y = log1p(Abundance)) +
+ggplot(byrozoan_larvae_summary) +
+  aes(x = pH_mean, y = log1p(Abundance)) +
   geom_point() +
   stat_cor(method = 'pearson')
 
-cor(byrozoan_larvae_merge$pHin, byrozoan_larvae_merge$Abundance)
+cor(byrozoan_larvae_summary$pH_mean, byrozoan_larvae_summary$Abundance)
 
 ### pteropoda_heteropoda
-ggplot(pteropoda_heteropoda_merge) +
-  aes(x = pHin, y = log1p(Abundance)) +
+ggplot(pteropoda_heteropoda_summary) +
+  aes(x = pH_mean, y = log1p(Abundance)) +
   geom_point() +
   stat_cor(method = 'pearson')
 
-cor(pteropoda_heteropoda_merge$pHin, pteropoda_heteropoda_merge$Abundance)
+cor(pteropoda_heteropoda_summary$pH_mean, pteropoda_heteropoda_summary$Abundance)
 
 ### ostracods
-ggplot(ostracods_merge) +
-  aes(x = pHin, y = log1p(Abundance)) +
+ggplot(ostracods_summary) +
+  aes(x = pH_mean, y = log1p(Abundance)) +
   geom_point() +
   stat_cor(method = 'pearson')
 
-cor(ostracods_merge$pHin, ostracods_merge$Abundance)
+cor(ostracods_summary$pH_mean, ostracods_summary$Abundance)
 
 ### rhizaria
-ggplot(rhizaria_merge) +
-  aes(x = pHin, y = log1p(Abundance)) +
+ggplot(rhizaria_summary) +
+  aes(x = pH_mean, y = log1p(Abundance)) +
   geom_point() +
   stat_cor(method = 'pearson')
 
-cor(rhizaria_merge$pHin, rhizaria_merge$Abundance)
+cor(rhizaria_summary$pH_mean, rhizaria_summary$Abundance)
 ```
 
 ```{r}
 # Visualization: Scatterplots for y (abundance) vs. x (total calcium)
 
 ### byrozoan_larvae
-ggplot(byrozoan_larvae_merge) +
-  aes(x = OmegaCAin, y = log1p(Abundance)) +
+ggplot(byrozoan_larvae_summary) +
+  aes(x = OmegaCA_mean, y = log1p(Abundance)) +
   geom_point() +
   stat_cor(method = 'pearson')
 
-cor(byrozoan_larvae_merge$OmegaCAin, byrozoan_larvae_merge$Abundance)
+cor(byrozoan_larvae_summary$OmegaCA_mean, byrozoan_larvae_summary$Abundance)
 
 ### pteropoda_heteropoda
-ggplot(pteropoda_heteropoda_merge) +
-  aes(x = OmegaCAin, y = log1p(Abundance)) +
+ggplot(pteropoda_heteropoda_summary) +
+  aes(x = OmegaCA_mean, y = log1p(Abundance)) +
   geom_point() +
   stat_cor(method = 'pearson')
 
-cor(pteropoda_heteropoda_merge$OmegaCAin, pteropoda_heteropoda_merge$Abundance)
+cor(pteropoda_heteropoda_summary$OmegaCA_mean, pteropoda_heteropoda_summary$Abundance)
 
 ### ostracods
-ggplot(ostracods_merge) +
-  aes(x = OmegaCAin, y = log1p(Abundance)) +
+ggplot(ostracods_summary) +
+  aes(x = OmegaCA_mean, y = log1p(Abundance)) +
   geom_point() +
   stat_cor(method = 'pearson')
 
-cor(ostracods_merge$OmegaCAin, ostracods_merge$Abundance)
+cor(ostracods_summary$OmegaCA_mean, ostracods_summary$Abundance)
 
 ### rhizaria
-ggplot(rhizaria_merge) +
-  aes(x = OmegaCAin, y = log1p(Abundance)) +
+ggplot(rhizaria_summary) +
+  aes(x = OmegaCA_mean, y = log1p(Abundance)) +
   geom_point() +
   stat_cor(method = 'pearson')
 
-cor(rhizaria_merge$OmegaCAin, rhizaria_merge$Abundance)
+cor(rhizaria_summary$OmegaCA_mean, rhizaria_summary$Abundance)
 ```
 
 # ZooDB Calcifiers
