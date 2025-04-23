@@ -22,50 +22,38 @@ co2sys_out <- read_csv("data/CO2SYS_out.csv")
 bottle_co2sys <- bind_cols(merged_bottle_data, co2sys_out) %>%
   filter(
     Salnty > 30,
-    Depth < 1000
   )
 
 # Filter for surface data
 bottle_co2sys <- bottle_co2sys %>%
   filter(
-    Depth >= 20
+    Depth <= 20
   )
 
 # Create vector of variables to be detrended
 qty <- c("T_degC","Salnty","TA","DIC","pCO2in","RFin","pHin","CO3in","OmegaCAin","OmegaARin")
 
-# Detrend variables of interest
-bottle_co2sys <- sea_dtd_data(qty, bottle_co2sys, "Date.cc")
-
-# log(1+x) transform depths for fitting
-bottle_co2sys <- bottle_co2sys %>%
-  mutate(
-    Depth_Log1 = log(Depth + 1),
-    Depth_Log10 = log(Depth + 10),
-    Depth_Log50 = log(Depth + 50),
-    Depth_Log200 = log(Depth + 200)
-  )
-
 # Get the names of a subset of CalCOFI stations and their locations
 min_unique <- 8 # minimum number of unique years per station
-min_n <- 100 # minimum number of observations per station
+min_n <- 20 # minimum number of observations per station
 stations <- bottle_co2sys %>%
   filter(
-    if_all(c(T_degC_dtd, Depth, Date_Dec), ~!is.na(.x))
+    if_all(c(qty, c(Depth, Date.cc)), ~!is.na(.x))
   ) %>%
   group_by(
-    Station_ID
+    Station_ID, St_Line, St_Station
   ) %>%
   summarize(
     length = max(Year_UTC) - min(Year_UTC),
     n = n(),
     unique = length(unique(Year_UTC)),
     lat = mean(Latitude),
-    lon = mean(Longitude)
-  ) %>% 
+    lon = mean(Longitude),
+  ) %>%
+  ungroup() %>%
   filter(
-    unique >= 8,
-    n >= 100
+    unique >= min_unique,
+    n >= min_n
   )
 
 # FIT LINEAR MODELS -------------------------------------------------------
@@ -76,11 +64,21 @@ results <- NULL
 
 # iterate through stations and fit linear models for each quantity
 for (i in 1:nrow(stations)) {
-  # extract data for station i
-  data <- bottle_co2sys %>% filter((Station_ID == stations$Station_ID[i]))
+  data <- bottle_co2sys %>% 
+    # extract data for station i
+    filter(
+      Station_ID == stations$Station_ID[i]
+    ) %>%
+    # and detrend each variable of interest
+    sea_dtd_data(qty = qty, df = ., date_col = "Date.cc")
+  
   for (j in 1:length(qty)) {
     # fit the linear model
-    fit <- lm(as.formula(paste(paste0(qty[j],"_dtd"),"~","Date_Dec")), data = data, na.action = na.exclude)
+    fit <- lm(
+      as.formula(paste0(qty[j],"_dtd ~ Date_Dec")), 
+      data = data, 
+      na.action = na.exclude
+    )
     
     # add fit to list of fits
     fits[[(i-1)*length(qty)+j]] <- fit
@@ -93,25 +91,14 @@ for (i in 1:nrow(stations)) {
         lat = stations$lat[i],
         lon = stations$lon[i], 
         qty = qty[j], 
+        st_line = stations$St_Line[i],
+        st_station = stations$St_Station[i],
         if(nrow(coef(summary(fit))) == 1) c(Estimate = NA, `Std. Error` = NA, `t value` = NA, `Pr(>|t|)` = NA) else coef(summary(fit))[2,], 
         n = summary(fit)$df[2] + 2
       )
     )
   }
 }
-
-for (i in 1:length(fits)) {
-  print(
-    ggplot() +
-      geom_point(
-        aes(
-          x = fitted(fits[[i]]),
-          y = resid(fits[[i]])
-        )
-      )
-  )
-}
-
 
 # PLOT FIT RESULTS ----------------------------------------------------
 
@@ -125,9 +112,9 @@ results <- results %>%
   mutate(
     adj_p_value = (p.fdr(pvalues = .data$`Pr(>|t|)`))$fdrs
   ) %>%
-  # create vector indicating if p < 0.5
+  # create vector indicating if p < 0.05
   mutate(
-    sigp = factor(ifelse(`Pr(>|t|)` < 0.5, 1, 0), levels = c(1,0), labels = c("Yes", "No"))
+    sigp = factor(ifelse(`Pr(>|t|)` < 0.05, 1, 0), levels = c(1,0), labels = c("Yes", "No"))
   )
 
 # import map for plotting
@@ -141,16 +128,12 @@ units <- c("$^\\circ$C yr$^{-1}$", "yr$^{-1}$", "µmol kg$^{-1}$ yr$^{-1}$",
            "µmol kg$^{-1}$ yr$^{-1}$", "µatm yr$^{-1}$","yr$^{-1}$", 
            "yr$^{-1}$", "µmol kg$^{-1}$ yr$^{-1}$", "yr$^{-1}$", "yr$^{-1}$")
 
-# generate a plot of slope by station for each quantity
+# generate a geographic plot of slope by station for each quantity
 for (i in 1:10) {
   # extract data for quantity i
   data <- results %>%
     filter(
       qty == qty[i]
-    ) %>%
-    # filter out stations with n<=30 observations used in the fit
-    filter(
-      (!is.na(Estimate)) & (n > 30)
     )
   
   # create plot of slope by station
@@ -167,14 +150,25 @@ for (i in 1:10) {
         fill = Estimate, # estimated slope
         shape = sigp # if estimate is statistically significant
       ),
-      size = 8,
+      size = 6,
       color = "black",
       show.legend=TRUE # force shape to always show in legend
     ) +
+    # add labels for slope estimates
+    geom_text(
+      data = data,
+      aes(
+        x = lon,
+        y = lat,
+        label = format(round(Estimate, 4), nsmall = 4)
+      ),
+      color = "black",
+      size = 1.5
+    ) +
     # manually adjust coordinates
     coord_sf(
-      xlim = c(results$lon %>% min() - 2, results$lon %>% max() + 2),
-      ylim = c(results$lat %>% min(), results$lat %>% max())
+      xlim = c(results$lon %>% min() - 0.25, results$lon %>% max() + 0.25),
+      ylim = c(results$lat %>% min() - 0.25, results$lat %>% max() + 0.25)
     ) +
     # create color scale for slope estimates
     scale_fill_gradient2(
@@ -215,12 +209,69 @@ for (i in 1:10) {
   ggsave(paste0("images/OA_trends/", qty[i], "_by_station.png"), bg = "white")
 }
 
+# plot parameters as a function of station (distance from the shore)
+for (i in 1:length(qty)) {
+  data <- results %>%
+    filter(
+      qty == qty[i]
+    )
+  
+  print(
+    data %>%
+      filter(
+        st_line %in% c(80, 90)
+      ) %>% 
+      ggplot() +
+      geom_point(
+        aes(
+          x = st_station,
+          y = Estimate,
+          color = sigp
+        ),
+        # color = "royalblue",
+      ) +
+      geom_errorbar(
+        aes(
+          x = st_station,
+          ymax = Estimate + `Std. Error`,
+          ymin = Estimate - `Std. Error`,
+          color = sigp
+        ),
+        #color = "royalblue"
+      ) +
+      geom_hline(
+        yintercept = 0,
+        linetype = 2
+      ) +
+      facet_wrap(
+        vars(st_line),
+        nrow = 2,
+        labeller = as_labeller(
+          c(
+            "80" = "Line 80",
+            "90" = "Line 90"
+          )
+        )
+      ) +
+      scale_color_manual(
+        values = c("Yes" = "blue", "No" = "red"),
+      ) +
+      labs(
+        x = "Station",
+        y = "Estimated Slope",
+        title = TeX(paste0("Estimated Slope for ",qty_names[i]," against Station Number")),
+        color = "Significance"
+      ) +
+      theme_bw()
+  )
+  
+  # save plots
+  ggsave(paste0("images/OA_trends/",qty[i],"_by_station_number.png"), bg = "white")
+}
+
 # GENERATE TABULAR SUMMARY ------------------------------------------------
 
 results %>%
-  filter(
-    n>30
-  ) %>%
   group_by(
     qty
   ) %>%
