@@ -253,6 +253,9 @@ for (i in 1:length(qty)) {
           )
         )
       ) +
+      scale_x_continuous(
+        breaks = c(30,40,50,60,70,80,90,100,110,120)
+      ) +
       scale_color_manual(
         values = c("Yes" = "blue", "No" = "red"),
       ) +
