@@ -114,7 +114,7 @@ results <- results %>%
   ) %>%
   # create vector indicating if p < 0.05
   mutate(
-    sigp = factor(ifelse(`Pr(>|t|)` < 0.05, 1, 0), levels = c(1,0), labels = c("Yes", "No"))
+    sigp = factor(ifelse(`adj_p_value` < 0.05, 1, 0), levels = c(1,0), labels = c("Yes", "No"))
   )
 
 # import map for plotting
@@ -269,8 +269,7 @@ for (i in 1:length(qty)) {
   ggsave(paste0("images/OA_trends/",qty[i],"_by_station_number.png"), bg = "white")
 }
 
-# GENERATE TABULAR SUMMARY ------------------------------------------------
-
+# GENERATE TABULAR SUMMARIES ----------------------------------------------
 results %>%
   group_by(
     qty
