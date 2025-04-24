@@ -7,6 +7,7 @@ library(rnaturalearth)
 library(scales)
 library(latex2exp)
 library(FDRestimation)
+library(geosphere)
 
 
 # READ AND PROCESS DATA ---------------------------------------------------
@@ -150,7 +151,7 @@ for (i in 1:10) {
         fill = Estimate, # estimated slope
         shape = sigp # if estimate is statistically significant
       ),
-      size = 6,
+      size = 8,
       color = "black",
       show.legend=TRUE # force shape to always show in legend
     ) +
@@ -160,10 +161,10 @@ for (i in 1:10) {
       aes(
         x = lon,
         y = lat,
-        label = format(round(Estimate, 4), nsmall = 4)
+        label = format(round(Estimate, 3), nsmall = 3)
       ),
       color = "black",
-      size = 1.5
+      size = 2
     ) +
     # manually adjust coordinates
     coord_sf(
@@ -178,7 +179,7 @@ for (i in 1:10) {
     ) +
     # create custom shape scale
     scale_shape_manual(
-      values = c("Yes" = 24, "No" = 21),
+      values = c("Yes" = 22, "No" = 21),
       drop = FALSE # force both shapes to always show in legend
     ) +
     theme(
@@ -210,6 +211,34 @@ for (i in 1:10) {
 }
 
 # plot parameters as a function of station (distance from the shore)
+shore <- data.frame(
+  line = c(80.0, 81.8, 86.7, 90.0, 93.3),
+  shore_lon = c(-120.472778,-119.7925,-118.457222,-117.743611,-117.2725),
+  shore_lat = c(34.468333,34.416944,33.9025,33.498333,32.967222)
+)
+
+results <- inner_join(
+  results,
+  shore,
+  by = join_by(st_line == line)
+) 
+
+results <- results %>%
+  mutate(
+    shore_dist = pmap(
+      list(a = lon, 
+           b = lat, 
+           x = shore_lon,
+           y = shore_lat), 
+      ~ distGeo( c(..1, ..2), c(..3, ..4))
+    )
+  ) %>% 
+  unnest(shore_dist) %>%
+  mutate(
+    shore_dist = shore_dist/1e3
+  )
+
+
 for (i in 1:length(qty)) {
   data <- results %>%
     filter(
@@ -222,26 +251,24 @@ for (i in 1:length(qty)) {
         st_line %in% c(80, 90)
       ) %>% 
       ggplot() +
+      geom_hline(
+        yintercept = 0,
+        linetype = 2
+      ) +
       geom_point(
         aes(
-          x = st_station,
+          x = shore_dist,
           y = Estimate,
           color = sigp
         ),
-        # color = "royalblue",
       ) +
       geom_errorbar(
         aes(
-          x = st_station,
+          x = shore_dist,
           ymax = Estimate + `Std. Error`,
           ymin = Estimate - `Std. Error`,
           color = sigp
         ),
-        #color = "royalblue"
-      ) +
-      geom_hline(
-        yintercept = 0,
-        linetype = 2
       ) +
       facet_wrap(
         vars(st_line),
@@ -253,14 +280,11 @@ for (i in 1:length(qty)) {
           )
         )
       ) +
-      scale_x_continuous(
-        breaks = c(30,40,50,60,70,80,90,100,110,120)
-      ) +
       scale_color_manual(
         values = c("Yes" = "blue", "No" = "red"),
       ) +
       labs(
-        x = "Station",
+        x = "Distance to shore (km)",
         y = "Estimated Slope",
         title = TeX(paste0("Estimated Slope for ",qty_names[i]," against Station Number")),
         color = "Significance"
