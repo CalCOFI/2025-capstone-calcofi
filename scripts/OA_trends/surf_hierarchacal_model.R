@@ -62,31 +62,36 @@ surf_bottle_co2sys <- surf_bottle_co2sys |>
 omegaARin_mod <- lmer(
   OmegaARin_dtd ~ Date_Dec + Depth + (1 | Station_ID),
   data = surf_bottle_co2sys,
-  na.action = na.omit
+  na.action = na.omit,
+  REML = FALSE
 )
 
 T_degC_mod <- lmer(
   T_degC_dtd ~ Date_Dec +  Depth + (1 | Station_ID),
   data = surf_bottle_co2sys,
-  na.action = na.omit
+  na.action = na.omit,
+  REML = FALSE
 )
 
 Salnty_mod <- lmer(
   Salnty_dtd ~ Date_Dec + (1 | Station_ID),
   data = surf_bottle_co2sys,
-  na.action = na.omit
+  na.action = na.omit,
+  REML = FALSE
 )
 
 TA_mod <- lmer(
   TA_dtd ~ Date_Dec + (1 | Station_ID),
   data = surf_bottle_co2sys,
-  na.action = na.omit
+  na.action = na.omit,
+  REML = FALSE
 )
 
 DIC_mod <- lmer(
   DIC_dtd ~ Date_Dec + Depth + (1 | Station_ID),
   data = surf_bottle_co2sys,
-  na.action = na.omit
+  na.action = na.omit,
+  REML = FALSE
 )
 
 
@@ -94,31 +99,36 @@ DIC_mod <- lmer(
 pCO2in_mod <- lmer(
   pCO2in_dtd ~ Date_Dec + Depth + (1 | Station_ID),
   data = surf_bottle_co2sys,
-  na.action = na.omit
+  na.action = na.omit,
+  REML = FALSE
 )
 
 RFin_mod <- lmer(
   RFin_dtd ~ Date_Dec + Depth + (1 | Station_ID),
   data = surf_bottle_co2sys,
-  na.action = na.omit
+  na.action = na.omit,
+  REML = FALSE
 )
 
 pHin_mod <- lmer(
   pHin_dtd ~ Date_Dec + (1 | Station_ID),
   data = surf_bottle_co2sys,
-  na.action = na.omit
+  na.action = na.omit,
+  REML = FALSE
 )
 
 CO3in_mod <- lmer(
   CO3in_dtd ~ Date_Dec + Depth + (1 | Station_ID),
   data = surf_bottle_co2sys,
-  na.action = na.omit
+  na.action = na.omit,
+  REML = FALSE
 )
 
 omegaCAin_mod <- lmer(
   OmegaCAin_dtd ~ Date_Dec + Depth + (1 | Station_ID),
   data = surf_bottle_co2sys,
-  na.action = na.omit
+  na.action = na.omit,
+  REML = FALSE
 )
 
 models <- list(T_degC_mod, Salnty_mod, TA_mod, DIC_mod, pCO2in_mod, RFin_mod, pHin_mod, CO3in_mod, omegaCAin_mod, omegaARin_mod)
