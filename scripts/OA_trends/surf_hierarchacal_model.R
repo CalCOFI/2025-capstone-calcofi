@@ -45,7 +45,7 @@ surf_bottle_co2sys <- surf_bottle_co2sys |> group_by(Station_ID, Depth, Date.cc)
 
 little_stations <- surf_bottle_co2sys |> group_by(Station_ID) |> 
   summarize(n = n()) |> 
-  filter(n < 10) |> 
+  filter(n < 20) |> 
   select(Station_ID)
 
 surf_bottle_co2sys <- anti_join(surf_bottle_co2sys, little_stations)
