@@ -6,6 +6,7 @@ library(sf)
 library(rnaturalearth)
 library(scales)
 library(latex2exp)
+library(FDRestimation)
 
 
 # READ AND PROCESS DATA ---------------------------------------------------
@@ -94,9 +95,19 @@ surf_results <- surf_results %>%
 
 surf_results <- surf_results |> 
   mutate(adj_p_value = (p.fdr(pvalues = surf_results$`Pr(>|t|)`))$fdrs) |> 
-  mutate(sigp = factor(ifelse(adj_p_value < 0.05, 1, 0), levels = c(1,0), labels = c("Yes", "No")))
+  mutate(sigp = factor(ifelse(adj_p_value < 0.05, 1, 0), levels = c(1,0), labels = c("Yes", "No")),
+         sigp_ind = ifelse(adj_p_value < 0.05, 1, 0))
 
 
+sign_stations <- surf_results |> group_by(station) |> 
+  summarize(min_n = min(n),
+            max_n = max(n),
+            mean_n = mean(n),
+            lat = mean(lat),
+            lon = mean(lon),
+            num_sig = sum(sigp_ind)) |> 
+  ungroup() |> 
+  filter(min_n > 10)
 
 # import map for plotting
 world <- ne_countries(scale = "medium", returnclass = "sf")
@@ -182,3 +193,58 @@ for (i in 1:10) {
   # save plots
   ggsave(paste0("images/OA_trends/surf_", qty[i], "_by_station.png"), bg = "white")
 }
+
+ggplot(
+  data = world
+) +
+  geom_sf(fill = "antiquewhite1") +
+  geom_point(
+    data = sign_stations,
+    aes(
+      x = lon,
+      y = lat,
+      fill = mean_n, # mean number of observations used for models
+      size = num_sig, # number of significany predictors
+    ),
+    color = "black",
+    pch = 21,
+    show.legend=TRUE # force shape to always show in legend
+  ) +
+  geom_text(data = sign_stations, nudge_y = -.07 , size = 1.4, aes(x = lon, y = lat, label = station)) + 
+  # manually adjust coordinates
+  coord_sf(
+    xlim = c(sign_stations$lon %>% min() - 2, sign_stations$lon %>% max() + 2),
+    ylim = c(sign_stations$lat %>% min(), sign_stations$lat %>% max())
+  ) +
+  # create color scale for slope estimates
+  scale_fill_gradient2(
+    low = "#d7191c",
+    high = "#2c7bb6",
+    mid = "#ffffbf"
+  ) +
+  # create custom shape scale
+  scale_shape_manual(
+    values = c("Yes" = 24, "No" = 21),
+    drop = FALSE # force both shapes to always show in legend
+  ) +
+  theme(
+    panel.grid.major = element_line(
+      color = gray(0.5), 
+      linetype = "solid", 
+      linewidth = 0.5
+    ), 
+    panel.background = element_rect(fill = "aliceblue")
+  ) +
+  # fix the order of the legends
+  guides(
+    fill = guide_colorbar(order = 1),
+    size = guide_legend(order = 50),
+    shape = guide_legend(order = 98)
+  ) +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = "Number of Time Significant Variables by Station at Surface (Depth<=20m)",
+    color = "Mean Observations per Model",
+    size = "Number of Time Significant Variables"
+  )
