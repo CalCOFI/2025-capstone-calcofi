@@ -1,0 +1,161 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+## Exploring the Impacts of Ocean Acidification
+
+### 1. Introduction
+
+Objectives:
+
+-   Explore the temporal and seasonal variability in zooplankton abundance.
+-   Analyze correlations between key ocean acidification variables (pH, CO₃²⁻, ΩCA) and zooplankton abundance.
+-   Model the effects of these environmental factors on the abundance of selected species.
+
+### 2. Methods
+
+#### 2.1 Data Preprocessing
+
+```{r}
+library(tidyverse)
+library(readr)
+library(GGally)
+library(broom)
+library(car)
+library(mgcv)
+```
+
+```{r}
+df <- read_csv("/Users/fengci/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/PRPOOS/prpoos_summary_namecleaned.csv")
+```
+
+Choose spoecies based on Ecological Roles:
+
+-   **Filter-feeding zooplankton (**highly sensitive to water chemistry changes): *Salps*.
+-   **Predators / Higher trophic level (**feed on other zooplankton): *Chaetognatha*.
+-   **Crustacean zooplankton (**large population sizes and commonly used in monitoring): *Euphausiids*.
+-   **Calcifying soft-bodied organisms (**have aragonite shells and directly affected by pH and OmegaCA): *Pteropoda heteropoda.*
+
+Predictors:
+
+pH_mean, OmegaCA_mean, CO3_mean, and depth_at_pH_min
+
+```{r}
+# Filter the columns required for analysis
+df_selected <- df %>%
+  select(
+    Year_UTC, Month_UTC, depth_at_pH_min, pH_mean, OmegaCA_mean, CO3_mean,
+    salpsAbundance, chaetognathaAbundance, euphausiidsAbundance, pteropoda_heteropodaAbundance
+  ) %>%
+  drop_na()
+
+df_selected
+```
+
+#### 2.2. Exploratory Data Analysis (EDA)
+
+Interannual Trends in Zooplankton Abundance
+```{r}
+df_selected %>%
+  pivot_longer(cols = ends_with("Abundance"),
+               names_to = "Species", values_to = "Abundance") %>%
+  ggplot(aes(x = Year_UTC, y = Abundance, color = Species)) +
+  geom_point(alpha = 0.5) +
+  geom_smooth(method = "loess", se = FALSE) +
+  facet_wrap(~Species, scales = "free_y") +
+  theme_minimal() +
+  labs(title = "Zooplankton Abundance Over Years", y = "Abundance")
+```
+Monthly Variation in Abundance
+```{r}
+df_selected %>%
+  pivot_longer(cols = ends_with("Abundance"),
+               names_to = "Species", values_to = "Abundance") %>%
+  ggplot(aes(x = as.factor(Month_UTC), y = Abundance, fill = Species)) +
+  geom_boxplot() +
+  facet_wrap(~Species, scales = "free_y") +
+  labs(title = "Abundance by Month", x = "Month") +
+  theme_minimal()
+```
+
+
+Pairwise Correlation Between Species and Environmental Variables
+
+```{r}
+ggpairs(df_selected, columns = c("pH_mean", "OmegaCA_mean", "CO3_mean",
+                                 "salpsAbundance", "chaetognathaAbundance",
+                                 "euphausiidsAbundance", "pteropoda_heteropodaAbundance"))
+```
+
+#### 2.3. Regression Modeling
+Linear Regression (Example: Euphausiids)
+```{r}
+
+model_eup <- lm(euphausiidsAbundance ~ pH_mean + OmegaCA_mean + CO3_mean + depth_at_pH_min,
+                data = df_selected)
+summary(model_eup)
+
+```
+
+Multicollinearity Check (VIF)
+```{r}
+vif(model_eup)
+```
+
+Residual Diagnostics
+```{r}
+augment(model_eup) %>%
+  ggplot(aes(x = .fitted, y = .resid)) +
+  geom_point(alpha = 0.6) +
+  geom_hline(yintercept = 0, linetype = "dashed") +
+  theme_minimal() +
+  labs(title = "Residuals vs Fitted", x = "Fitted values", y = "Residuals")
+```
+
+Try GAM if non-linear pattern is detected
+```{r}
+gam_model <- gam(euphausiidsAbundance ~ s(OmegaCA_mean) + s(CO3_mean) + s(depth_at_pH_min),
+                 data = df_selected)
+summary(gam_model)
+```
+
+```{r}
+# ========== Helper Function ==========
+analyze_species <- function(species_name) {
+  formula <- as.formula(paste0(species_name, " ~ pH_mean + OmegaCA_mean + CO3_mean + depth_at_pH_min"))
+  model <- lm(formula, data = df_selected)
+  gam_formula <- as.formula(paste0(species_name, " ~ s(OmegaCA_mean) + s(CO3_mean) + s(depth_at_pH_min)"))
+  gam_mod <- gam(gam_formula, data = df_selected)
+
+  cat("\n==============================\n")
+  cat("LINEAR MODEL for:", species_name, "\n")
+  print(summary(model))
+  cat("\n--- VIF ---\n")
+  print(vif(model))
+
+  # Residual Plot
+  print(
+    augment(model) %>%
+      ggplot(aes(x = .fitted, y = .resid)) +
+      geom_point(alpha = 0.6) +
+      geom_hline(yintercept = 0, linetype = "dashed") +
+      theme_minimal() +
+      labs(title = paste("Residuals vs Fitted:", species_name),
+           x = "Fitted values", y = "Residuals")
+  )
+
+  # Optional GAM summary
+  cat("\n--- GAM Model Summary ---\n")
+  print(summary(gam_mod))
+}
+
+# ========== Run for all 4 species ==========
+species_list <- c("salpsAbundance", "chaetognathaAbundance",
+                  "euphausiidsAbundance", "pteropoda_heteropodaAbundance")
+
+lapply(species_list, analyze_species)
+
+```
+

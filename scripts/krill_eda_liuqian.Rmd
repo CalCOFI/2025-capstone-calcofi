@@ -128,6 +128,7 @@ prpoos_summary <- read_csv("../data/PRPOOS/prpoos_summary.csv")
 ```{r}
 library(dplyr)
 library(stringr)
+library(lubridate)
 
 # Clean column names by removing units and converting to camelCase style
 colnames(prpoos_summary) <- colnames(prpoos_summary) %>%
@@ -135,6 +136,13 @@ colnames(prpoos_summary) <- colnames(prpoos_summary) %>%
   str_replace(" Estimated C Biomass \\(mgC m-2\\)", "EstimatedBiomass") %>%
   str_replace_all(" ", "")  # Remove any remaining spaces
 write.csv(prpoos_summary, "../data/PRPOOS/prpoos_summary_namecleaned.csv", row.names = FALSE)
+prpoos_summary$YearMonth <- ym(paste(prpoos_summary$Year_UTC, prpoos_summary$Month_UTC))
+unique_stations <- merged_zoop_avg_monthly %>%
+  select(Station_ID, Longitude, Latitude) %>%
+  distinct()
+prpoos_summary <- prpoos_summary %>%
+  inner_join(unique_stations, by = "Station_ID")
+
 names(prpoos_summary)
 ```
 
@@ -182,14 +190,394 @@ long_df <- abundance_df %>%
     cols = ends_with("Abundance"),
     names_to = "Taxa",
     values_to = "Abundance"
+  ) %>%
+  mutate(
+    Taxa = gsub("Abundance$", "", Taxa),
+    highlight = ifelse(Taxa %in% highlight_taxa, "Highlighted", "Normal")
   )
-long_df$Taxa <- gsub("Abundance$", "", long_df$Taxa)
 
-# Step 3: Plot all abundance variables vs. mean OmegaCA using facets
-ggplot(long_df, aes(x = pH_mean, y = Abundance)) +
+# Plot with color based on highlight status
+ggplot(long_df, aes(x = pH_mean, y = Abundance, color = highlight)) +
   geom_point(alpha = 0.3, size = 0.2) +
   facet_wrap(~ Taxa, scales = "free_y") +
+  scale_color_manual(values = c("Highlighted" = "red", "Normal" = "black")) +
   labs(x = "Mean pH", y = "Abundance", title = "Abundance vs. Mean pH") +
-  theme_minimal()
+  theme_minimal() +
+  theme(legend.position = "none")  # Remove legend if not needed
+
+long_df$Taxa <- gsub("Abundance$", "", long_df$Taxa)
+
+
 ```
 
+```{r}
+# Define taxa to highlight
+highlight_taxa <- c("bryozoan_larvae", "pteropoda_heteropoda", "ostracods", "rhizaria")
+
+# Prepare data
+long_df <- prpoos_summary %>%
+  select(contains("Abundance"), CO3_mean) %>%
+  pivot_longer(
+    cols = ends_with("Abundance"),
+    names_to = "Taxa",
+    values_to = "Abundance"
+  ) %>%
+  mutate(
+    Taxa = gsub("Abundance$", "", Taxa),
+    highlight = ifelse(Taxa %in% highlight_taxa, "Highlighted", "Normal")
+  )
+
+# Plot with color based on highlight status
+ggplot(long_df, aes(x = CO3_mean, y = Abundance, color = highlight)) +
+  geom_point(alpha = 0.3, size = 0.2) +
+  facet_wrap(~ Taxa, scales = "free_y") +
+  scale_color_manual(values = c("Highlighted" = "red", "Normal" = "black")) +
+  labs(x = "Mean CO3", y = "Abundance", title = "Abundance vs. Mean CO3") +
+  theme_minimal() +
+  theme(legend.position = "none")  # Remove legend if not needed
+
+```
+
+```{r}
+library(glmnet)
+library(dplyr)
+library(stringr)
+library(tidyr)
+library(purrr)
+
+# Step 1: Prepare predictors
+X <- model.matrix(~ pH_mean + OmegaCA_mean + CO3_mean, data = prpoos_summary)[, -1]  # remove intercept
+
+# Step 2: Identify all abundance columns
+abundance_vars <- names(prpoos_summary)[str_detect(names(prpoos_summary), "Abundance$")]
+
+# Step 3: Fit lasso models for each abundance variable
+lasso_models <- map(abundance_vars, function(var_name) {
+  y <- prpoos_summary[[var_name]]
+  
+  # Remove missing values
+  complete_idx <- complete.cases(X, y)
+  x_clean <- X[complete_idx, ]
+  y_clean <- y[complete_idx]
+  
+  # Fit lasso model using cross-validation
+  cv_fit <- cv.glmnet(x_clean, y_clean, alpha = 1)  # alpha = 1 → Lasso
+  
+  list(
+    variable = var_name,
+    model = cv_fit,
+    best_lambda = cv_fit$lambda.min,
+    coefficients = coef(cv_fit, s = "lambda.min")
+  )
+})
+
+# Step 4: Convert coefficients into a tidy summary
+lasso_summary <- map_dfr(lasso_models, function(res) {
+  coefs <- as.matrix(res$coefficients)
+  data.frame(
+    variable = res$variable,
+    term = rownames(coefs),
+    estimate = coefs[, 1],
+    row.names = NULL
+  )
+})
+
+# View summary
+print(lasso_summary)
+
+```
+
+```{r}
+library(glmnet)
+library(dplyr)
+library(stringr)
+library(tidyr)
+library(purrr)
+library(broom)
+
+# Step 1: Prepare predictor matrix
+X <- model.matrix(~ pH_mean + OmegaCA_mean + CO3_mean, data = prpoos_summary)[, -1]
+
+# Step 2: Identify abundance response columns
+abundance_vars <- names(prpoos_summary)[str_detect(names(prpoos_summary), "Abundance$")]
+
+# Step 3: Loop over each response variable
+model_summary <- map_dfr(abundance_vars, function(var_name) {
+  y <- prpoos_summary[[var_name]]
+  
+  # Drop rows with NA in X or y
+  complete_idx <- complete.cases(X, y)
+  x_clean <- X[complete_idx, ]
+  y_clean <- y[complete_idx]
+  
+  # Step 3a: Lasso
+  cv_fit <- cv.glmnet(x_clean, y_clean, alpha = 1)
+  best_lambda <- cv_fit$lambda.min
+  lasso_coefs <- coef(cv_fit, s = best_lambda)
+  
+  # Step 3b: Get non-zero predictors
+  selected_vars <- rownames(lasso_coefs)[which(lasso_coefs[,1] != 0)]
+  selected_vars <- selected_vars[selected_vars != "(Intercept)"]
+  
+  # Step 3c: Fit OLS on selected predictors
+  if (length(selected_vars) == 0) {
+    return(tibble(variable = var_name, term = NA, estimate = NA, p.value = NA, adj_r2 = 0))
+  }
+  
+  df_subset <- prpoos_summary[complete_idx, ]
+  formula_str <- paste(var_name, "~", paste(selected_vars, collapse = " + "))
+  lm_fit <- lm(as.formula(formula_str), data = df_subset)
+  
+  # Extract coefficients + p-values
+  tidy_fit <- tidy(lm_fit)
+  r2 <- summary(lm_fit)$adj.r.squared
+  
+  # Add abundance name and R²
+  tidy_fit %>%
+    mutate(variable = var_name, adj_r2 = r2) %>%
+    select(variable, term, estimate, p.value, adj_r2)
+})
+
+model_summary <- model_summary %>% arrange(term)
+
+# View final summary
+print(model_summary)
+
+```
+
+```{r}
+# Define the four species of interest
+highlighted_species <- c("bryozoan_larvaeAbundance", "pteropoda_heteropodaAbundance", "ostracodsAbundance", "rhizariaAbundance")
+
+# Split the full summary
+highlighted_summary <- model_summary %>%
+  filter(variable %in% highlighted_species) %>%
+  arrange(desc(adj_r2), term)
+
+other_species_summary <- model_summary %>%
+  filter(!variable %in% highlighted_species) %>%
+  arrange(desc(adj_r2), term)
+
+# View them separately
+print("🔴 Calcifier Species Summary:")
+print(highlighted_summary)
+
+```
+
+```{r}
+print("⚫ Other Species Summary:",)
+print(other_species_summary)
+```
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+# Step 1: Define calcifier species and subset data
+calcifier_vars <- c("bryozoan_larvaeAbundance", 
+                    "pteropoda_heteropodaAbundance", 
+                    "ostracodsAbundance", 
+                    "rhizariaAbundance")
+
+# Step 2: Reshape to long format
+calcifier_data <- prpoos_summary %>%
+  select(all_of(calcifier_vars)) %>%
+  pivot_longer(cols = everything(), names_to = "Taxa", values_to = "Abundance")
+
+# Step 3: Clean names
+calcifier_data <- calcifier_data %>%
+  mutate(Taxa = gsub("Abundance$", "", Taxa))
+
+# Step 4: Boxplot
+ggplot(calcifier_data, aes(x = Taxa, y = Abundance)) +
+  geom_boxplot(outlier.color = "red", fill = "lightblue") +
+  labs(title = "Outliers in Calcifier Species Abundance",
+       y = "Abundance (No. per m²)",
+       x = "Calcifier Taxa") +
+  theme_minimal()
+
+```
+
+```{r}
+# Identify outliers
+outlier_data <- calcifier_data %>%
+  group_by(Taxa) %>%
+  mutate(
+    Q1 = quantile(Abundance, 0.25, na.rm = TRUE),
+    Q3 = quantile(Abundance, 0.75, na.rm = TRUE),
+    IQR = Q3 - Q1,
+    is_outlier = Abundance < (Q1 - 1.5 * IQR) | Abundance > (Q3 + 1.5 * IQR)
+  )
+
+# Plot with outliers labeled
+ggplot(outlier_data, aes(x = Taxa, y = Abundance)) +
+  geom_boxplot(outlier.shape = NA, fill = "lightblue") +
+  geom_jitter(aes(color = is_outlier), width = 0.2, alpha = 0.6) +
+  scale_color_manual(values = c("TRUE" = "red", "FALSE" = "black")) +
+  labs(title = "Outlier Detection in Calcifier Abundance",
+       color = "Outlier") +
+  theme_minimal()
+
+```
+
+```{r}
+library(dplyr)
+library(tidyr)
+library(ggplot2)
+
+# Define abundance columns for the calcifier species
+calcifier_vars <- c("bryozoan_larvaeAbundance", 
+                    "pteropoda_heteropodaAbundance", 
+                    "ostracodsAbundance", 
+                    "rhizariaAbundance")
+
+# Reshape to long format
+calcifier_df <- prpoos_summary %>%
+  select(YearMonth, Station_ID, all_of(calcifier_vars)) %>%
+  pivot_longer(cols = all_of(calcifier_vars), names_to = "Taxa", values_to = "Abundance") %>%
+  mutate(Taxa = gsub("Abundance$", "", Taxa))
+
+# Identify outliers using IQR rule
+calcifier_df <- calcifier_df %>%
+  group_by(Taxa) %>%
+  mutate(
+    Q1 = quantile(Abundance, 0.25, na.rm = TRUE),
+    Q3 = quantile(Abundance, 0.75, na.rm = TRUE),
+    IQR = Q3 - Q1,
+    is_outlier = Abundance < (Q1 - 1.5 * IQR) | Abundance > (Q3 + 1.5 * IQR)
+  ) %>%
+  ungroup()
+
+# Plot all observations, outliers in red
+ggplot(calcifier_df, aes(x = YearMonth, y = Station_ID)) +
+  geom_point(aes(color = is_outlier), alpha = 0.7) +
+  scale_color_manual(values = c("TRUE" = "red", "FALSE" = "lightblue")) +
+  labs(
+    title = "Station vs. Date: Outliers in Red (Calcifier Abundance)",
+    x = "Date", y = "Station ID", color = "Outlier"
+  ) +
+  facet_wrap(~ Taxa) +
+  theme_minimal()
+
+```
+
+# try model again after removing outliers
+```{r}
+library(dplyr)
+library(stringr)
+
+# Step 1: Identify all abundance columns (assuming they end with "Abundance")
+abundance_vars <- names(prpoos_summary)[str_detect(names(prpoos_summary), "Abundance$")]
+
+# Step 2: Apply IQR filtering to each abundance column
+prpoos_no_outliers <- prpoos_summary
+
+for (var in abundance_vars) {
+  Q1 <- quantile(prpoos_summary[[var]], 0.25, na.rm = TRUE)
+  Q3 <- quantile(prpoos_summary[[var]], 0.75, na.rm = TRUE)
+  IQR_val <- Q3 - Q1
+  lower_bound <- Q1 - 1.5 * IQR_val
+  upper_bound <- Q3 + 1.5 * IQR_val
+
+  # Set outliers to NA or remove entire row (your choice)
+  prpoos_no_outliers <- prpoos_no_outliers %>%
+    filter(is.na(.data[[var]]) | (.data[[var]] >= lower_bound & .data[[var]] <= upper_bound))
+}
+
+```
+
+```{r}
+library(glmnet)
+library(dplyr)
+library(stringr)
+library(tidyr)
+library(purrr)
+library(broom)
+
+# Step 1: Prepare predictor matrix
+X <- model.matrix(~ pH_mean + OmegaCA_mean + CO3_mean, data = prpoos_summary)[, -1]
+
+# Step 2: Identify abundance response columns
+abundance_vars <- names(prpoos_summary)[str_detect(names(prpoos_summary), "Abundance$")]
+
+# Step 3: Loop over each response variable
+model_summary <- map_dfr(abundance_vars, function(var_name) {
+  y <- prpoos_summary[[var_name]]
+  
+  # Drop rows with NA in X or y
+  complete_idx <- complete.cases(X, y)
+  x_clean <- X[complete_idx, ]
+  y_clean <- y[complete_idx]
+  
+  # Step 3a: Lasso
+  cv_fit <- cv.glmnet(x_clean, y_clean, alpha = 1)
+  best_lambda <- cv_fit$lambda.min
+  lasso_coefs <- coef(cv_fit, s = best_lambda)
+  
+  # Step 3b: Get non-zero predictors
+  selected_vars <- rownames(lasso_coefs)[which(lasso_coefs[,1] != 0)]
+  selected_vars <- selected_vars[selected_vars != "(Intercept)"]
+  
+  # Step 3c: Fit OLS on selected predictors
+  if (length(selected_vars) == 0) {
+    return(tibble(variable = var_name, term = NA, estimate = NA, p.value = NA, adj_r2 = 0))
+  }
+  
+  df_subset <- prpoos_summary[complete_idx, ]
+  formula_str <- paste(var_name, "~", paste(selected_vars, collapse = " + "))
+  lm_fit <- lm(as.formula(formula_str), data = df_subset)
+  
+  # Extract coefficients + p-values
+  tidy_fit <- tidy(lm_fit)
+  r2 <- summary(lm_fit)$adj.r.squared
+  
+  # Add abundance name and R²
+  tidy_fit %>%
+    mutate(variable = var_name, adj_r2 = r2) %>%
+    select(variable, term, estimate, p.value, adj_r2)
+})
+
+model_summary <- model_summary %>% arrange(term)
+
+# Define the four species of interest
+highlighted_species <- c("bryozoan_larvaeAbundance", "pteropoda_heteropodaAbundance", "ostracodsAbundance", "rhizariaAbundance")
+
+# Split the full summary
+highlighted_summary <- model_summary %>%
+  filter(variable %in% highlighted_species) %>%
+  arrange(desc(adj_r2), term)
+
+other_species_summary <- model_summary %>%
+  filter(!variable %in% highlighted_species) %>%
+  arrange(desc(adj_r2), term)
+
+# View them separately
+print("🔴 Calcifier Species Summary:")
+print(highlighted_summary)
+print("⚫ Other Species Summary:",)
+print(other_species_summary)
+```
+
+```{r}
+# GAM
+# Spatial Splines
+library(splines)
+library(mgcv)
+# Fit a GAM with spatial spline over longitude and latitude
+gam_model <- gam(bryozoan_larvaeAbundance ~ s(Longitude, Latitude, k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean), data = prpoos_summary)
+
+# View summary of the model
+summary(gam_model)
+# Extract spatial smooth range
+spatial_term <- predict(gam_model, type = "terms")[, "s(Longitude,Latitude)"]
+spatial_range <- range(spatial_term, na.rm = TRUE)
+
+# Plot spatial smooth (let plot.gam choose colors)
+plot(gam_model, select = 1, scheme = 2, 
+     xlim = range(prpoos_summary$Longitude) + c(-0.5, 0.5),
+     ylim = range(prpoos_summary$Latitude) + c(-0.5, 0.5),
+     main = "bryozoan_larvaeAbundance ~ Location + pH + OmegaCA + CO3",
+     xlab = "Longitude", ylab = "Latitude")
+
+```
