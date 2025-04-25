@@ -2,7 +2,7 @@
 title: "Interim Report S25"
 format:
   pdf:
-    toc: true
+    toc: false
 ---
 
 # Introduction
