@@ -7,6 +7,9 @@ library(sdmTMB)
 library(mice)
 library(ape)
 library(glmnet)
+library(splines)
+library(mgcv)
+library(plotmo)
 ```
 
 
@@ -27,25 +30,24 @@ zoop$latbin <- xbreaks[cut(zoop$latitude, breaks = xbreaks, labels=F)]
 zoop$longbin <- ybreaks[cut(zoop$longitude, breaks = ybreaks, labels=F)]
 
 # avg total_plankton for each bin
-zoop_agg <- aggregate(zoop[, 'total_plankton'], list(zoop$latbin, zoop$longbin), mean) %>%
-  rename(latitude = Group.1, longitude = Group.2, total_plankton = x)
+zoop_agg <- aggregate(zoop[, 'small_plankton'], list(zoop$latbin, zoop$longbin), mean) %>%
+  rename(latitude = Group.1, longitude = Group.2, small_plankton = x)
 ```
 
 
 ```{r}
 # check for spatial patterns
-total_plankton_map <- ggplot(zoop_agg, aes(longitude, latitude)) + 
-  geom_point(aes(col = total_plankton), alpha = 0.7, size = 0.7) + 
-  scale_color_viridis_c(option = 'viridis', name = 'Total Plankton') +
+small_plankton_map <- ggplot(zoop_agg, aes(longitude, latitude)) + 
+  geom_point(aes(col = small_plankton), alpha = 0.7, size = 0.7) + 
+  scale_color_viridis_c(option = 'viridis', name = 'Small Plankton') +
   coord_fixed() + 
   theme_minimal()
 
-total_plankton_map
+small_plankton_map
 ```
 
 ```{r}
 # overlay on map
-
 api_key <- 'AIzaSyAOaUr5AdjGqdE3roRO-zKh51HizzuRC9I'
 register_google(key = api_key)
 
@@ -53,25 +55,38 @@ ca_map <- get_map(location = c(lon = -125, lat = 30), maptype = 'satellite', zoo
 
 ggmap(ca_map) + 
   geom_point(data = zoop_agg,
-             aes(x = longitude, y = latitude, color = total_plankton),
+             aes(x = longitude, y = latitude, color = small_plankton),
              alpha = 0.5, size = 0.6) + 
-  # scale_color_viridis_c(option = 'plasma', name = 'Total Plankton') +
-  scale_color_gradient2(low = '#1e9600', mid = '#fff200', high = '#ff0000')
+  # scale_color_viridis_c(option = 'plasma', name = 'Small Plankton') +
+  scale_color_gradient(low = '#fff200', high = '#ff0000') + 
+  xlab('Longitude') + 
+  ylab('Latitude') +
+  ggtitle('Small Plankton Biovolume by Location')
 ```
 
 ```{r}
 # filter to data in CALCOFI grid
+calcofi_map <- get_map(location = c(-127, 26, -115, 40), maptype = 'satellite')
 
+ggmap(calcofi_map) + 
+  geom_point(data = zoop_agg,
+             aes(x = longitude, y = latitude, color = small_plankton),
+             alpha = 0.5, size = 5) + 
+  # scale_color_viridis_c(option = 'plasma', name = 'Small Plankton') +
+  scale_color_gradient(low = '#fff200', high = '#ff0000')
 ```
+
+
+
+
 
 
 ```{r}
 # merged data
 zoop <- read.csv('../data/zoop_data/zooplankton_pH.csv') %>%
   add_utm_columns(ll_names=c('longitude', 'latitude'), utm_names=c('X', 'Y')) %>%
-  mutate(lon = round(longitude, 2), lat = round(latitude, 2))
-  # months since first observation
-  # mutate(time = as.integer(difftime(Date, min(Date), units = 'days') / 30))   
+  mutate(lon = round(longitude, 2), lat = round(latitude, 2)) %>%
+  mutate(large_plankton = total_plankton - small_plankton)
 ```
 
 ```{r}
@@ -81,10 +96,147 @@ zoop_dists <- as.matrix(dist(cbind(zoop$longitude, zoop$latitude)))
 zoop_dists_inv <- 1 / zoop_dists
 zoop_dists_inv[is.infinite(zoop_dists_inv)] <- 0
 diag(zoop_dists_inv) <- 0
-
-Moran.I(zoop$total_plankton, zoop_dists_inv)
 ```
-p-value indicates there is not enough evidence to suggest spatial autocorrelation in total plankton counts
+
+```{r}
+Moran.I(zoop$small_plankton, zoop_dists_inv)
+```
+
+p-value suggests there is spatial autocorrelation in small plankton counts
+
+
+
+```{r}
+# filter columns
+variables <- c('Depth', 'Salinity_PSS78', 'DIC', 'TA', 'T_degC', 'PO4uM', 'SiO3uM', 'NO2uM', 'NO3uM', 'NH3uM', 'pCO2in', 'RFin', 'pHin', 'CO3in', 'OmegaCAin', 'OmegaARin')
+
+coords <- c('Latitude', 'Longitude', 'X', 'Y')
+
+zoop_clean <- zoop %>%
+  select(variables, small_plankton, large_plankton, total_plankton) %>%
+  scale() %>%
+  as.data.frame()
+
+zoop_clean <- cbind(zoop[, coords], zoop_clean) %>%
+  drop_na()
+```
+
+```{r}
+# perform LASSO on total_plankton
+fit_lasso_total <- glmnet(x = zoop_clean[, 5:20],
+                          y = zoop_clean$total_plankton,
+                          alpha = 1,
+                          family = 'gaussian')
+```
+
+
+```{r}
+# perform LASSO on small plankton
+fit_lasso_small <- glmnet(x = zoop_clean[, 5:20],
+                          y = zoop_clean$small_plankton,
+                          alpha = 1,
+                          family = 'gaussian')
+
+fit_lasso_small
+```
+
+```{r}
+plot_glmnet(fit_lasso_small,
+            xvar = 'dev',
+            label = TRUE,
+            col = 1:4)
+```
+
+
+```{r}
+# perform LASSO on large plankton
+fit_lasso_large <- glmnet(x = zoop_clean[, 5:20],
+                          y = zoop_clean$large_plankton,
+                          alpha = 1,
+                          family = 'gaussian')
+```
+
+```{r}
+pred_small <- predict(fit_lasso_small, newx = as.matrix(zoop_clean[, 5:20]), s = 0.001)
+
+r2_small <- 1 - sum((zoop_clean$small_plankton - pred_small)^2) / sum((zoop_clean$small_plankton - mean(zoop_clean$small_plankton))^2)
+
+r2_small
+```
+
+```{r}
+# get top 5 predictors
+get_nparam <- function(mod, numvar) {
+
+  coef(mod, s = with(mod, min(lambda[df == numvar])))
+
+}
+
+get_nparam(fit_lasso_small, 5)
+```
+
+
+Spatial Model
+```{r}
+mesh <- make_mesh(zoop_clean, c('X', 'Y'), cutoff=10)
+plot(mesh)
+```
+
+```{r}
+fit_spatial <- sdmTMB(
+  data = zoop_clean,
+  formula = small_plankton ~ T_degC + NO2uM + NH3uM + RFin + pHin,
+  mesh = mesh,
+  family = gaussian(link = 'identity'),
+  spatial = 'on'
+)
+
+fit_spatial
+```
+
+```{r}
+# compute R^2
+pred_grid <- zoop_clean[, 3:20]
+pred_spatial <- predict(fit_spatial, newdata = pred_grid)
+
+r2_spatial <- 1 - sum((zoop_clean$small_plankton - pred_spatial$est)^2) / sum((zoop_clean$small_plankton - mean(zoop_clean$small_plankton))^2)
+
+r2_spatial
+```
+
+
+```{r}
+# GAM with spatial spline
+fit_gam <- gam(small_plankton ~ s(Longitude, Latitude, k = 10) + s(T_degC) + s(NO2uM) +
+                 s(NH3uM) + s(RFin) + s(pHin), data = zoop_clean)
+
+summary(fit_gam)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -109,19 +261,10 @@ prop_na <- zoop %>%
 # only keep columns with less than 10% missingness
 zoop_filtered <- zoop %>%
   select(prop_na$variable)
-```
 
-```{r}
 zoop_clean <- zoop_filtered %>%
   drop_na()
 ```
-
-```{r}
-zoop_clean
-```
-
-
-
 
 ```{r}
 # Removing all rows with NAs: 732 -> 522 obs
@@ -132,7 +275,7 @@ zoop_clean <- zoop_filtered %>%
 # flag variables, cruise info
 # Only keep chemistry variables
 
-variables <- c('Depth', 'CTDTEMP_ITS90', 'Salinity_PSS78', 'DIC', 'TA', 'T_degC', 'O2ml_L', 'STheta', 'O2Sat', 'Oxy__mol_Kg', 'PO4uM', 'SiO3uM', 'NO2uM', 'NO3uM', 'NH3uM', 'TCO2', 'pHout', 'pCO2out', 'fCO2out', 'HCO3out', 'CO3out', 'CO2out', 'BAlkout', 'OHout', 'PAlkout', 'SiAlkout', 'Hfreeout', 'RFout', 'OmegaCAout', 'OmegaARout', 'xCO2out', 'TEMPOUT', 'PRESOUT', 'PO4', 'SI', 'K0output', 'K1output', 'K2output', 'pK1output', 'pK2output', 'KWoutput', 'KBoutput', 'KFoutput', 'KSoutput', 'KP1output', 'KP2output', 'KP3output', 'KSioutput', 'TB', 'TF', 'TS')
+variables <- c('Depth', 'CTDTEMP_ITS90', 'Salinity_PSS78', 'DIC', 'TA', 'T_degC', 'O2ml_L', 'STheta', 'O2Sat', 'Oxy__mol_Kg', 'PO4uM', 'SiO3uM', 'NO2uM', 'NO3uM', 'NH3uM', 'TCO2', 'pHout', 'pCO2out', 'fCO2out', 'HCO3out', 'CO3out', 'CO2out', 'BAlkout', 'OHout', 'OmegaCAout', 'OmegaARout', 'PO4')
 
 coords <- c('Latitude', 'Longitude', 'X', 'Y')
 
