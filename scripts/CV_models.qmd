@@ -1,0 +1,153 @@
+Modeling Zooplankton and Krill Species using LASSO Regression
+
+# Zooplankton (total_plankton, small_plankton)
+```{r}
+
+```
+
+
+# Krill (Total_Abundance)
+```{r}
+# Read in datasets
+bottle_data <- read_csv(here::here("data/merged_bottle_co2sys.csv"))
+krill_data <- read_csv(here::here("data/krill_data/BTEDB_Abundances.csv"))
+```
+
+```{r}
+# Cleaning
+
+## Make sure values are numeric
+bottle_data <- bottle_data %>% mutate(DIC = as.numeric(DIC),
+                                  TA = as.numeric(TA),
+                                  Depth = as.numeric(Depth),
+                                  CTDTEMP_ITS90 = as.numeric(CTDTEMP_ITS90),
+                                  Salinity_PSS78 = as.numeric(Salinity_PSS78),
+                                  Longitude = as.numeric(Longitude),
+                                  Latitude = as.numeric(Latitude)
+                                  )
+
+## Create `Station_ID` variable in krill dataset by merging `Line` and `Station`
+krill_data$Station_ID <- paste(
+  sprintf('%05.1f', krill_data$Line),
+  sprintf('%05.1f', as.numeric(krill_data$Station)),
+  sep = ' '
+)
+
+krill_data <- krill_data %>%
+  relocate(Station_ID, .before = Line)
+
+## Separating `Date` into Year, Month, and Day variables
+krill_data <- krill_data %>%
+  mutate(
+    Year_UTC = year(Date),
+    Month_UTC = month(Date),
+    Day_UTC = day(Date),
+    .after = Date
+  )
+
+## Calculating Total_Krill (Abundance)
+krill_data <- krill_data %>%
+  mutate(Total_Abundance = rowSums(across(17:last_col()), na.rm = TRUE),
+         .after = TowEnd)
+
+krill_data <- krill_data %>% dplyr::select(1:17)
+```
+
+```{r}
+monthly_bottle_data <- bottle_data %>% group_by(Year_UTC, Month_UTC, Station_ID) %>% 
+  summarise(across(everything(), mean),
+            .groups = 'drop')  %>%
+  as.data.frame()
+
+# Merged data
+merged_krill <- inner_join(
+  monthly_bottle_data, 
+  krill_data,
+  by = join_by(Year_UTC == Year_UTC, Month_UTC == Month_UTC, Station_ID == Station_ID)
+)
+
+merged_krill <- merged_krill %>%
+  dplyr::select(-pHin, -pCO2in, -fCO2in, -HCO3in, -CO3in, -CO2in, -BAlkin, -OHin, -PAlkin, -SiAlkin, -Hfreein, -RFin, -OmegaCAin, -OmegaARin, -xCO2in, -EXPOCODE)
+
+names(merged_krill)
+```
+
+```{r}
+
+# Remove columns that are entirely NA
+vis_miss(merged_krill)
+
+na_cols <- sapply(merged_krill, function(x) all(is.na(x)))
+names(merged_krill)[na_cols]  
+merged_krill <- merged_krill[ , !na_cols]
+
+na_percent <- colMeans(is.na(merged_krill))  # proportion of NA per column
+na_over_50 <- na_percent > 0.5     # logical vector
+names(merged_krill)[na_over_50]              # column names with >50% NA
+merged_krill <- merged_krill[ , !na_over_50]
+
+write_csv(merged_krill, here::here("data/CV_merged_krill_models.csv"))
+
+# merged_krill <- merged_krill %>%
+#   dplyr::select(where(~ n_distinct(.) > 1)) %>%
+#   options(stringsAsFactors = FALSE)
+```
+
+```{r}
+df <- read_csv(here::here("data/CV_merged_krill_models.csv"))
+# Remove columns with only 1 unique value (constant)
+df_clean <- df %>%
+  dplyr::select(where(~ n_distinct(.) > 1))
+
+# Drop rows where Total_Abundance is missing (if any)
+df_clean <- df_clean %>%
+  dplyr::filter(!is.na(Total_Abundance))
+y <- df_clean$Total_Abundance
+
+x <- df_clean %>%
+  dplyr::select(-Total_Abundance) %>%
+  makeX(na.impute = TRUE, sparse = TRUE)  # from glmnetUtils
+cv_model <- cv.glmnet(x, y, alpha = 1)  # alpha = 1 => LASSO
+best_lambda <- cv_model$lambda.min
+best_lambda
+plot(cv_model)
+coef(cv_model, s = "lambda.min")
+
+
+```
+
+```{r}
+# LASSO Regression
+y <- merged_krill$Total_Abundance
+x <- merged_krill %>%
+  dplyr::select(-Total_Abundance) %>%
+  makeX(na.impute = TRUE, sparse = TRUE)
+
+library(glmnet)
+cv_model <- cv.glmnet(x, y, alpha = 1)
+
+#find optimal lambda value that minimizes test MSE
+best_lambda <- cv_model$lambda.min
+best_lambda
+
+#produce plot of test MSE by lambda value
+plot(cv_model) 
+```
+```{r}
+best_model <- glmnet(x, y, alpha = 1, lambda = best_lambda)
+coef(best_model)
+```
+
+```{r}
+#use fitted best model to make predictions
+y_predicted <- predict(best_model, s = best_lambda, newx = x)
+
+#find SST and SSE
+sst <- sum((y - mean(y))^2)
+sse <- sum((y_predicted - y)^2)
+
+#find R-Squared
+rsq <- 1 - sse/sst
+rsq
+```
+

@@ -602,6 +602,44 @@ glance(ep_lm4)
 autoplot(ep_lm4, ncol = 2)
 ```
 
+```{r}
+# Krill Total_Abudnance LASSO
+
+#define response variable
+y <- merged_krill$Total_Abundance
+
+#define matrix of predictor variables
+x <- data.frame(merged_krill[, c('CTDTEMP_ITS90', 'pHout', 'TA', 'DIC', 'Salinity_PSS78', 'Latitude.x', 'Longitude.x', 'Month_UTC', 'Year_UTC')]) %>%
+  makeX(na.impute = TRUE, sparse = TRUE)
+
+#perform k-fold cross-validation to find optimal lambda value
+cv_model <- cv.glmnet(x, y, alpha = 1)
+
+#find optimal lambda value that minimizes test MSE
+best_lambda <- cv_model$lambda.min
+best_lambda
+
+
+#produce plot of test MSE by lambda value
+plot(cv_model) 
+
+#find coefficients of best model
+best_model <- glmnet(x, y, alpha = 1, lambda = best_lambda)
+coef(best_model)
+
+#use fitted best model to make predictions
+y_predicted <- predict(best_model, s = best_lambda, newx = x)
+
+#find SST and SSE
+sst <- sum((y - mean(y))^2)
+sse <- sum((y_predicted - y)^2)
+
+#find R-Squared
+rsq <- 1 - sse/sst
+rsq
+```
+
+
 # Zooplankton
 
 ```{r}
@@ -763,8 +801,12 @@ total_zooplankton <- zooplankton %>%
   mutate(log_total_plankton = log1p(total_plankton)) %>%
   dplyr::select(-total_plankton) %>%
   mutate(Station_ID = as.factor(Station_ID))
-
-
+# 
+# total_zooplankton <- zooplankton %>% 
+#   dplyr::select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, total_plankton, pHout, Latitude, Longitude, Year_UTC, Month_UTC) %>%
+#   drop_na() %>%
+#   mutate(log_total_plankton = log1p(total_plankton)) %>%
+#   dplyr::select(-total_plankton) 
 corrplot::corrplot(cor(total_zooplankton), method = "number", type = "lower")
 
 # Best LM
@@ -780,12 +822,12 @@ gam_mod <- gam(log_total_plankton ~ te(Latitude, Longitude) +
     data = total_zooplankton)
 summary(gam_mod)
 
-# GAM model 2
+# GAM model 2 (best, refer to GAM model 4)
 gam_mod2 <- gam(log_total_plankton ~ te(Latitude, Longitude) +
                          s(pHout) +
                          DIC + TA +
                          s(Salinity_PSS78) +
-                        pHout:Salinity_PSS78 +
+                        #pHout:Salinity_PSS78 +
                          s(Year_UTC) + s(Month_UTC) + s(Station_ID, bs = "re"),
     data = total_zooplankton)
 summary(gam_mod2)
@@ -808,4 +850,72 @@ vif(total_zooplankton_lm1)
 
 test_lm <- gam(log_total_plankton ~ s(Latitude) + s(Longitude) + pHout + s(Year_UTC) + s(Month_UTC) + DIC, data = total_zooplankton)
 summary(test_lm)
+
+# GAM model 4 (use this one)
+gam_model4 <- gam(
+  log_total_plankton ~ 
+    te(Latitude, Longitude) +
+                  s(pHout) +
+                  s(TA) + s(DIC) +
+                  s(Salinity_PSS78) +
+                  s(CTDTEMP_ITS90) +
+                  s(Year_UTC) + s(Month_UTC) + s(Station_ID, bs = "re"),
+  data = total_zooplankton,
+)
+summary(gam_model4)
+```
+
+### small_plankton
+
+```{r}
+small_zooplankton <- zooplankton %>% 
+  dplyr::select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, small_plankton, pHout, Latitude, Longitude, Year_UTC, Month_UTC, Station_ID) %>%
+  drop_na() %>%
+  mutate(log_small_plankton = log1p(small_plankton)) %>%
+  dplyr::select(-small_plankton) %>%
+  mutate(Station_ID = as.factor(Station_ID))
+
+small_gam_mod <- gam(log_small_plankton ~ te(Latitude, Longitude) +
+                         s(pHout) +
+                        DIC:Salinity_PSS78 +
+                       pHout:TA +
+                         s(Year_UTC) + s(Month_UTC) + s(Station_ID, bs = "re"),
+    data = small_zooplankton)
+summary(small_gam_mod)
+aic(small_gam_mod)
+
+# use this
+small_gam_mod2 <- gam(
+  log_small_plankton ~ 
+    te(Latitude, Longitude) +
+                  s(pHout) +
+                  s(TA) + s(DIC) +
+                  s(Salinity_PSS78) +
+                  s(CTDTEMP_ITS90) +
+                  s(Year_UTC) + s(Month_UTC) + s(Station_ID, bs = "re"),
+  data = small_zooplankton,
+)
+summary(small_gam_mod2)
+aic(small_gam_mod2)
+
+plot(small_gam_mod2, pages = 1, shade = TRUE, seWithMean = TRUE)
+```
+
+
+### total krill
+```{r}
+total_krill <- merged_krill %>% 
+  dplyr::select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, Total_Abundance, pHout, Latitude.x, Longitude.x, Year_UTC, Month_UTC, Station_ID) %>%
+  drop_na() %>%
+  mutate(log_total_krill = log1p(Total_Abundance)) %>%
+  dplyr::select(-Total_Abundance) %>%
+  mutate(Station_ID = as.factor(Station_ID))
+
+krill_gam_mod <- gam(log_total_krill ~ te(Latitude.x, Longitude.x) +
+                         s(pHout) +
+                        pHout:DIC + CTDTEMP_ITS90:DIC + Salinity_PSS78:DIC +
+                         s(Year_UTC) + s(Month_UTC) + s(Station_ID, bs = "re"),
+    data = total_krill)
+summary(krill_gam_mod)
+aic(krill_gam_mod)
 ```
