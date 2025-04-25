@@ -863,6 +863,7 @@ gam_model4 <- gam(
   data = total_zooplankton,
 )
 summary(gam_model4)
+plot(gam_model4, pages = 1, shade = TRUE, seWithMean = TRUE)
 ```
 
 ### small_plankton
