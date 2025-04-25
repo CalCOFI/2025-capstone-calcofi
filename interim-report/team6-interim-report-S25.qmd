@@ -1,0 +1,28 @@
+---
+title: "Interim Report S25"
+format:
+  html:
+    toc: true
+---
+
+# Introduction
+Since the start of the Industrial Revolution, atmospheric carbon dioxide levels have spiked upward due to practices like deforestation and the burning of fossil fuels, causing an ever increasing amount of carbon dioxide to dissolve into the ocean. Once dissolved, carbon dioxide undergoes a series of chemical equilibrium reactions that ultimately lowers the pH of the water in a process known as ocean acidification. This process has numerous ramifications on marine ecosystems, including but not limited to the impairment of specific pH dependent biological processes and the leaching of calcium carbonate required to build the shells and skeletons of many marine species.^[Ocean acidification: <https://www.nature.com/scitable/knowledge/library/ocean-acidification-25822734/>] 
+
+This project is sponsored by California Cooperative Oceanic Fisheries Investigations (CalCOFI), an organization founded in 1949 to study the ecological aspects of the Pacific sardine collapse off of the coast of California. CalCOFI is committed to studying California’s coastal marine environment and collecting relevant oceanographic data in order to provide insight on important climate change related topics such as renewable energy, integrated ocean management, and marine spatial planning.^[CalCOFI report: <https://calcofi.org/downloads/publications/CalCOFI3YrReports/CalCOFI_Review_2017_2021.pdf>]
+
+We aim to extend the research done in “A 37 year record of ocean acidification in the Southern California current” by Wolfe et al.^[Wolfe Paper: <https://www.nature.com/articles/s43247-023-01065-0>] on the yearly rate of change of certain carbonate chemistry variables by examining all available carbonate chemistry data collected across CalCOFI observation stations rather than only surface data collected at station 90.90, and study the impact of ocean acidification on zooplankton and krill biovolumes. 
+
+
+# Problems of Interest
+The goals of this project can be split into two core parts: the analysis of ocean carbonate chemistry variables, and the study of zooplankton and krill biovolumes off of the California coast. 
+
+For the carbonate chemistry portion, it is of interest to examine how important ocean carbon chemistry and oceanographic variables, namely total alkalinity (TA), total dissolved inorganic carbon (DIC), the Revelle Factor, pH, pCO2, Omega aragonite ($\\Omega_{aragonite}$), Omega calcite ($\\Omega_{calcite}$), temperature, salinity, and CO2-. Additionally, we wish to assess the performance of Empirical Seawater Property Estimation Routines (ESPER)^[ESPER: <https://github.com/BRCScienceProducts/ESPER>] in predicting carbonate chemistry variables across different depths with easy to collect oceanographic variables such as temperature and salinity as inputs.
+
+Regarding zooplankton and krill biovolumes, we want to conduct a cross-comparison of the hydrographic and biological datasets to assess the amount of overlap spatially and temporally. Using co-located measurements, we wish to model the effects of ocean acidification, using the carbonate chemistry and oceanographic variables aforementioned, on zooplankton and krill abundance. In addition, we are interested in exploring how pH and related environmental factors affect the abundance of calcifying versus non-calcifying species. 
+
+
+
+
+
+
+
