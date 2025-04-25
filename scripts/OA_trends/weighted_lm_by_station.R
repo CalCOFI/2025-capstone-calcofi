@@ -1,4 +1,6 @@
-# lm_by_station.R
+# weighted_lm_by_station.R
+
+# THERE IS SOME ERROR WITH THE PLOTTING SECTION THAT MUST BE CORRECTED
 
 library(tidyverse)
 library(gt)
@@ -496,7 +498,7 @@ for (i in 1:10) {
       color = "black",
       show.legend=TRUE # force shape to always show in legend
     ) +
-    geom_text(data = data, nudge_y = -.07 , size = 1.4, aes(x = lon, y = lat, label=paste("(",station,",",signif(Value, digits = 4), ")"))) + 
+    geom_text(data = data, nudge_y = -.07 , size = 1.4, aes(x = lon, y = lat, label=paste("(",station,",",signif(Estimate, digits = 4), ")"))) + 
     # manually adjust coordinates
     coord_sf(
       xlim = c(results$lon %>% min() - 2, results$lon %>% max() + 2),
@@ -530,7 +532,7 @@ for (i in 1:10) {
     labs(
       x = NULL,
       y = NULL,
-      title = TeX(paste("Estimated Slope for", qty_names[i], "by Station (N>30)", paste0("[",units[i],"]"))),
+      title = TeX(paste("Estimated Slope for", qty[i], "by Station (N>30)", paste0("[",units[i],"]"))),
       color = "Estimate",
       size = "N",
       shape = TeX("$Significance$"),
@@ -604,7 +606,7 @@ for (i in 1:10) {
     labs(
       x = NULL,
       y = NULL,
-      title = TeX(paste("Estimated Slope for", qty_names[i], "by Station at Surface (Depth<=20m, N>15)", paste0("[",units[i],"]"))),
+      title = TeX(paste("Estimated Slope for", qty[i], "by Station at Surface (Depth<=20m, N>15)", paste0("[",units[i],"]"))),
       color = "Estimate",
       size = "N",
       shape = TeX("$p<0.5$"),
@@ -614,6 +616,65 @@ for (i in 1:10) {
   # save plots
   # ggsave(paste0("images/OA_trends/surf_", qty[i], "_by_station.png"), bg = "white")
 }
+
+sig_only <- results |> filter(sigp == "Yes") |>
+  group_by(station) |> 
+  summarize(n_signif = n(),
+            lat = mean(lat),
+            lon = mean(lon),
+            n = mean(n))
+
+ggplot(
+  data = world
+) +
+  geom_sf(fill = "antiquewhite1") +
+  geom_point(
+    data = sig_only,
+    pch =21,
+    aes(
+      x = lon,
+      y = lat,
+      size = n_signif,
+      fill = n, # number of observations
+    ),
+    show.legend=TRUE # force shape to always show in legend
+  ) +
+  geom_text(data = sig_only, nudge_y = -.1 , size = 3, aes(x = lon, y = lat, label= station)) + 
+  # manually adjust coordinates
+  coord_sf(
+    xlim = c(results$lon %>% min() - 2, results$lon %>% max() + 2),
+    ylim = c(results$lat %>% min(), results$lat %>% max())
+  ) +
+  # create color scale for slope estimates
+  scale_fill_gradient2(
+    low = "#d7191c",
+    high = "#2c7bb6",
+    mid = "#ffffbf"
+  ) +
+  theme(
+    panel.grid.major = element_line(
+      color = gray(0.5), 
+      linetype = "solid", 
+      linewidth = 0.5
+    ), 
+    panel.background = element_rect(fill = "aliceblue")
+  ) +
+  # fix the order of the legends
+  guides(
+    fill = guide_colorbar(order = 1),
+    size = guide_legend(order = 50),
+    shape = guide_legend(order = 98)
+  ) +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = "Number of Time Sigificant Variables by Station",
+    size = "Number of Time Significant Variables",
+    fill = "Number of observations"
+  )
+ggsave(paste0("images/OA_trends/significant_stations_weighted.png"), bg = "white")
+
+
 
 # GENERATE TABULAR SUMMARY ------------------------------------------------
 
@@ -773,3 +834,41 @@ non_sig_stations <- results |>
   filter(sigp == "No") |> 
   select(station) |> 
   unique()
+
+sig_only_p <- results |> filter(sigp == "Yes")
+
+temp_min <- -.07918
+temp_max <- -0.03193
+ph_min <- -.00255
+ph_max <- -.00079
+co3_min <- -1.34579
+co3_max <- -.59224
+calcite_min <- -0.03342
+calcite_max <- -0.01347
+aragonite_min <- -0.02187
+aragonite_max <- -0.00891
+dic_min <- .72791
+dic_max <- 1.48040
+pCO2_min <- .64817
+pCO2_max <- 2.14435
+Revelle_min <- .03521
+revelle_max <- .08289
+
+sig_only_p <- results |> filter(sigp == "Yes") |> 
+  mutate(outlier = case_when(
+    qty == "T_degC" & (Value < temp_min | Value > temp_max) ~ "Yes",
+    qty == "Salnty" ~ "Yes",
+    qty == "TA" ~ "Yes",
+    qty == "pHin" & (Value < ph_min | Value > ph_max) ~ "Yes",
+    qty == "DIC" & (Value < dic_min | Value > dic_max) ~ "Yes",
+    qty == "RFin" & (Value < Revelle_min | Value > revelle_max) ~ "Yes",
+    qty == "CO3in" & (Value < co3_min | Value > co3_max) ~ "Yes",
+    qty == "pCO2in" & (Value < pCO2_min | Value > pCO2_max) ~ "Yes",
+    qty == "OmegaCAin" & (Value < calcite_min | Value > calcite_max) ~ "Yes",
+    qty == "OmegaARin" & (Value < aragonite_min | Value > aragonite_max) ~ "Yes",
+    TRUE ~ "No" 
+  ))
+
+sig_only_outlier <- sig_only_p |> filter(outlier == "Yes")
+
+sig_only_outlier_subs <-sig_only_outlier |> select(station, qty, Value) |> filter(station == "090.0 090.0")
