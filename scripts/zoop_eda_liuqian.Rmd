@@ -276,7 +276,7 @@ ggplot(zooplankton_pH, aes(x = YearMonth, y = Station_ID, size = pHout, color = 
 library(corrplot)
 zooplankton_pH_filtered <- zooplankton_pH %>%
   #filter(total_plankton <= 2000, Year_UTC >= 2005) %>% 
-  select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, total_plankton, small_plankton, Year_UTC, Month_UTC, pHout, Longitude, Latitude)
+  select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, total_plankton, small_plankton, Year_UTC, Month_UTC, pHout, Longitude,Latitude)
 
 zooplankton_pH_filtered <- zooplankton_pH_filtered %>% na.omit()
   
@@ -429,7 +429,7 @@ library(splines)
 library(mgcv)
 
 # Fit a GAM with spatial spline over longitude and latitude
-gam_model <- gam(total_plankton ~ s(Longitude, Latitude, k = 25), data = zooplankton_pH_filtered)
+gam_model <- gam(total_plankton ~ s(Longitude, Latitude, k = 20) + s(pHout) + s(TA) + s(CTDTEMP_ITS90) + s(Salinity_PSS78), data = zooplankton_pH_filtered)
 
 # View summary of the model
 summary(gam_model)
