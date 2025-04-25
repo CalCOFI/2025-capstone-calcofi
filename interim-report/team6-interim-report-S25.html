@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.3.450">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>Interim Report S25</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+</style>
+
+
+<script src="team6-interim-report-S25_files/libs/clipboard/clipboard.min.js"></script>
+<script src="team6-interim-report-S25_files/libs/quarto-html/quarto.js"></script>
+<script src="team6-interim-report-S25_files/libs/quarto-html/popper.min.js"></script>
+<script src="team6-interim-report-S25_files/libs/quarto-html/tippy.umd.min.js"></script>
+<script src="team6-interim-report-S25_files/libs/quarto-html/anchor.min.js"></script>
+<link href="team6-interim-report-S25_files/libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="team6-interim-report-S25_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="team6-interim-report-S25_files/libs/bootstrap/bootstrap.min.js"></script>
+<link href="team6-interim-report-S25_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="team6-interim-report-S25_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+</head>
+
+<body>
+
+<div id="quarto-content" class="page-columns page-rows-contents page-layout-article">
+<div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+  <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#problems-of-interest" id="toc-problems-of-interest" class="nav-link" data-scroll-target="#problems-of-interest">Problems of Interest</a></li>
+  <li><a href="#materials-and-methods" id="toc-materials-and-methods" class="nav-link" data-scroll-target="#materials-and-methods">Materials and Methods</a>
+  <ul class="collapse">
+  <li><a href="#oceanographic-and-carbonate-chemistry-data" id="toc-oceanographic-and-carbonate-chemistry-data" class="nav-link" data-scroll-target="#oceanographic-and-carbonate-chemistry-data">Oceanographic and Carbonate Chemistry Data</a></li>
+  <li><a href="#biological-data" id="toc-biological-data" class="nav-link" data-scroll-target="#biological-data">Biological Data</a>
+  <ul class="collapse">
+  <li><a href="#calcofi-noaa-zooplankton-volume" id="toc-calcofi-noaa-zooplankton-volume" class="nav-link" data-scroll-target="#calcofi-noaa-zooplankton-volume">CalCOFI NOAA Zooplankton Volume:</a></li>
+  <li><a href="#btedb-krill-abundances" id="toc-btedb-krill-abundances" class="nav-link" data-scroll-target="#btedb-krill-abundances">BTEDB (Krill) Abundances:</a></li>
+  <li><a href="#prpoos-calcifiersnon-calcifiers" id="toc-prpoos-calcifiersnon-calcifiers" class="nav-link" data-scroll-target="#prpoos-calcifiersnon-calcifiers">PRPOOS (Calcifiers/Non-Calcifiers):</a></li>
+  </ul></li>
+  <li><a href="#carbon-chemistry-methods" id="toc-carbon-chemistry-methods" class="nav-link" data-scroll-target="#carbon-chemistry-methods">Carbon Chemistry Methods</a>
+  <ul class="collapse">
+  <li><a href="#esper-model-validation" id="toc-esper-model-validation" class="nav-link" data-scroll-target="#esper-model-validation">ESPER Model Validation</a></li>
+  <li><a href="#ocean-acidification-trend-analysis" id="toc-ocean-acidification-trend-analysis" class="nav-link" data-scroll-target="#ocean-acidification-trend-analysis">Ocean Acidification Trend Analysis</a></li>
+  </ul></li>
+  <li><a href="#biological-systems-methods" id="toc-biological-systems-methods" class="nav-link" data-scroll-target="#biological-systems-methods">Biological Systems Methods</a></li>
+  </ul></li>
+  </ul>
+</nav>
+</div>
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Interim Report S25</h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+</header>
+
+<section id="introduction" class="level1">
+<h1>Introduction</h1>
+<p>Since the start of the Industrial Revolution, atmospheric carbon dioxide levels have spiked upward due to practices like deforestation and the burning of fossil fuels, causing an ever increasing amount of carbon dioxide to dissolve into the ocean. Once dissolved, carbon dioxide undergoes a series of chemical equilibrium reactions that ultimately lowers the pH of the water in a process known as ocean acidification. This process has numerous ramifications on marine ecosystems, including but not limited to the impairment of specific pH dependent biological processes and the leaching of calcium carbonate required to build the shells and skeletons of many marine species.<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a></p>
+<p>This project is sponsored by California Cooperative Oceanic Fisheries Investigations (CalCOFI), an organization founded in 1949 to study the ecological aspects of the Pacific sardine collapse off of the coast of California. CalCOFI is committed to studying California’s coastal marine environment and collecting relevant oceanographic data in order to provide insight on important climate change related topics such as renewable energy, integrated ocean management, and marine spatial planning.<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a></p>
+<p>We aim to extend the research done in “A 37 year record of ocean acidification in the Southern California current” by Wolfe et al.<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a> on the yearly rate of change of certain carbonate chemistry variables by examining all available carbonate chemistry data collected across CalCOFI observation stations rather than only surface data collected at station 90.90, and study the impact of ocean acidification on zooplankton and krill biovolumes.</p>
+</section>
+<section id="problems-of-interest" class="level1">
+<h1>Problems of Interest</h1>
+<p>The goals of this project can be split into two core parts: the analysis of ocean carbonate chemistry variables, and the study of zooplankton and krill biovolumes off of the California coast.</p>
+<p>For the carbonate chemistry portion, it is of interest to examine how important ocean carbon chemistry and oceanographic variables, namely total alkalinity (<span class="math inline">\(TA\)</span>), total dissolved inorganic carbon (<span class="math inline">\(DIC\)</span>), the Revelle Factor, <span class="math inline">\(pH\)</span>, <span class="math inline">\(pCO_2\)</span>, Omega aragonite (<span class="math inline">\(\Omega_{aragonite}\)</span>), Omega calcite (<span class="math inline">\(\Omega_{calcite}\)</span>), temperature, salinity, and <span class="math inline">\(CO^{2-}\)</span>. Additionally, we wish to assess the performance of Empirical Seawater Property Estimation Routines (ESPER)<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a> in predicting carbonate chemistry variables across different depths with easy to collect oceanographic variables such as temperature and salinity as inputs.</p>
+<p>Regarding zooplankton and krill biovolumes, we want to conduct a cross-comparison of the hydrographic and biological datasets to assess the amount of overlap spatially and temporally. Using co-located measurements, we wish to model the effects of ocean acidification, using the carbonate chemistry and oceanographic variables aforementioned, on zooplankton and krill abundance. In addition, we are interested in exploring how pH and related environmental factors affect the abundance of calcifying versus non-calcifying species.</p>
+</section>
+<section id="materials-and-methods" class="level1">
+<h1>Materials and Methods</h1>
+<section id="oceanographic-and-carbonate-chemistry-data" class="level2">
+<h2 class="anchored" data-anchor-id="oceanographic-and-carbonate-chemistry-data">Oceanographic and Carbonate Chemistry Data<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a></h2>
+<p>CalCOFI samples from a predetermined sampling grid off the coast of California on a quarterly basis. Typical stations are set 40 nautical miles apart. At each sampling point, identified by a station and line number, CalCOFI lowers a carousel of 24 bottles into the water, which collect seawater samples from around 20 different depths (typically ranging from 20 to 515 meters). Researchers on the ship then measure oceanographic values such as the temperature, salinity, macronutrient concentration and other properties of these samples. This results in the oceanographic dataset used in this study.</p>
+<p>While oceanographic data is measured on every CalCOFI cruise, carbonate chemistry values such as TA and DIC are only occasionally measured from the collected water samples and are stored in their own dataset.</p>
+<p>We merged these two datasets through a left join on the carbonate chemistry dataset to create merged_bottle_data.csv.</p>
+</section>
+<section id="biological-data" class="level2">
+<h2 class="anchored" data-anchor-id="biological-data">Biological Data</h2>
+<p>There are three datasets that we are focusing on for the biological data: (1) CalCOFI NOAA Zooplankton Volume, (2) BTEDB (Krill) Abundances, and (3) PRPOOS Data (for Zooplankton Calcifiers/Non-Calcifiers Abundance). The zooplankton and krill biovolume data are obtained using net tows (Bongo and/or Pairovet) at each standard CalCOFI station. The PRPOOS data is also obtained using a net tow but rather than sampling at station, it is conducted during transits between stations. These three datasets have each been merged with the bottle data to create zoop_data/zooplankton_pH.csv, krill_data/CV_merged_krill.csv, and PRPOOS/prpoos_summary.csv, respectively.</p>
+<section id="calcofi-noaa-zooplankton-volume" class="level3">
+<h3 class="anchored" data-anchor-id="calcofi-noaa-zooplankton-volume">CalCOFI NOAA Zooplankton Volume<a href="#fn6" class="footnote-ref" id="fnref6" role="doc-noteref"><sup>6</sup></a>:</h3>
+<p>The zooplankton biovolume data measures the amount of “plankton” (the small and microscopic organisms floating in the sea, consisting chiefly of diatoms, protozoans, small crustaceans, and the eggs and larval stages of larger animals) in the volume of sea water sampled, which is useful for research on the ecology, ecosystems, and fisheries of different fish species. In particular, we are interested in the variables <code>total_plankton</code> and <code>small_plankton</code>.</p>
+</section>
+<section id="btedb-krill-abundances" class="level3">
+<h3 class="anchored" data-anchor-id="btedb-krill-abundances">BTEDB (Krill) Abundances<a href="#fn7" class="footnote-ref" id="fnref7" role="doc-noteref"><sup>7</sup></a>:</h3>
+<p>The krill abundance dataset provides information on krill abundance from the Brinton and Townsend Euphausiid Database (BTEDB) based on samples collected by the CalCOFI program since 1951. The samples were analyzed by experienced taxonomists, including Edward Brinton, Annie Townsend, and Linsey Sala. Most of the data comes from springtime research cruises, particularly in Southern California and Central California. Since 2004, taxonomic analysis has been carried out as part of the CCE-LTER (California Current Ecosystem Long-Term Ecological Research) program, supported by the U.S. National Science Foundation. Samples are collected by specialized nets towed from depths of up to 210 meters. It includes species such as <em>Euphausia pacifica</em>, <em>Nematoscelis difficilis</em>, and <em>Thysanoessa spinifera</em>, with individuals categorized by size and developmental phase (e.g., calyptopis, furcilia, juvenile, adult).</p>
+</section>
+<section id="prpoos-calcifiersnon-calcifiers" class="level3">
+<h3 class="anchored" data-anchor-id="prpoos-calcifiersnon-calcifiers">PRPOOS (Calcifiers/Non-Calcifiers)<a href="#fn8" class="footnote-ref" id="fnref8" role="doc-noteref"><sup>8</sup></a>:</h3>
+<p>The PRPOOS (Planktonic Rate Processes in Oligotrophic Ocean Systems) dataset contains abundance and estimated biomass values for various zooplankton taxa, which can be categorized into calcifying and non-calcifying groups. The calcifying taxa are defined as <em>byrozoan larvae</em>, <em>pteropoda heteropoda</em>, <em>ostracods</em>, and <em>rhizaria</em>; the remaining taxa are considered non-calcifying.</p>
+</section>
+</section>
+<section id="carbon-chemistry-methods" class="level2">
+<h2 class="anchored" data-anchor-id="carbon-chemistry-methods">Carbon Chemistry Methods</h2>
+<section id="esper-model-validation" class="level3">
+<h3 class="anchored" data-anchor-id="esper-model-validation">ESPER Model Validation</h3>
+<p>A mixture of qualitative and quantitative analyses were applied to assess ESPER model performance. To determine the best performing model, we compared the RMSE and relative errors across models. To identify areas of weakness in ESPER’s predictive ability, we generated plots of predictions and/or residuals against the model’s inputs. Finally, we performed t-tests of the residuals to ascertain whether a statistically significant bias in the model predictions exists. Specifically, given that <span class="math inline">\(\mu_\epsilon\)</span> is the mean residual value for a particular model’s predictions, we tested the following hypotheses: <span class="math display">\[\begin{equation}
+H_0:\mu_\epsilon=0\quad\text{and}\quad H_a:\mu_\epsilon\neq0
+\end{equation}\]</span> To account for alpha inflation from multiple testing, we applied the Benjamini-Hochberg procedure to adjust our obtained p-values.</p>
+</section>
+<section id="ocean-acidification-trend-analysis" class="level3">
+<h3 class="anchored" data-anchor-id="ocean-acidification-trend-analysis">Ocean Acidification Trend Analysis</h3>
+<p>CO2SYS, a program used to mechanistically calculate other carbonate chemistry values given oceanographic values and at least two carbonate chemistry values as input<a href="#fn9" class="footnote-ref" id="fnref9" role="doc-noteref"><sup>9</sup></a>, was used on the merged bottle dataset to obtain values of <span class="math inline">\(pH\)</span>, the Revelle Factor, <span class="math inline">\(pCO_2\)</span>, <span class="math inline">\(CO_3^{2-}\)</span>, Omega aragonite, and Omega calcite for each observation. These values were then merged with the bottle data set to create merged_bottle_co2sys.csv. The values of <span class="math inline">\(pH\)</span>, the Revelle Factor, <span class="math inline">\(pCO_2\)</span>, <span class="math inline">\(TA\)</span>, <span class="math inline">\(DIC\)</span>, temperature, salinity, Omega aragonite, Omega calcite, and <span class="math inline">\(CO_3^{2-}\)</span> were then seasonally detrended using the procedure recommended in “Advancing best practices for assessing trends of ocean acidification time series” by Sutton et al<a href="#fn10" class="footnote-ref" id="fnref10" role="doc-noteref"><sup>10</sup></a>. Since the relationship between depth and different carbonate chemistry variables can be hard to model, and since we would expect that there is an interaction between time trends and depth, we have decided to limit our study to observations with depths of 20 meters or less for the time being. Observations from stations with less than 20 observations were then filtered out in order to ensure more accurate model fits. Linear regression models were then fit for each variable of interest against time at each station. The Benjamini-Hochberg procedure was used to adjust p-values to account for multiple testing. Additionally, a mixed effects model was fit to each variable of interest regressed against time, depth, and with a random intercept for station. Maximum likelihood estimation was used to estimate the parameters for every model.</p>
+</section>
+</section>
+<section id="biological-systems-methods" class="level2">
+<h2 class="anchored" data-anchor-id="biological-systems-methods">Biological Systems Methods</h2>
+<p>The main methods we have implemented so far are a combination of linear models and spatial models. Our initial model consisted of the carbonate chemistry variables of interest as predictors (TA, DIC, temperature, and salinity) with the abundance variables as our response variable. To build on these models, we included more variables from the CO2SYS output, such as pH, and performed LASSO regression to identify any other potentially significant predictors. For spatial modelling, we used a spatial mesh model as well as GAM with spatial splines to incorporate the effects of latitude and longitude on the generalized linear models.</p>
+</section>
+</section>
+
+
+<div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
+
+<ol>
+<li id="fn1"><p>Ocean acidification: <a href="https://www.nature.com/scitable/knowledge/library/ocean-acidification-25822734/" class="uri">https://www.nature.com/scitable/knowledge/library/ocean-acidification-25822734/</a><a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>CalCOFI report: <a href="https://calcofi.org/downloads/publications/CalCOFI3YrReports/CalCOFI_Review_2017_2021.pdf" class="uri">https://calcofi.org/downloads/publications/CalCOFI3YrReports/CalCOFI_Review_2017_2021.pdf</a><a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p>Wolfe Paper: <a href="https://www.nature.com/articles/s43247-023-01065-0" class="uri">https://www.nature.com/articles/s43247-023-01065-0</a><a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4"><p>ESPER: <a href="https://github.com/BRCScienceProducts/ESPER" class="uri">https://github.com/BRCScienceProducts/ESPER</a><a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn5"><p>Bottle Database: <a href="https://calcofi.org/data/oceanographic-data/bottle-database/" class="uri">https://calcofi.org/data/oceanographic-data/bottle-database/</a><a href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn6"><p>CalCOFI Zooplankton Volume Database: <a href="https://oceanview.pfeg.noaa.gov/erddap/tabledap/erdCalCOFIzoovol.html" class="uri">https://oceanview.pfeg.noaa.gov/erddap/tabledap/erdCalCOFIzoovol.html</a><a href="#fnref6" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn7"><p>BTEDB (Krill Volume) Data: <a href="https://portal.edirepository.org/nis/mapbrowse?packageid=knb-lter-cce.313.1" class="uri">https://portal.edirepository.org/nis/mapbrowse?packageid=knb-lter-cce.313.1</a><a href="#fnref7" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn8"><p>PRPOOS (Zooplankton Calcifiers/Non-Calcifiers Volume) Zooscan Database: <a href="https://oceaninformatics.ucsd.edu/zooscandb/" class="uri">https://oceaninformatics.ucsd.edu/zooscandb/</a><a href="#fnref8" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn9"><p>CO2SYS: <a href="https://www.ncei.noaa.gov/access/ocean-carbon-acidification-data-system/oceans/CO2SYS/co2rprt.html" class="uri">https://www.ncei.noaa.gov/access/ocean-carbon-acidification-data-system/oceans/CO2SYS/co2rprt.html</a><a href="#fnref9" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn10"><p>Seasonally Detrend: <a href="https://www.frontiersin.org/journals/marine-science/articles/10.3389/fmars.2022.1045667/full" class="uri">https://www.frontiersin.org/journals/marine-science/articles/10.3389/fmars.2022.1045667/full</a><a href="#fnref10" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+</ol>
+</section></div></main>
+<!-- /main column -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button', {
+    text: function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+  });
+  clipboard.on('success', function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  });
+  function tippyHover(el, contentFn) {
+    const config = {
+      allowHTML: true,
+      content: contentFn,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start'
+    };
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      return note.innerHTML;
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+</div> <!-- /content -->
+
+
+
+</body></html>

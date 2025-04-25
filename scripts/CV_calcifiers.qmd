@@ -363,6 +363,163 @@ ggplot(rhizaria_summary) +
 cor(rhizaria_summary$OmegaCA_mean, rhizaria_summary$Abundance)
 ```
 
+# Calcifiers EDA (effects of pH and anomolous abundance)
+```{r}
+prpoos_summary <- read_csv(here::here("data/PRPOOS/prpoos_summary.csv"))
+prpoos_clean <- prpoos_summary %>%
+  dplyr::select(-contains("Estimated C Biomass (mgC m-2)"))
+
+names(prpoos_clean) <- str_replace(names(prpoos_clean), " \\(No\\. per m2\\)", "")
+
+# Add seasonal component
+prpoos_clean <- prpoos_clean %>%
+  mutate(
+    Season = case_when(
+    Month_UTC %in% c(12, 1, 2) ~ "Winter",
+      Month_UTC %in% c(3, 4, 5) ~ "Spring",
+      Month_UTC %in% c(6, 7, 8) ~ "Summer",
+      Month_UTC %in% c(9, 10, 11) ~ "Fall"
+    )
+  ) %>%
+  relocate(Season, .after = Year_UTC)
+```
+
+```{r}
+library(dplyr)
+library(lubridate)
+library(ggplot2)
+
+# Create date variable
+df_timeline <- prpoos_summary %>%
+  mutate(
+    YearMonth = ymd(paste(Year_UTC, Month_UTC, "01", sep = "-")),
+    Station_ID = as.factor(Station_ID)  # ensure Station is treated as a category
+  ) %>%
+  dplyr::select(Station_ID, YearMonth) %>%
+  distinct()  # remove duplicates if multiple observations per station/month
+
+ggplot(df_timeline, aes(x = YearMonth, y = Station_ID)) +
+  geom_point(alpha = 0.6, color = "darkblue") +
+  labs(
+    title = "Timeline of Observations by Station",
+    x = "Date",
+    y = "Station ID"
+  ) +
+  theme_minimal() +
+  scale_x_date(date_labels = "%Y-%m", date_breaks = "6 months") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+
+
+
+station_counts <- prpoos_summary %>%
+  group_by(Station_ID) %>%
+  summarise(Record_Count = n()) %>%
+  arrange(desc(Record_Count))
+
+
+# Plot station record count
+ggplot(station_counts, aes(x = reorder(Station_ID, -Record_Count), y = Record_Count)) +
+  geom_bar(stat = "identity", fill = "steelblue") +
+  labs(title = "Record Count per Station ID", x = "Station ID", y = "Number of Records") +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+```
+
+```{r}
+calcifiers <- c("bryozoan_larvae Abundance",
+                "pteropoda_heteropoda Abundance",
+                "ostracods Abundance",
+                "rhizaria Abundance")
+abund_cols <- prpoos_clean %>% dplyr::select(contains("Abundance")) %>% names()
+non_calcifiers <- setdiff(abund_cols, calcifiers)
+```
+
+```{r}
+# Compute total abundance per group
+prpoos_clean <- prpoos_clean %>%
+  dplyr::mutate(
+    calcifier_total = rowSums(dplyr::select(., all_of(calcifiers)), na.rm = TRUE),
+    non_calcifier_total = rowSums(dplyr::select(., all_of(non_calcifiers)), na.rm = TRUE)
+  )
+
+# # Compute seasonal means
+# seasonal_means <- prpoos_clean %>%
+#   dplyr::group_by(Season) %>%
+#   dplyr::summarise(
+#     calcifier_mean = mean(calcifier_total, na.rm = TRUE),
+#     non_calcifier_mean = mean(non_calcifier_total, na.rm = TRUE),
+#     .groups = "drop"
+#   )
+# # Join means and compute anomalies
+# prpoos_clean <- prpoos_clean %>%
+#   left_join(seasonal_means, by = "Season") %>%
+#   mutate(
+#     calcifier_anomaly = calcifier_total - calcifier_mean,
+#     non_calcifier_anomaly = non_calcifier_total - non_calcifier_mean
+#   )
+```
+
+```{r}
+# ggplot(prpoos_clean, aes(x = pH_mean, y = calcifier_anomaly, color = Season)) +
+#   geom_point() +
+#   geom_smooth(method = "lm") +
+#   facet_wrap(~Season) +
+#   labs(title = "Effect of pH on Calcifier Anomaly", x = "pH", y = "Anomaly") +
+#   theme_minimal()
+# 
+# ggplot(prpoos_clean, aes(x = pH_mean, y = non_calcifier_anomaly, color = Season)) +
+#   geom_point() +
+#   geom_smooth(method = "lm") +
+#   facet_wrap(~Season) +
+#   labs(title = "Effect of pH on Non-Calcifier Anomaly", x = "pH", y = "Anomaly") +
+#   theme_minimal()
+
+ggplot(prpoos_clean, aes(x = pH_mean, y = calcifier_total, color = Season)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~Season) +
+  labs(
+    title = "Calcifier Abundance vs. avg pH by Season",
+    x = "Average pH",
+    y = "Total Abundance (no. per m2)"
+  ) +
+  theme_minimal()
+
+ggplot(prpoos_clean, aes(x = pH_mean, y = non_calcifier_total, color = Season)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~Season) +
+  labs(
+    title = "Non-Calcifier Abundance vs. avg pH by Season",
+    x = "Average pH",
+    y = "Total Abundance (no. per m2)"
+  ) +
+  theme_minimal()
+
+ggplot(prpoos_clean, aes(x = OmegaCA_mean, y = calcifier_total, color = Season)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~Season) +
+  labs(
+    title = "Calcifier Abundance vs. Total Calcium by Season",
+    x = "OmegaCA",
+    y = "Total Abundance"
+  ) +
+  theme_minimal()
+
+ggplot(prpoos_clean, aes(x = OmegaCA_mean, y = non_calcifier_total, color = Season)) +
+  geom_point(alpha = 0.6) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~Season) +
+  labs(
+    title = "Non-Calcifier Abundance vs. Total Calcium by Season",
+    x = "OmegaCA",
+    y = "Total Abundance"
+  ) +
+  theme_minimal()
+
+```
+
 # ZooDB Calcifiers
 ## data/ZooDB
 **Mollusca** (4 taxa) - calcite or aragonite:
