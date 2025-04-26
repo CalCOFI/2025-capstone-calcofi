@@ -113,7 +113,7 @@ We created two spatial GAM models for log-transformed total plankton abundance a
 
 For total plankton abundance, the GAM model reveals that spatial location, seasonality (month), and long-term temporal trends (year) are the strongest predictors, explaining 28% of the variability. Figure 4 shows higher abundances are predicted along the eastern and southeastern coastal regions, while lower abundances appear offshore, especially in the southwestern region. Based on the model results, pH showed a slight positive relationship with abundance while other variables like TA, DIC, salinity, and temperature did not have significant effects in this model (see Figure 5 in Appendix). 
 
-For small plankton abundance, the GAM model explains approximately 35% of the variance, with significant effects from spatial location, pH, TA, temperature, year, and month. Figure 6 shows higher abundance predicted along the southern and eastern coastal regions, and lower abundance offshore to the northwest. The model shows that plankton abundance tends to increase with higher pH, suggesting potential sensitivity of small plankton to acidification. Higher TA is associated with decreased abundance, while temperature has a nonlinear effect. From the model summary, other variables such as DIC, salinity, and station ID showed no significant influence on abundance (See Figure 7 in Appendix).
+For small plankton abundance, the GAM model explains approximately 35% of the variance, with significant effects from spatial location, pH, TA, temperature, year, and month. Figure 6 shows higher abundance predicted along the southern and eastern coastal regions, and lower abundance offshore to the southwest. The model shows that plankton abundance tends to increase with higher pH, suggesting potential sensitivity of small plankton to acidification. Higher TA is associated with decreased abundance, while temperature has a nonlinear effect. From the model summary, other variables such as DIC, salinity, and station ID showed no significant influence on abundance (See Figure 7 in Appendix).
 
 
 ### Krill Models
@@ -132,7 +132,7 @@ Notably, the model achieved 100% accuracy for predicting presence ('yes'), corre
 
 To further understand abundance variation, we performed PCA on environmental variables followed by K-means clustering.
 
-![Figure 11: PCA biplot overlaid with K-means clustering results (k = 3).](~/capstone-calcofi-seagrant/interim-report/img/team6-figure11.png){width=40%}
+![Figure 11: PCA biplot overlaid with K-means clustering results (k = 3).](~/capstone-calcofi-seagrant/interim-report/img/team6-figure11.png){width=50%}
 
 
 The elbow plot (see Figure 10 in Appendix) shows a sharp decline is observed up to k = 3, suggesting three clusters as the optimal choice for grouping ecological sample points. In Figure 11, each cluster corresponds to a distinct grouping in environmental space, indicating different habitat types for T. gregaria. Cluster 1 has the highest mean abundance, while Cluster 3 contains only zero values, suggesting unsuitable habitat or timing. Each cluster reflected distinct habitat characteristics: Cluster 1 has a high mean log-abundance (3.10) which likely represents ideal environmental conditions, Cluster 2 has an intermediate abundance (2.58) which may correspond to marginal habitats or transitional seasonal conditions, and Cluster 3 has zero abundance which is likely unsuitable sites or times for T. gregaria presence (see Table 4 in Appendix).
@@ -141,7 +141,7 @@ These results confirm that T. gregaria abundance can be meaningfully grouped by 
 
 ### PRPOOS Model: Spatial GAM
 
-When modeling the difference between calcifiers and non-calcifers, we explored LASSO regression and spatial GAMS. The performance of the LASSO regression was not optimal (see Tables 5-6 in Appendix).
+When modeling the difference between calcifiers and non-calcifers, we explored LASSO regression and spatial GAMS. Unfortunately, the performance of the LASSO regression was not optimal (see Tables 5-6 in Appendix) so we proceeded with spatial GAMs.
 
 ::: {layout-ncol=2}
 ![Figure 12: GAM model with spatial splines for each calcifying species.](~/capstone-calcofi-seagrant/interim-report/img/team6-figure12.png){width=70%}
@@ -159,7 +159,7 @@ The regression results from Table 3 generally agrees with the results from Wolfe
 
 ## Biological Data
 
-A big takeaway is that there is spatial autocorrelation detected in the biological data, where abundance generally increases near coastal areas and decreases in offshore regions. One of our biggest challenges is that the process of merging biological data leads to many observations being lost. As a result, the data we are working with tends to be sparse or biased towards certain stations and dates. For example, the krill dataset contains numerous missing values and zero abundance entries across taxa, making it difficult to identify patterns among different species and life stages. To address this, we aggregated the data into total abundance, however, this approach limits our ability to draw specific conclusions and instead supports broader generalizations. This makes it difficult to perform an effective regression on our variables of interest and evaluate the effect of these predictors. Merging the PRPOOS data with the carbonate chemistry data poses another challenge because the PRPOOS dataset does not contain a ‘depth’ column. We considered averaging observations over depth to account for this, but this approach masks the effect of depth on variables like temperature, salinity, and pH.
+A big takeaway is that there is spatial autocorrelation detected in the biological data, where abundance generally increases near coastal areas and decreases in offshore regions. We also observed a positive relationship with pH and abundance, which is consistent with expectations, as lower pH levels associated with ocean acidification can negatively impact species growth and survival. However, one of our biggest challenges that we have encountered is that the process of merging biological data leads to many observations being lost. As a result, the data we are working with tends to be sparse or biased towards certain stations and dates. For example, the krill dataset contains numerous missing values and zero abundance entries across taxa, making it difficult to identify patterns among different species and life stages. To address this, we aggregated the data into total abundance, however, this approach limits our ability to draw specific conclusions and instead supports broader generalizations. This makes it difficult to perform an effective regression on our variables of interest and evaluate the effect of these predictors. Merging the PRPOOS data with the carbonate chemistry data poses another challenge because the PRPOOS dataset does not contain a ‘depth’ column. We considered averaging observations over depth to account for this, but this approach masks the effect of depth on variables like temperature, salinity, and pH.
 
 # Future Work
 
