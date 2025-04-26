@@ -863,7 +863,17 @@ gam_model4 <- gam(
   data = total_zooplankton,
 )
 summary(gam_model4)
-plot(gam_model4, pages = 1, shade = TRUE, seWithMean = TRUE)
+#plot(gam_model4, pages = 1, shade = TRUE, seWithMean = TRUE)
+
+plot(gam_model4, select = 1, shade = TRUE, seWithMean = TRUE, scheme = 2)
+
+par(mfrow = c(4, 2), mar = c(4, 4, 2, 1)) 
+for (i in 2:9) {
+  plot(gam_model4, select = i, shade = TRUE)
+}
+
+
+par(mfrow = c(1, 1))
 ```
 
 ### small_plankton
@@ -899,7 +909,17 @@ small_gam_mod2 <- gam(
 summary(small_gam_mod2)
 aic(small_gam_mod2)
 
-plot(small_gam_mod2, pages = 1, shade = TRUE, seWithMean = TRUE)
+plot(small_gam_mod2, select = 1, shade = TRUE, seWithMean = TRUE, scheme = 2)
+#plot(small_gam_mod2, page = 1, shade = TRUE, seWithMean = TRUE)
+
+par(mfrow = c(4, 2), mar = c(4, 4, 2, 1)) 
+for (i in 2:9) {
+  plot(small_gam_mod2, select = i, shade = TRUE)
+}
+
+
+par(mfrow = c(1, 1))
+
 ```
 
 
