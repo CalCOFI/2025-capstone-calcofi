@@ -940,3 +940,5 @@ krill_gam_mod <- gam(log_total_krill ~ te(Latitude.x, Longitude.x) +
 summary(krill_gam_mod)
 aic(krill_gam_mod)
 ```
+
+
