@@ -14,87 +14,112 @@ fontsize: 9pt
 ---
 
 # Introduction
-Since the start of the Industrial Revolution, atmospheric carbon dioxide levels have spiked upward due to practices like deforestation and the burning of fossil fuels, causing an ever increasing amount of carbon dioxide to dissolve into the ocean. Once dissolved, carbon dioxide undergoes a series of chemical equilibrium reactions that ultimately lowers the pH of the water in a process known as ocean acidification. This process has numerous ramifications on marine ecosystems, including but not limited to the impairment of specific pH dependent biological processes and the leaching of calcium carbonate required to build the shells and skeletons of many marine species.^[Ocean acidification: <https://www.nature.com/scitable/knowledge/library/ocean-acidification-25822734/>] 
 
-This project is sponsored by California Cooperative Oceanic Fisheries Investigations (CalCOFI), an organization founded in 1949 to study the ecological aspects of the Pacific sardine collapse off of the coast of California. CalCOFI is committed to studying California’s coastal marine environment and collecting relevant oceanographic data in order to provide insight on important climate change related topics such as renewable energy, integrated ocean management, and marine spatial planning.^[CalCOFI report: <https://calcofi.org/downloads/publications/CalCOFI3YrReports/CalCOFI_Review_2017_2021.pdf>]
+Since the start of the Industrial Revolution, atmospheric carbon dioxide levels have spiked upward due to practices like deforestation and the burning of fossil fuels, causing an ever increasing amount of carbon dioxide to dissolve into the ocean. Once dissolved, carbon dioxide undergoes a series of chemical equilibrium reactions that ultimately lowers the pH of the water in a process known as ocean acidification. This process has numerous ramifications on marine ecosystems, including but not limited to the impairment of specific pH dependent biological processes and the leaching of calcium carbonate required to build the shells and skeletons of many marine species.[^1]
 
-We aim to extend the research done in “A 37 year record of ocean acidification in the Southern California current” by Wolfe et al.^[Wolfe Paper: <https://www.nature.com/articles/s43247-023-01065-0>] on the yearly rate of change of certain carbonate chemistry variables by examining all available carbonate chemistry data collected across CalCOFI observation stations rather than only surface data collected at station 90.90, and study the impact of ocean acidification on zooplankton and krill biovolumes. 
+[^1]: Ocean acidification: <https://www.nature.com/scitable/knowledge/library/ocean-acidification-25822734/>
 
+This project is sponsored by California Cooperative Oceanic Fisheries Investigations (CalCOFI), an organization founded in 1949 to study the ecological aspects of the Pacific sardine collapse off of the coast of California. CalCOFI is committed to studying California’s coastal marine environment and collecting relevant oceanographic data in order to provide insight on important climate change related topics such as renewable energy, integrated ocean management, and marine spatial planning.[^2]
+
+[^2]: CalCOFI report: <https://calcofi.org/downloads/publications/CalCOFI3YrReports/CalCOFI_Review_2017_2021.pdf>
+
+We aim to extend the research done in “A 37 year record of ocean acidification in the Southern California current” by Wolfe et al.[^3] on the yearly rate of change of certain carbonate chemistry variables by examining all available carbonate chemistry data collected across CalCOFI observation stations rather than only surface data collected at station 90.90, and study the impact of ocean acidification on zooplankton and krill biovolumes.
+
+[^3]: Wolfe Paper: <https://www.nature.com/articles/s43247-023-01065-0>
 
 # Problems of Interest
-The goals of this project can be split into two core parts: the analysis of ocean carbonate chemistry variables, and the study of zooplankton and krill biovolumes off of the California coast. 
 
-For the carbonate chemistry portion, it is of interest to examine how important ocean carbon chemistry and oceanographic variables, namely total alkalinity ($TA$), total dissolved inorganic carbon ($DIC$), the Revelle Factor, $pH$, $pCO_2$, Omega aragonite ($\Omega_{aragonite}$), Omega calcite ($\Omega_{calcite}$), temperature, salinity, and $CO^{2-}$. Additionally, we wish to assess the performance of Empirical Seawater Property Estimation Routines (ESPER)^[ESPER: <https://github.com/BRCScienceProducts/ESPER>] in predicting carbonate chemistry variables across different depths with easy to collect oceanographic variables such as temperature and salinity as inputs.
+The goals of this project can be split into two core parts: the analysis of ocean carbonate chemistry variables, and the study of zooplankton and krill biovolumes off of the California coast.
 
-Regarding zooplankton and krill biovolumes, we want to conduct a cross-comparison of the hydrographic and biological datasets to assess the amount of overlap spatially and temporally. Using co-located measurements, we wish to model the effects of ocean acidification, using the carbonate chemistry and oceanographic variables aforementioned, on zooplankton and krill abundance. In addition, we are interested in exploring how pH and related environmental factors affect the abundance of calcifying versus non-calcifying species. 
+For the carbonate chemistry portion, it is of interest to examine how important ocean carbon chemistry and oceanographic variables, namely total alkalinity ($TA$), total dissolved inorganic carbon ($DIC$), the Revelle Factor, $pH$, $pCO_2$, Omega aragonite ($\Omega_{aragonite}$), Omega calcite ($\Omega_{calcite}$), temperature, salinity, and $CO^{2-}$. Additionally, we wish to assess the performance of Empirical Seawater Property Estimation Routines (ESPER)[^4] in predicting carbonate chemistry variables across different depths with easy to collect oceanographic variables such as temperature and salinity as inputs.
 
+[^4]: ESPER: <https://github.com/BRCScienceProducts/ESPER>
+
+Regarding zooplankton and krill biovolumes, we want to conduct a cross-comparison of the hydrographic and biological datasets to assess the amount of overlap spatially and temporally. Using co-located measurements, we wish to model the effects of ocean acidification, using the carbonate chemistry and oceanographic variables aforementioned, on zooplankton and krill abundance. In addition, we are interested in exploring how pH and related environmental factors affect the abundance of calcifying versus non-calcifying species.
 
 # Materials and Methods
-## Oceanographic and Carbonate Chemistry Data^[Bottle Database: <https://calcofi.org/data/oceanographic-data/bottle-database/>]
-CalCOFI samples from a predetermined sampling grid off the coast of California on a quarterly basis. Typical stations are set 40 nautical miles apart. At each sampling point, identified by a station and line number, CalCOFI lowers a carousel of 24 bottles into the water, which collect seawater samples from around 20 different depths (typically ranging from 20 to 515 meters). Researchers on the ship then measure oceanographic values such as the temperature, salinity, macronutrient concentration and other properties of these samples. This results in the oceanographic dataset used in this study. 
 
-While oceanographic data is measured on every CalCOFI cruise, carbonate chemistry values such as TA and DIC are only occasionally measured from the collected water samples and are stored in their own dataset. We merged these two datasets through a left join on the carbonate chemistry dataset to create merged_bottle_data.csv. 
+## Oceanographic and Carbonate Chemistry Data[^5]
+
+[^5]: Bottle Database: <https://calcofi.org/data/oceanographic-data/bottle-database/>
+
+CalCOFI samples from a predetermined sampling grid off the coast of California on a quarterly basis. Typical stations are set 40 nautical miles apart. At each sampling point, identified by a station and line number, CalCOFI lowers a carousel of 24 bottles into the water, which collect seawater samples from around 20 different depths (typically ranging from 20 to 515 meters). Researchers on the ship then measure oceanographic values such as the temperature, salinity, macronutrient concentration and other properties of these samples. This results in the oceanographic dataset used in this study.
+
+While oceanographic data is measured on every CalCOFI cruise, carbonate chemistry values such as TA and DIC are only occasionally measured from the collected water samples and are stored in their own dataset. We merged these two datasets through a left join on the carbonate chemistry dataset to create merged_bottle_data.csv.
 
 ## Biological Data
-There are three datasets that we are focusing on for the biological data: (1) CalCOFI NOAA Zooplankton Volume, (2) BTEDB (Krill) Abundances, and (3) PRPOOS Data (for Zooplankton Calcifiers/Non-Calcifiers Abundance). The zooplankton and krill biovolume data are obtained using net tows (Bongo and/or Pairovet) at each standard CalCOFI station. The PRPOOS data is also obtained using a net tow but rather than sampling at station, it is conducted during transits between stations. These three datasets have each been merged with the bottle data to create zoop_data/zooplankton_pH.csv, krill_data/CV_merged_krill.csv, and PRPOOS/prpoos_summary.csv, respectively. 
 
-### CalCOFI NOAA Zooplankton Volume^[CalCOFI Zooplankton Volume Database: <https://oceanview.pfeg.noaa.gov/erddap/tabledap/erdCalCOFIzoovol.html>]:
+There are three datasets that we are focusing on for the biological data: (1) CalCOFI NOAA Zooplankton Volume, (2) BTEDB (Krill) Abundances, and (3) PRPOOS Data (for Zooplankton Calcifiers/Non-Calcifiers Abundance). The zooplankton and krill biovolume data are obtained using net tows (Bongo and/or Pairovet) at each standard CalCOFI station. The PRPOOS data is also obtained using a net tow but rather than sampling at station, it is conducted during transits between stations. These three datasets have each been merged with the bottle data to create zoop_data/zooplankton_pH.csv, krill_data/CV_merged_krill.csv, and PRPOOS/prpoos_summary.csv, respectively.
+
+### CalCOFI NOAA Zooplankton Volume[^6]:
+
+[^6]: CalCOFI Zooplankton Volume Database: <https://oceanview.pfeg.noaa.gov/erddap/tabledap/erdCalCOFIzoovol.html>
+
 The zooplankton biovolume data measures the amount of “plankton” (the small and microscopic organisms floating in the sea, consisting chiefly of diatoms, protozoans, small crustaceans, and the eggs and larval stages of larger animals) in the volume of sea water sampled. In particular, we are interested in the variables `total_plankton` and `small_plankton`.
 
-### BTEDB (Krill) Abundances^[BTEDB (Krill Volume) Data: <https://portal.edirepository.org/nis/mapbrowse?packageid=knb-lter-cce.313.1>]:
+### BTEDB (Krill) Abundances[^7]:
+
+[^7]: BTEDB (Krill Volume) Data: <https://portal.edirepository.org/nis/mapbrowse?packageid=knb-lter-cce.313.1>
 
 The krill dataset provides information on krill abundance from the Brinton and Townsend Euphausiid Database (BTEDB). The samples collected includes species such as *Euphausia pacifica*, *Nematoscelis difficilis*, and *Thysanoessa spinifera*, with individuals categorized by size and developmental phase (e.g., calyptopis, furcilia, juvenile, adult).
 
-### PRPOOS (Calcifiers/Non-Calcifiers)^[PRPOOS (Zooplankton Calcifiers/Non-Calcifiers Volume) Zooscan Database: <https://oceaninformatics.ucsd.edu/zooscandb/>]:
-The PRPOOS (Planktonic Rate Processes in Oligotrophic Ocean Systems) dataset contains abundance and estimated biomass values for various zooplankton taxa, which can be categorized into calcifying and non-calcifying groups. The calcifying taxa are defined as *byrozoan larvae*, *pteropoda heteropoda*, *ostracods*, and *rhizaria*; the remaining taxa are considered non-calcifying. 
+### PRPOOS (Calcifiers/Non-Calcifiers)[^8]:
+
+[^8]: PRPOOS (Zooplankton Calcifiers/Non-Calcifiers Volume) Zooscan Database: <https://oceaninformatics.ucsd.edu/zooscandb/>
+
+The PRPOOS (Planktonic Rate Processes in Oligotrophic Ocean Systems) dataset contains abundance and estimated biomass values for various zooplankton taxa, which can be categorized into calcifying and non-calcifying groups. The calcifying taxa are defined as *byrozoan larvae*, *pteropoda heteropoda*, *ostracods*, and *rhizaria*; the remaining taxa are considered non-calcifying.
 
 ## Carbon Chemistry Methods
 
 ### ESPER Model Validation
 
-A mixture of qualitative and quantitative analyses were applied to assess ESPER model performance. To determine the best performing model, we compared the RMSE and relative errors across models. To identify areas of weakness in ESPER’s predictive ability, we generated plots of predictions and/or residuals against the model’s inputs. Finally, we performed t-tests of the residuals to ascertain whether a statistically significant bias in the model predictions exists. Specifically, given that $\mu_\epsilon$ is the mean residual value for a particular model’s predictions, we tested the following hypotheses:
-\begin{equation}
+A mixture of qualitative and quantitative analyses were applied to assess ESPER model performance. To determine the best performing model, we compared the RMSE and relative errors across models. To identify areas of weakness in ESPER’s predictive ability, we generated plots of predictions and/or residuals against the model’s inputs. Finally, we performed t-tests of the residuals to ascertain whether a statistically significant bias in the model predictions exists. Specifically, given that $\mu_\epsilon$ is the mean residual value for a particular model’s predictions, we tested the following hypotheses: \begin{equation}
 H_0:\mu_\epsilon=0\quad\text{and}\quad H_a:\mu_\epsilon\neq0
-\end{equation}
-To account for alpha inflation from multiple testing, we applied the Benjamini-Hochberg procedure to adjust our obtained p-values.
+\end{equation} To account for alpha inflation from multiple testing, we applied the Benjamini-Hochberg procedure to adjust our obtained p-values.
 
 ### Ocean Acidification Trend Analysis
-CO2SYS, a program used to mechanistically calculate other carbonate chemistry values given oceanographic values and at least two carbonate chemistry values as input^[CO2SYS: <https://www.ncei.noaa.gov/access/ocean-carbon-acidification-data-system/oceans/CO2SYS/co2rprt.html>], was used on the merged bottle dataset to obtain values of $pH$, the Revelle Factor, $pCO_2$, $CO_3^{2-}$, Omega aragonite, and Omega calcite for each observation. These values were then merged with the bottle data set to create merged_bottle_co2sys.csv. The values of $pH$, the Revelle Factor, $pCO_2$, $TA$, $DIC$, temperature, salinity, Omega aragonite, Omega calcite, and $CO_3^{2-}$ were then seasonally detrended using the procedure recommended in “Advancing best practices for assessing trends of ocean acidification time series” by Sutton et al^[Seasonally Detrend: <https://www.frontiersin.org/journals/marine-science/articles/10.3389/fmars.2022.1045667/full>]. Since the relationship between depth and different carbonate chemistry variables can be hard to model, and since we would expect that there is an interaction between time trends and depth, we have decided to limit our study to observations with depths of 20 meters or less for the time being. Observations from stations with less than 20 observations were then filtered out in order to ensure more accurate model fits. Linear regression models were then fit for each variable of interest against time at each station. The Benjamini-Hochberg procedure was used to adjust p-values to account for multiple testing. Additionally, a mixed effects model was fit to each variable of interest regressed against time, depth, and with a random intercept for station. Maximum likelihood estimation was used to estimate the parameters for every model. 
+
+CO2SYS, a program used to mechanistically calculate other carbonate chemistry values given oceanographic values and at least two carbonate chemistry values as input[^9], was used on the merged bottle dataset to obtain values of $pH$, the Revelle Factor, $pCO_2$, $CO_3^{2-}$, Omega aragonite, and Omega calcite for each observation. These values were then merged with the bottle data set to create merged_bottle_co2sys.csv. The values of $pH$, the Revelle Factor, $pCO_2$, $TA$, $DIC$, temperature, salinity, Omega aragonite, Omega calcite, and $CO_3^{2-}$ were then seasonally detrended using the procedure recommended in “Advancing best practices for assessing trends of ocean acidification time series” by Sutton et al[^10]. Since the relationship between depth and different carbonate chemistry variables can be hard to model, and since we would expect that there is an interaction between time trends and depth, we have decided to limit our study to observations with depths of 20 meters or less for the time being. Observations from stations with less than 20 observations were then filtered out in order to ensure more accurate model fits. Linear regression models were then fit for each variable of interest against time at each station. The Benjamini-Hochberg procedure was used to adjust p-values to account for multiple testing. Additionally, a mixed effects model was fit to each variable of interest regressed against time, depth, and with a random intercept for station. Maximum likelihood estimation was used to estimate the parameters for every model.
+
+[^9]: CO2SYS: <https://www.ncei.noaa.gov/access/ocean-carbon-acidification-data-system/oceans/CO2SYS/co2rprt.html>
+
+[^10]: Seasonally Detrend: <https://www.frontiersin.org/journals/marine-science/articles/10.3389/fmars.2022.1045667/full>
 
 ## Biological Systems Methods
 
 The main methods we have implemented so far are a combination of linear models and spatial models. Our initial model consisted of the carbonate chemistry variables of interest as predictors (TA, DIC, temperature, and salinity) with the appropriate abundance variables as our response variables. To build on these models, we included more variables from the CO2SYS output, such as pH, and performed LASSO regression to identify any other potentially significant predictors. For spatial modelling, we used a spatial mesh model as well as GAM with spatial splines to incorporate the effects of latitude and longitude on the generalized linear models.
 
-
 # Preliminary Findings
-## Carbonate Chemistry Analyses
-### ESPER Model Validation
-All three ESPER models show comparable performance when predicting in-situ values for TA and DIC (Table 1). Model performance is improved (as expected) when the full set of input variables is used, as opposed to predicting based on temperature and salinity. The metrics also show superior performance of the models when predicting TA over DIC values. 
 
-![Table 1: RMSE, median and mean percent error for the three ESPER models. Performance is comparable between models and all models show a slight bias in their predictions.](~/capstone-calcofi-seagrant/interim-report/img/team6-table1.png){width=80%}
+## Carbonate Chemistry Analyses
+
+### ESPER Model Validation
+
+All three ESPER models show comparable performance when predicting in-situ values for TA and DIC (Table 1). Model performance is improved (as expected) when the full set of input variables is used, as opposed to predicting based on temperature and salinity. The metrics also show superior performance of the models when predicting TA over DIC values.
+
+![Table 1: RMSE, median and mean percent error for the three ESPER models. Performance is comparable between models and all models show a slight bias in their predictions.](~/capstone-calcofi-seagrant/interim-report/img/team6-table1.png){width="80%"}
 
 Overall, all ESPER models have a small but statistically significant bias when predicting TA and DIC values using the CalCOFI bottle data, as shown in Table 2, which displays the p-values for the hypothesis test described above in Equation 1.
 
-![Table 2: Hypothesis testing results for the mean of the ESPER residuals (the bias, as described in Equation 1). The displayed p-values have been adjusted for alpha inflation using the Benjamini-Hochberg procedure.](~/capstone-calcofi-seagrant/interim-report/img/team6-table2.png){width=40%}
+![Table 2: Hypothesis testing results for the mean of the ESPER residuals (the bias, as described in Equation 1). The displayed p-values have been adjusted for alpha inflation using the Benjamini-Hochberg procedure.](~/capstone-calcofi-seagrant/interim-report/img/team6-table2.png){width="40%"}
 
 Figure 1 displays the ESPER NN model predictions against observations for TA and DIC, with observations colored by their depth (in meters). Generally, the accuracy of ESPER predictions decreases at both the shallowest and deepest depths and extreme values of TA and DIC.
 
-![Figure 1: ESPER NN predictions plotted against observed values of TA and DIC. Perfect predictions are represented by the solid diagonal line in black (the further a point is from this line, the less accurate the prediction).](~/capstone-calcofi-seagrant/interim-report/img/team6-figure1.png){width=70%}
+![Figure 1: ESPER NN predictions plotted against observed values of TA and DIC. Perfect predictions are represented by the solid diagonal line in black (the further a point is from this line, the less accurate the prediction).](~/capstone-calcofi-seagrant/interim-report/img/team6-figure1.png){width="70%"}
 
 Figure 2 displays the ESPER NN model residuals against the six input variables to the model. Generally, the accuracy of ESPER predictions decreases for extreme values of oxygen concentration, phosphate, and silicate.
 
-![Figure 2: Plot of ESPER NN residuals against the six input variables to the model.](~/capstone-calcofi-seagrant/interim-report/img/team6-figure2.png){width=80%}
+![Figure 2: Plot of ESPER NN residuals against the six input variables to the model.](~/capstone-calcofi-seagrant/interim-report/img/team6-figure2.png){width="80%"}
 
 ### Ocean Acidification Trends
 
 The regression results of the mixed effects model can be seen in Table 3 below. The slope, standard error, confidence intervals, and p-values refer to the time parameter estimated in the respective regression model. All carbonate chemistry and ocean acidification variables had a statistically significant time trend at the $\alpha = 0.05$ level, while both hydrography variables, temperature and salinity, were not found to have a significant temporal trend.
 
-![Table 3: Mixed effects regression results for hydrography and carbonate chemistry variables regressed against time and depth. Shown values refer to the estimated parameter for time.](~/capstone-calcofi-seagrant/interim-report/img/team6-table3.png){width=60%}
+![Table 3: Mixed effects regression results for hydrography and carbonate chemistry variables regressed against time and depth. Shown values refer to the estimated parameter for time.](~/capstone-calcofi-seagrant/interim-report/img/team6-table3.png){width="60%"}
 
 Figure 3 shows model results aggregated by station. Models with less than 10 observations used in model fitting were removed from this aggregation. Station 90.90 has the highest proportion of variables of interest with a significant temporal trend, and stations further from the coast tend to have a larger proportion of variables of interest with a significant temporal trend.
 
-![Figure 3: Map of aggregated model results by station.](~/capstone-calcofi-seagrant/interim-report/img/team6-figure3.png){width=70%}
-
+![Figure 3: Map of aggregated model results by station.](~/capstone-calcofi-seagrant/interim-report/img/team6-figure3.png){width="70%"}
 
 ## Biological Data Analyses
 
@@ -102,27 +127,23 @@ Figure 3 shows model results aggregated by station. Models with less than 10 obs
 
 We created two spatial GAM models for log-transformed total plankton abundance and log-transformed small plankton abundance, respectively, where warmer colors indicate regions associated with lower abundance, while cooler yellow tones represent areas with higher predicted abundance. Both response variables use the smooth parameters pH, TA, DIC, salinity, temperature, year, month, and station ID and tensor product smooths between latitude and longitude.
 
-::: {layout-ncol=2}
-![Figure 4: Spatial smooth from the GAM model showing the partial effect of latitude and longitude on log-transformed total plankton abundance.](~/capstone-calcofi-seagrant/interim-report/img/team6-figure4.png){width=30%}
+::: {layout-ncol="2"}
+![Figure 4: Spatial smooth from the GAM model showing the partial effect of latitude and longitude on log-transformed total plankton abundance.](~/capstone-calcofi-seagrant/interim-report/img/team6-figure4.png){width="30%"}
 
-
-
-![Figure 6: Spatial smooth from the GAM model showing the partial effect of latitude and longitude on log-transformed small plankton abundance.](~/capstone-calcofi-seagrant/interim-report/img/team6-figure6.png){width=30%}
-
+![Figure 6: Spatial smooth from the GAM model showing the partial effect of latitude and longitude on log-transformed small plankton abundance.](~/capstone-calcofi-seagrant/interim-report/img/team6-figure6.png){width="30%"}
 :::
 
-For total plankton abundance, the GAM model reveals that spatial location, seasonality (month), and long-term temporal trends (year) are the strongest predictors, explaining 28% of the variability. Figure 4 shows higher abundances are predicted along the eastern and southeastern coastal regions, while lower abundances appear offshore, especially in the southwestern region. Based on the model results, pH showed a slight positive relationship with abundance while other variables like TA, DIC, salinity, and temperature did not have significant effects in this model (see Figure 5 in Appendix). 
+For total plankton abundance, the GAM model reveals that spatial location, seasonality (month), and long-term temporal trends (year) are the strongest predictors, explaining 28% of the variability. Figure 4 shows higher abundances are predicted along the eastern and southeastern coastal regions, while lower abundances appear offshore, especially in the southwestern region. Based on the model results, pH showed a slight positive relationship with abundance while other variables like TA, DIC, salinity, and temperature did not have significant effects in this model (see Figure 5 in Appendix).
 
 For small plankton abundance, the GAM model explains approximately 35% of the variance, with significant effects from spatial location, pH, TA, temperature, year, and month. Figure 6 shows higher abundance predicted along the southern and eastern coastal regions, and lower abundance offshore to the southwest. The model shows that plankton abundance tends to increase with higher pH, suggesting potential sensitivity of small plankton to acidification. Higher TA is associated with decreased abundance, while temperature has a nonlinear effect. From the model summary, other variables such as DIC, salinity, and station ID showed no significant influence on abundance (See Figure 7 in Appendix).
 
-
 ### Krill Models
 
-To investigate the spatial and environmental drivers of Thysanoessa gregaria occurrence, we applied two modeling strategies: a Random Forest classification model for presence/absence prediction, and a PCA + K-means clustering analysis to explore abundance patterns.  
+To investigate the spatial and environmental drivers of Thysanoessa gregaria occurrence, we applied two modeling strategies: a Random Forest classification model for presence/absence prediction, and a PCA + K-means clustering analysis to explore abundance patterns.
 
 #### Random Forest (Presence/Absence Classification)
 
-![Figure 8: Random Forest model confusion matrix and call output for presence/absence classification of Thysanoessa gregaria.](~/capstone-calcofi-seagrant/interim-report/img/team6-figure8.png){width=55%}
+![Figure 8: Random Forest model confusion matrix and call output for presence/absence classification of Thysanoessa gregaria.](~/capstone-calcofi-seagrant/interim-report/img/team6-figure8.png){width="55%"}
 
 In Figure 8, a random forest model was trained using a set of environmental predictors including pH, temperature (CTDTEMP_ITS90), salinity, total alkalinity (TA), dissolved inorganic carbon (DIC), depth, month, and Station_ID. The inclusion of Station_ID significantly enhanced model performance, reducing the out-of-bag (OOB) error rate to 15.38%, compared to a substantially higher error rate in the model without it.
 
@@ -132,8 +153,7 @@ Notably, the model achieved 100% accuracy for predicting presence ('yes'), corre
 
 To further understand abundance variation, we performed PCA on environmental variables followed by K-means clustering.
 
-![Figure 11: PCA biplot overlaid with K-means clustering results (k = 3).](~/capstone-calcofi-seagrant/interim-report/img/team6-figure11.png){width=50%}
-
+![Figure 11: PCA biplot overlaid with K-means clustering results (k = 3).](~/capstone-calcofi-seagrant/interim-report/img/team6-figure11.png){width="50%"}
 
 The elbow plot (see Figure 10 in Appendix) shows a sharp decline is observed up to k = 3, suggesting three clusters as the optimal choice for grouping ecological sample points. In Figure 11, each cluster corresponds to a distinct grouping in environmental space, indicating different habitat types for T. gregaria. Cluster 1 has the highest mean abundance, while Cluster 3 contains only zero values, suggesting unsuitable habitat or timing. Each cluster reflected distinct habitat characteristics: Cluster 1 has a high mean log-abundance (3.10) which likely represents ideal environmental conditions, Cluster 2 has an intermediate abundance (2.58) which may correspond to marginal habitats or transitional seasonal conditions, and Cluster 3 has zero abundance which is likely unsuitable sites or times for T. gregaria presence (see Table 4 in Appendix).
 
@@ -143,10 +163,10 @@ These results confirm that T. gregaria abundance can be meaningfully grouped by 
 
 When modeling the difference between calcifiers and non-calcifers, we explored LASSO regression and spatial GAMS. Unfortunately, the performance of the LASSO regression was not optimal (see Tables 5-6 in Appendix) so we proceeded with spatial GAMs.
 
-::: {layout-ncol=2}
-![Figure 12: GAM model with spatial splines for each calcifying species.](~/capstone-calcofi-seagrant/interim-report/img/team6-figure12.png){width=70%}
+::: {layout-ncol="2"}
+![Figure 12: GAM model with spatial splines for each calcifying species.](~/capstone-calcofi-seagrant/interim-report/img/team6-figure12.png){width="70%"}
 
-![Figure 13: GAM model with spatial splines for other species (first 6 species are shown).](~/capstone-calcofi-seagrant/interim-report/img/team6-figure13.png){width=70%}
+![Figure 13: GAM model with spatial splines for other species (first 6 species are shown).](~/capstone-calcofi-seagrant/interim-report/img/team6-figure13.png){width="70%"}
 :::
 
 From Figures 12-13, we observe that the spatial patterns differ from species to species, but most models show a positive effect of location on abundance nearshore and a negative effect away from the coast. No obvious differences are found between calcifying and non-calcifying species. The models typically explain around 15% of the variance in the data.
@@ -165,11 +185,11 @@ A big takeaway is that there is spatial autocorrelation detected in the biologic
 
 ## Carbonate Chemistry
 
-In the future, we aim to conduct a rigorous hypothesis test for coastal stations experiencing slower carbon uptake. Additionally, we want to find ways to get more insight from the results of the station by station regression results. Given sufficient time, we would like to explore ways to properly model depth with our variables of interest, and in particular examine whether depth and time have a statistically significant interaction for each variable of interest. 
+In the future, we aim to conduct a rigorous hypothesis test for coastal stations experiencing slower carbon uptake. Additionally, we want to find ways to get more insight from the results of the station by station regression results. Given sufficient time, we would like to explore ways to properly model depth with our variables of interest, and in particular examine whether depth and time have a statistically significant interaction for each variable of interest.
 
 ## Biological Data
 
-To improve model performance, we plan to incorporate additional nutrient-based and ocean chemistry variables, such as aragonite, pCO2, and chlorophyll, and metrics such as the depth of the saturation horizon. We aim to increase the proportion of explained variability to at least 50% of the variability so we can make more definitive predictions and clearer interpretations of how specific chemical factors influence biovolumes. Furthermore, we intend to use the depth of the saturation horizon to create vertical profiles of aragonite saturation values and examine how changes in water column chemistry impact calcifying/non-calcifying species, initially focusing on specific taxa and stations. 
+To improve model performance, we plan to incorporate additional nutrient-based and ocean chemistry variables, such as aragonite, pCO2, and chlorophyll, and metrics such as the depth of the saturation horizon. We aim to increase the proportion of explained variability to at least 50% of the variability so we can make more definitive predictions and clearer interpretations of how specific chemical factors influence biovolumes. Furthermore, we intend to use the depth of the saturation horizon to create vertical profiles of aragonite saturation values and examine how changes in water column chemistry impact calcifying/non-calcifying species, initially focusing on specific taxa and stations.
 
 # Appendix
 
@@ -177,20 +197,16 @@ To improve model performance, we plan to incorporate additional nutrient-based a
 
 ![Figure 7: Partial effect plots for remaining GAM smooth terms on small plankton abundance.](~/capstone-calcofi-seagrant/interim-report/img/team6-figure7.png)
 
-![Figure 9: Variable importance plots based on Mean Decrease Accuracy and Gini Index from the Random Forest model.](~/capstone-calcofi-seagrant/interim-report/img/team6-figure9.png){width=50%}
+![Figure 9: Variable importance plots based on Mean Decrease Accuracy and Gini Index from the Random Forest model.](~/capstone-calcofi-seagrant/interim-report/img/team6-figure9.png){width="50%"}
 
-![Figure 10: Elbow plot showing the total within-cluster sum of squares for k = 1 to 10.](~/capstone-calcofi-seagrant/interim-report/img/team6-figure10.png){width=60%}
+![Figure 10: Elbow plot showing the total within-cluster sum of squares for k = 1 to 10.](~/capstone-calcofi-seagrant/interim-report/img/team6-figure10.png){width="60%"}
 
-![Table 4: Mean log-transformed abundance of Thysanoessa gregaria for each of the three clusters.](~/capstone-calcofi-seagrant/interim-report/img/team6-table4.png){width=55%}
+![Table 4: Mean log-transformed abundance of Thysanoessa gregaria for each of the three clusters.](~/capstone-calcofi-seagrant/interim-report/img/team6-table4.png){width="55%"}
 
 #### PRPOOS Models: LASSO Regression Attempt
 
+![Table 5: OLS model results of the abundance of calcifying species using predictors selected by LASSO regression.](~/capstone-calcofi-seagrant/interim-report/img/team6-table5.png){width="70%"}
 
-![Table 5: OLS model results of the abundance of calcifying species using predictors selected by LASSO regression.](~/capstone-calcofi-seagrant/interim-report/img/team6-table5.png){width=70%}
+![Table 6: OLS model results of the abundance of other species using predictors selected by LASSO regression.](~/capstone-calcofi-seagrant/interim-report/img/team6-table6.png){width="80%"}
 
-![Table 6: OLS model results of the abundance of other species using predictors selected by LASSO regression. ](~/capstone-calcofi-seagrant/interim-report/img/team6-table6.png){width=80%}
-
-
-Response variables (the abundance of different taxa) are shown in the taxa column in Tables 5-6. Predictors are shown in the Term column, and the corresponding coefficient estimate, p-value, and adjusted-$R^2$ values of the models are shown in the next 3 columns, respectively. P-values less than 0.05 indicates that the predictor is statistically significant. Adjusted-$R^2$ values reflect the proportion of variance of the data explained by the model. The best model explains only around 50% of the variance in the data so we cannot draw any conclusion from the models at this point. 
-
-
+Response variables (the abundance of different taxa) are shown in the taxa column in Tables 5-6. Predictors are shown in the Term column, and the corresponding coefficient estimate, p-value, and adjusted-$R^2$ values of the models are shown in the next 3 columns, respectively. P-values less than 0.05 indicates that the predictor is statistically significant. Adjusted-$R^2$ values reflect the proportion of variance of the data explained by the model. The best model explains only around 50% of the variance in the data so we cannot draw any conclusion from the models at this point.

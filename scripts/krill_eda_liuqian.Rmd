@@ -651,7 +651,7 @@ for (species in highlighted_species) {
 ```
 
 ```{r}
-# quartz(width = 20, height = 18)  # On Mac
+#quartz(width = 300, height = 18)  # On Mac
 
 # Set up 2x2 plot layout
 par(mfrow = c(2, 3))
@@ -667,8 +667,68 @@ for (species in setdiff(abundance_vars, highlighted_species)) {
   plot(gam_model, select = 1, scheme = 2,
        xlim = range(prpoos_summary$Longitude) + c(-0.5, 0.5),
        ylim = range(prpoos_summary$Latitude) + c(-0.5, 0.5),
-       main = paste(species, "~ Location + pH + OmegaCA + CO3"),
+     main = gsub("Abundance$", "", species),  # Clean title
        xlab = "Longitude", ylab = "Latitude")
 }
+```
+
+```{r}
+library(ggplot2)
+
+ggplot(merged_bottle_co2sys, aes(x = OmegaARout, y = Depthm)) +
+  geom_point(alpha = 0.6, color = "blue") +
+  scale_y_reverse() +
+  theme_minimal() +
+  labs(
+    title = "Scatter Plot of OmegaARout vs. Depth",
+    x = "OmegaAR",
+    y = "Depth (m)"
+  ) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold")
+  )
+
+
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+years <- 2007:2025
+
+for (species in years) {
+  filtered_data <- merged_bottle_co2sys %>%
+    filter(!is.na(Depthm) & !is.na(OmegaARout)) %>% 
+    filter(Station_ID == "081.8 046.9") %>% 
+    filter(Year_UTC == species)
+
+  p <- ggplot(filtered_data, aes(x = OmegaARout, y = Depthm)) +
+    geom_point(alpha = 0.6, color = "blue") +
+    geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), color = "red", se = FALSE) +
+    scale_y_reverse() +
+    theme_minimal() +
+    labs(
+      title = paste("Scatter Plot for Year", species),
+      x = "OmegaAR",
+      y = "Depth (m)"
+    ) +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold")
+    )
+  
+  print(p)
+}
+
+
+
+```
+
+```{r}
+# eda plots
+ggplot() +
+  geom_point(aes(x = Date_cc, y = Station_ID), 
+             alpha = 0.2, data = filtered_data) +
+  theme_minimal()
 ```
 
