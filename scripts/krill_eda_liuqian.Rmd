@@ -534,29 +534,78 @@ model_summary <- map_dfr(abundance_vars, function(var_name) {
   
   # Add abundance name and R²
   tidy_fit %>%
-    mutate(variable = var_name, adj_r2 = r2) %>%
-    select(variable, term, estimate, p.value, adj_r2)
+    mutate(taxa = var_name, adj_r2 = r2) %>%
+    select(taxa, term, estimate, p.value, adj_r2)
 })
 
-model_summary <- model_summary %>% arrange(term)
+model_summary <- model_summary %>% 
+  arrange(term) 
 
 # Define the four species of interest
 highlighted_species <- c("bryozoan_larvaeAbundance", "pteropoda_heteropodaAbundance", "ostracodsAbundance", "rhizariaAbundance")
 
 # Split the full summary
 highlighted_summary <- model_summary %>%
-  filter(variable %in% highlighted_species) %>%
+  filter(taxa %in% highlighted_species) %>%
   arrange(desc(adj_r2), term)
 
 other_species_summary <- model_summary %>%
-  filter(!variable %in% highlighted_species) %>%
+  filter(!taxa %in% highlighted_species) %>%
   arrange(desc(adj_r2), term)
 
 # View them separately
-print("🔴 Calcifier Species Summary:")
-print(highlighted_summary)
-print("⚫ Other Species Summary:",)
-print(other_species_summary)
+# Install if not already installed
+# install.packages("gt")
+
+library(gt)
+library(dplyr)
+
+highlighted_summary %>%
+  mutate(across(where(is.numeric), ~ round(.x, 3))) %>%
+  gt() %>%
+  tab_header(
+    title = "Cacifiers Model Summary Table"
+  ) %>%
+  cols_label(
+    taxa = "Taxa",
+    term = "Term",
+    estimate = "Estimate",
+    p.value = "P-Value",
+    adj_r2 = "Adjusted R²"
+  ) %>%
+  fmt_number(
+    columns = vars(estimate, p.value, adj_r2),
+    decimals = 3
+  ) %>%
+  cols_align(
+    align = "center",
+    columns = everything()
+  )
+```
+
+```{r}
+other_species_summary %>%
+  mutate(across(where(is.numeric), ~ round(.x, 3))) %>%
+  gt() %>%
+  tab_header(
+    title = "Other Species Model Summary Table"
+  ) %>%
+  cols_label(
+    taxa = "Taxa",
+    term = "Term",
+    estimate = "Estimate",
+    p.value = "P-Value",
+    adj_r2 = "Adjusted R²"
+  ) %>%
+  fmt_number(
+    columns = vars(estimate, p.value, adj_r2),
+    decimals = 3
+  ) %>%
+  cols_align(
+    align = "center",
+    columns = everything()
+  )
+
 ```
 
 ```{r}
@@ -581,3 +630,105 @@ plot(gam_model, select = 1, scheme = 2,
      xlab = "Longitude", ylab = "Latitude")
 
 ```
+
+```{r}
+# Set up 2x2 plot layout
+par(mfrow = c(2, 2))
+
+# Loop through each species and fit the GAM model
+for (species in highlighted_species) {
+  # Fit GAM model
+  formula_text <- as.formula(paste(species, "~ s(Longitude, Latitude, k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean)"))
+  gam_model <- gam(formula_text, data = prpoos_summary)
+  
+  # Plot spatial smooth for this species
+  plot(gam_model, select = 1, scheme = 2,
+       xlim = range(prpoos_summary$Longitude) + c(-0.5, 0.5),
+       ylim = range(prpoos_summary$Latitude) + c(-0.5, 0.5),
+       main = paste(species, "~ Location + pH + OmegaCA + CO3"),
+       xlab = "Longitude", ylab = "Latitude")
+}
+```
+
+```{r}
+#quartz(width = 300, height = 18)  # On Mac
+
+# Set up 2x2 plot layout
+par(mfrow = c(2, 3))
+
+abundance_vars <- names(prpoos_summary)[str_detect(names(prpoos_summary), "Abundance$")]
+
+for (species in setdiff(abundance_vars, highlighted_species)) {
+  # Fit GAM model
+  formula_text <- as.formula(paste(species, "~ s(Longitude, Latitude, k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean)"))
+  gam_model <- gam(formula_text, data = prpoos_summary)
+  
+  # Plot spatial smooth for this species
+  plot(gam_model, select = 1, scheme = 2,
+       xlim = range(prpoos_summary$Longitude) + c(-0.5, 0.5),
+       ylim = range(prpoos_summary$Latitude) + c(-0.5, 0.5),
+     main = gsub("Abundance$", "", species),  # Clean title
+       xlab = "Longitude", ylab = "Latitude")
+}
+```
+
+```{r}
+library(ggplot2)
+
+ggplot(merged_bottle_co2sys, aes(x = OmegaARout, y = Depthm)) +
+  geom_point(alpha = 0.6, color = "blue") +
+  scale_y_reverse() +
+  theme_minimal() +
+  labs(
+    title = "Scatter Plot of OmegaARout vs. Depth",
+    x = "OmegaAR",
+    y = "Depth (m)"
+  ) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold")
+  )
+
+
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+years <- 2007:2025
+
+for (species in years) {
+  filtered_data <- merged_bottle_co2sys %>%
+    filter(!is.na(Depthm) & !is.na(OmegaARout)) %>% 
+    filter(Station_ID == "081.8 046.9") %>% 
+    filter(Year_UTC == species)
+
+  p <- ggplot(filtered_data, aes(x = OmegaARout, y = Depthm)) +
+    geom_point(alpha = 0.6, color = "blue") +
+    geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), color = "red", se = FALSE) +
+    scale_y_reverse() +
+    theme_minimal() +
+    labs(
+      title = paste("Scatter Plot for Year", species),
+      x = "OmegaAR",
+      y = "Depth (m)"
+    ) +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold")
+    )
+  
+  print(p)
+}
+
+
+
+```
+
+```{r}
+# eda plots
+ggplot() +
+  geom_point(aes(x = Date_cc, y = Station_ID), 
+             alpha = 0.2, data = filtered_data) +
+  theme_minimal()
+```
+
