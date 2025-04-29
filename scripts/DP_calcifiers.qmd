@@ -2,6 +2,7 @@
 library(tidyverse)
 library(sf)
 library(maps)
+library(ggplot2)
 ```
 
 
@@ -221,15 +222,47 @@ ggplot(rhizaria_by_station, aes(x = longitude, y = latitude)) +
 ```
 
 
+```{r}
+co2sys <- read.csv('../data/merged_bottle_co2sys.csv')
 
+depth_omega <- co2sys %>%
+  select('Depth', 'OmegaCAin', 'OmegaARin') %>%
+  drop_na() %>%
+  mutate(log_Depth = log(Depth))
 
+depth_omega
+```
 
+```{r}
+# count by station
+co2sys_stations <- co2sys %>% 
+  group_by(Station_ID) %>% 
+  count() %>% 
+  filter(n > 200) %>% 
+  select(Station_ID)
+
+# partition co2sys data by station
+stations <- unique(co2sys_stations$Station_ID)
+
+for (station in stations){
+  assign(paste0('co2sys_', station), subset(co2sys, Station_ID == station) %>%
+    select('Station_ID', 'Year_UTC', 'Depth', 'OmegaCAin', 'OmegaARin') %>%
+    drop_na())
+}
+```
 
 
 ```{r}
-unique(byrozoan_co2sys[, c('longitude', 'latitude')])
+ggplot(data = `co2sys_090.0 090.0`, aes(x = OmegaCAin, y = Depth)) + 
+  geom_point(alpha = 0.5) + 
+  scale_y_continuous(trans = 'reverse') + 
+  facet_wrap('Year_UTC', ncol = 5)
 ```
 
+```{r}
+pteropoda %>%
+  arrange(Cruise, Station_ID, Cruise.mid.date, Local.time..PST.)
+```
 
 
 
