@@ -284,16 +284,16 @@ for (i in 1:length(qty)) {
         values = c("Yes" = "blue", "No" = "red"),
       ) +
       labs(
-        x = "Distance to shore (km)",
-        y = "Estimated Slope",
-        title = TeX(paste0("Estimated Slope for ",qty_names[i]," against Station Number")),
+        x = "Distance from shore (km)",
+        y = TeX(paste0("Estimated Slope (", units[i],")")),
+        title = TeX(paste0("Estimated Slope for ",qty_names[i]," against Distance from Shore")),
         color = "Significance"
       ) +
       theme_bw()
   )
   
   # save plots
-  ggsave(paste0("images/OA_trends/",qty[i],"_by_station_number.png"), bg = "white")
+  ggsave(paste0("images/OA_trends/",qty[i],"_vs_shore_dist.png"), bg = "white")
 }
 
 # GENERATE TABULAR SUMMARIES ----------------------------------------------
