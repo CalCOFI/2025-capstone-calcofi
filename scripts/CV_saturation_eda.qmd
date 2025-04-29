@@ -1,0 +1,301 @@
+```{r}
+bottle_data <- read_csv(here::here("data/merged_bottle_co2sys.csv"))
+library(ggplot2)
+library(dplyr)
+```
+
+```{r}
+df_timeline <- bottle_data %>%
+  mutate(
+    YearMonth = ymd(paste(Year_UTC, Month_UTC, "01", sep = "-")),
+    Station_ID = as.factor(Station_ID)  
+  ) %>%
+  dplyr::select(Station_ID, YearMonth) %>%
+  distinct()  
+
+ggplot(df_timeline, aes(x = YearMonth, y = Station_ID)) +
+  geom_point(alpha = 0.6, color = "darkblue") +
+  labs(
+    title = "Timeline of Observations by Station",
+    x = "Date",
+    y = "Station ID"
+  ) +
+  theme_minimal() +
+  scale_x_date(date_labels = "%Y-%m", date_breaks = "6 months") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+```{r}
+station_counts <- bottle_data %>%
+  filter(Year_UTC >= 2008) %>%
+  count(Station_ID, sort = TRUE)
+
+print(station_counts)
+```
+```{r}
+years <- 2008:2021
+
+for (species in years) {
+  filtered_data <- bottle_data %>%
+    filter(!is.na(Depthm) & !is.na(OmegaARout)) %>% 
+    filter(Station_ID == "080.0 080.0") %>% 
+    filter(Year_UTC == species)
+
+  p <- ggplot(filtered_data, aes(x = OmegaARout, y = Depthm)) +
+    geom_point(alpha = 0.6, color = "blue") +
+    geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), color = "red", se = FALSE) +
+    scale_y_reverse() +
+    theme_minimal() +
+    labs(
+      title = paste("Scatter Plot for Year", species),
+      x = "OmegaAR",
+      y = "Depth (m)"
+    ) +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold")
+    )
+  
+  print(p)
+}
+
+# omegaAR by depth plots
+ggplot() +
+  geom_point(aes(x = Date_cc, y = Station_ID), 
+             alpha = 0.2, data = filtered_data) +
+  theme_minimal()
+
+
+```
+
+
+```{r}
+library(tidyverse)
+library(mgcv)
+
+saturation_depths <- tibble(
+  Station_ID = character(),
+  Year_UTC = integer(),
+  Depth_Saturation_Horizon = numeric()
+)
+
+years <- 2008:2021
+
+for (species in years) {
+  filtered_data <- bottle_data %>%
+    filter(!is.na(Depthm) & !is.na(OmegaARout)) %>%
+    filter(Station_ID == "081.8 046.9") %>%
+    filter(Year_UTC == species)
+
+  if (nrow(filtered_data) > 1) {
+    gam_fit <- gam(Depthm ~ s(OmegaARout, bs = "cs", k = 4), data = filtered_data)
+
+    predicted_depth <- predict(gam_fit, newdata = tibble(OmegaARout = 1))
+
+    saturation_depths <- saturation_depths %>%
+      add_row(Station_ID = "081.8 046.9", Year_UTC = species, Depth_Saturation_Horizon = predicted_depth)
+  } else {
+    saturation_depths <- saturation_depths %>%
+      add_row(Station_ID = "081.8 046.9", Year_UTC = species, Depth_Saturation_Horizon = NA_real_)
+  }
+}
+
+bottle_data <- bottle_data %>%
+  left_join(saturation_depths, by = c("Station_ID", "Year_UTC"))
+
+```
+
+```{r}
+bottle_data %>% filter(Station_ID == "081.8 046.9") %>% dplyr::select(Station_ID, Year_UTC, Month_UTC, Depth_Saturation_Horizon)
+```
+
+```{r}
+station_081.8_046.9 <- bottle_data %>%
+  filter(Station_ID == "081.8 046.9")
+
+ggplot(station_081.8_046.9, aes(x = Year_UTC, y = Depth_Saturation_Horizon)) +
+  geom_point(alpha = 0.6, color = "blue", size = 2) +
+  geom_line(alpha = 0.8, color = "blue") +
+  theme_minimal() +
+  labs(
+    title = "Depth of Saturation Horizon by Year for Station 81.8 46.9",
+    x = "Year",
+    y = "Depth of Saturation Horizon (m)"
+  ) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold")
+  ) +
+  scale_y_reverse() 
+```
+
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+
+# station of interest
+station_of_interest <- "081.8 046.9"
+
+# compute number of observations per station per year
+year_counts <- bottle_data %>%
+  filter(Station_ID == station_of_interest) %>%
+  count(Year_UTC, name = "n_obs")
+
+# get the saturation depths
+saturation_summary <- bottle_data %>%
+  filter(Station_ID == station_of_interest) %>%
+  distinct(Station_ID, Year_UTC, Depth_Saturation_Horizon)
+
+# gerge counts into saturation summary
+saturation_summary <- saturation_summary %>%
+  left_join(year_counts, by = "Year_UTC") %>%
+  mutate(data_quality = if_else(n_obs < 10, "Few Observations", "Sufficient Observations"))
+
+# plot
+ggplot(saturation_summary, aes(x = Year_UTC, y = Depth_Saturation_Horizon, color = data_quality)) +
+  geom_point(size = 3) +
+  geom_line(aes(group = 1), color = "grey50", alpha = 0.5) +
+  scale_color_manual(values = c("Few Observations" = "red", "Sufficient Observations" = "blue")) +
+  scale_y_reverse() +
+  labs(
+    title = paste("Depth of Saturation Horizon by Year for Station", station_of_interest),
+    x = "Year",
+    y = "Depth of Saturation Horizon (m)",
+    color = "Data Quality"
+  ) +
+  theme_minimal() +
+  theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+
+```
+
+```{r}
+# Function!!!
+plot_saturation_horizon <- function(station_id, data) {
+  
+  # build saturation depths table
+  saturation_depths <- tibble(
+    Station_ID = character(),
+    Year_UTC = integer(),
+    Depth_Saturation_Horizon = numeric()
+  )
+  
+  years <- 2008:2021
+  
+  for (species in years) {
+    filtered_data <- data %>%
+      filter(!is.na(Depthm) & !is.na(OmegaARout)) %>%
+      filter(Station_ID == station_id) %>%
+      filter(Year_UTC == species)
+    
+    if (nrow(filtered_data) > 1) {
+      gam_fit <- gam(Depthm ~ s(OmegaARout, bs = "cs", k = 4), data = filtered_data)
+      
+      predicted_depth <- predict(gam_fit, newdata = tibble(OmegaARout = 1))
+      
+      saturation_depths <- saturation_depths %>%
+        add_row(Station_ID = station_id, Year_UTC = species, Depth_Saturation_Horizon = predicted_depth)
+      
+    } else {
+      saturation_depths <- saturation_depths %>%
+        add_row(Station_ID = station_id, Year_UTC = species, Depth_Saturation_Horizon = NA_real_)
+    }
+  }
+  
+  # merge saturation depths into the data
+  year_counts <- data %>%
+    filter(Station_ID == station_id) %>%
+    count(Year_UTC, name = "n_obs")
+  
+  # merge counts into saturation_depths (not into the original bottle_data!)
+  saturation_summary <- saturation_depths %>%
+    left_join(year_counts, by = "Year_UTC") %>%
+    mutate(data_quality = if_else(n_obs < 10, "Few Observations", "Sufficient Observations"))
+  
+  # plot
+  p <- ggplot(saturation_summary, aes(x = Year_UTC, y = Depth_Saturation_Horizon, color = data_quality)) +
+    geom_point(size = 3) +
+    geom_line(aes(group = 1), color = "grey50", alpha = 0.5) +
+    scale_color_manual(values = c("Few Observations" = "red", "Sufficient Observations" = "blue")) +
+    scale_y_reverse() +
+    labs(
+      title = paste("Depth of Saturation Horizon by Year for Station", station_id),
+      x = "Year",
+      y = "Depth of Saturation Horizon (m)",
+      color = "Data Quality"
+    ) +
+    theme_minimal() +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+  
+  print(p)
+}
+
+
+
+
+
+```
+
+```{r}
+# updated function - look at this
+plot_saturation_horizon <- function(station_id, data) {
+  
+  saturation_depths <- tibble(
+    Station_ID = character(),
+    Year_UTC = integer(),
+    Depth_Saturation_Horizon = numeric()
+  )
+  
+  years <- 2008:2021
+  
+  for (species in years) {
+    filtered_data <- data %>%
+      filter(!is.na(Depthm) & !is.na(OmegaARout)) %>%
+      filter(Station_ID == station_id) %>%
+      filter(Year_UTC == species)
+
+    n_unique <- filtered_data %>% pull(OmegaARout) %>% unique() %>% length()
+
+    if (nrow(filtered_data) > 1 && n_unique > 2) {  
+      safe_k <- min(4, n_unique - 1)  
+      gam_fit <- gam(Depthm ~ s(OmegaARout, bs = "cs", k = safe_k), data = filtered_data)
+      
+      predicted_depth <- predict(gam_fit, newdata = tibble(OmegaARout = 1))
+      
+      saturation_depths <- saturation_depths %>%
+        add_row(Station_ID = station_id, Year_UTC = species, Depth_Saturation_Horizon = predicted_depth)
+      
+    } else {
+      saturation_depths <- saturation_depths %>%
+        add_row(Station_ID = station_id, Year_UTC = species, Depth_Saturation_Horizon = NA_real_)
+    }
+  }
+
+  year_counts <- data %>%
+    filter(Station_ID == station_id) %>%
+    count(Year_UTC, name = "n_obs")
+  
+  saturation_summary <- saturation_depths %>%
+    left_join(year_counts, by = "Year_UTC") %>%
+    mutate(data_quality = if_else(n_obs < 10, "Few Observations", "Sufficient Observations"))
+  
+  p <- ggplot(saturation_summary, aes(x = Year_UTC, y = Depth_Saturation_Horizon, color = data_quality)) +
+    geom_point(size = 3) +
+    geom_line(aes(group = 1), color = "grey50", alpha = 0.5) +
+    scale_color_manual(values = c("Few Observations" = "red", "Sufficient Observations" = "blue")) +
+    scale_y_reverse() +
+    labs(
+      title = paste("Depth of Saturation Horizon by Year for Station", station_id),
+      x = "Year",
+      y = "Depth of Saturation Horizon (m)",
+      color = "Data Quality"
+    ) +
+    theme_minimal() +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+  
+  print(p)
+}
+
+plot_saturation_horizon("080.0 080.0", bottle_data)
+```
+
+questions for erika:
+- what is the best way to interpolate?
