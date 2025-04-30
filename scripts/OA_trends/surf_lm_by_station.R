@@ -250,3 +250,64 @@ ggplot(
     fill = "Mean Observations per Model",
     size = str_wrap("Proportion of Variables of Interest with Significant Temporal Trend", 40)
   )
+
+st_test <- stations
+st_test$st <- 0
+st_test$line <- 0
+for (i in 1:nrow(st_test)){
+  st_test$st[i] <- str_split(st_test$Station_ID[i], " ")[[1]][1]
+  st_test$line[i] <- str_split(st_test$Station_ID[i], " ")[[1]][2]
+}
+st_test <- st_test |> 
+mutate(coastal = case_when(
+  (as.numeric(st) <= 86) & (as.numeric(line) < 70) ~ TRUE,
+  (as.numeric(st) < 90) & (as.numeric(line) < 40) ~ TRUE,
+  (as.numeric(st)) >= 90 & (as.numeric(line) < 35) ~ TRUE,
+  TRUE ~ FALSE
+))
+
+ggplot(
+  data = world
+) +
+  geom_sf(fill = "antiquewhite1") +
+  geom_point(
+    data = st_test,
+    aes(
+      x = lon,
+      y = lat # number of significany predictors
+    ),
+    color = "black",
+    pch = 21,
+    show.legend=TRUE # force shape to always show in legend
+  ) +
+  geom_text(data = st_test, nudge_y = -.07 , size = 2, aes(x = lon, y = lat, label = coastal)) + 
+  # manually adjust coordinates
+  coord_sf(
+    xlim = c(st_test$lon %>% min() - 2, st_test$lon %>% max() + 2),
+    ylim = c(st_test$lat %>% min(), st_test$lat %>% max())
+  ) +
+  # create color scale for slope estimates
+  scale_fill_gradient2(
+    low = "#d7191c",
+    high = "#2c7bb6",
+    mid = "#ffffbf"
+  ) +
+  # create custom shape scale
+  scale_shape_manual(
+    values = c("Yes" = 24, "No" = 21),
+    drop = FALSE # force both shapes to always show in legend
+  ) +
+  theme(
+    panel.grid.major = element_line(
+      color = gray(0.5), 
+      linetype = "solid", 
+      linewidth = 0.5
+    ), 
+    panel.background = element_rect(fill = "aliceblue")
+  ) +
+  # fix the order of the legends
+  guides(
+    fill = guide_colorbar(order = 1),
+    size = guide_legend(order = 50),
+    shape = guide_legend(order = 98)
+  )

@@ -41,7 +41,19 @@ surf_bottle_co2sys <- surf_bottle_co2sys |> group_by(Station_ID, Depth, Date.cc)
             Salnty_dtd = mean(Salnty_dtd, na.rm = T)) |> 
   ungroup()
 
-
+surf_bottle_co2sys$st <- 0
+surf_bottle_co2sys$line <- 0
+for (i in 1:nrow(surf_bottle_co2sys)){
+  surf_bottle_co2sys$st[i] <- str_split(surf_bottle_co2sys$Station_ID[i], " ")[[1]][1]
+  surf_bottle_co2sys$line[i] <- str_split(surf_bottle_co2sys$Station_ID[i], " ")[[1]][2]
+}
+surf_bottle_co2sys <- surf_bottle_co2sys |> 
+  mutate(coastal = case_when(
+    (as.numeric(st) <= 86) & (as.numeric(line) < 70) ~ TRUE,
+    (as.numeric(st) < 90) & (as.numeric(line) < 40) ~ TRUE,
+    (as.numeric(st)) >= 90 & (as.numeric(line) < 35) ~ TRUE,
+    TRUE ~ FALSE
+  ))
 
 # Modeling
 
@@ -53,35 +65,35 @@ surf_bottle_co2sys <- surf_bottle_co2sys |>
   mutate(Date_Dec_cen = Date_Dec - min(surf_bottle_co2sys$Date_Dec))
 
 omegaARin_mod <- lmer(
-  OmegaARin_dtd ~ Date_Dec + Depth + (1 | Station_ID),
+  OmegaARin_dtd ~ Date_Dec + Date_Dec:coastal + Depth + coastal + (1 | Station_ID),
   data = surf_bottle_co2sys,
   na.action = na.omit,
   REML = FALSE
 )
 
 T_degC_mod <- lmer(
-  T_degC_dtd ~ Date_Dec +  Depth + (1 | Station_ID),
+  T_degC_dtd ~ Date_Dec + Date_Dec:coastal + Depth +  coastal + (1 | Station_ID),
   data = surf_bottle_co2sys,
   na.action = na.omit,
   REML = FALSE
 )
 
 Salnty_mod <- lmer(
-  Salnty_dtd ~ Date_Dec + (1 | Station_ID),
+  Salnty_dtd ~ Date_Dec + Date_Dec:coastal + coastal + (1 | Station_ID),
   data = surf_bottle_co2sys,
   na.action = na.omit,
   REML = FALSE
 )
 
 TA_mod <- lmer(
-  TA_dtd ~ Date_Dec + (1 | Station_ID),
+  TA_dtd ~ Date_Dec + Date_Dec:coastal + coastal + (1 | Station_ID),
   data = surf_bottle_co2sys,
   na.action = na.omit,
   REML = FALSE
 )
 
 DIC_mod <- lmer(
-  DIC_dtd ~ Date_Dec + Depth + (1 | Station_ID),
+  DIC_dtd ~ Date_Dec + Date_Dec:coastal +  Depth + coastal + (1 | Station_ID),
   data = surf_bottle_co2sys,
   na.action = na.omit,
   REML = FALSE
@@ -90,35 +102,35 @@ DIC_mod <- lmer(
 
 
 pCO2in_mod <- lmer(
-  pCO2in_dtd ~ Date_Dec + Depth + (1 | Station_ID),
+  pCO2in_dtd ~ Date_Dec + Date_Dec:coastal + Depth + coastal + (1 | Station_ID),
   data = surf_bottle_co2sys,
   na.action = na.omit,
   REML = FALSE
 )
 
 RFin_mod <- lmer(
-  RFin_dtd ~ Date_Dec + Depth + (1 | Station_ID),
+  RFin_dtd ~ Date_Dec + Date_Dec:coastal +  Depth + coastal + (1 | Station_ID),
   data = surf_bottle_co2sys,
   na.action = na.omit,
   REML = FALSE
 )
 
 pHin_mod <- lmer(
-  pHin_dtd ~ Date_Dec + (1 | Station_ID),
+  pHin_dtd ~ Date_Dec + Date_Dec:coastal + coastal + (1 | Station_ID),
   data = surf_bottle_co2sys,
   na.action = na.omit,
   REML = FALSE
 )
 
 CO3in_mod <- lmer(
-  CO3in_dtd ~ Date_Dec + Depth + (1 | Station_ID),
+  CO3in_dtd ~ Date_Dec + Date_Dec:coastal +  Depth + coastal + (1 | Station_ID),
   data = surf_bottle_co2sys,
   na.action = na.omit,
   REML = FALSE
 )
 
 omegaCAin_mod <- lmer(
-  OmegaCAin_dtd ~ Date_Dec + Depth + (1 | Station_ID),
+  OmegaCAin_dtd ~ Date_Dec + Date_Dec:coastal +  Depth + coastal + (1 | Station_ID),
   data = surf_bottle_co2sys,
   na.action = na.omit,
   REML = FALSE
@@ -155,7 +167,7 @@ lapply(
     rowname_col = "qty"
   ) %>%
   tab_header(
-    title = "Surface Level Mixed Effect Regression Statistics for CalCOFI Stations with Depth Correction"
+    title = "Surface Level Mixed Effect Regression Statistics for CalCOFI Stations with Coastal Interaction"
   ) %>%
   tab_row_group(
     label = "Seawater carbonate chemistry",
@@ -208,7 +220,89 @@ lapply(
   ) %>%
   opt_stylize(
     style = 3
+  ) |> gtsave("images/OA_trends/hier_surf_coastal.png")
+
+
+# format results into table
+lapply(
+  1:10,
+  function(i) {
+    c(qty = qty[i], coef(summary(models[[i]]))[nrow(coef(summary(models[[i]]))),], n = nobs(models[[i]]), AIC = AIC(models[[i]]), r2 = r.squaredGLMM(models[[i]])[2],
+      CI = paste0("(", format(round(confint(models[[i]])[4,1], 5), nsmall = 5), ", ", format(round(confint(models[[i]])[4,2], 5), nsmall = 5), ")"))
+  }
+) %>%
+  # combine results into a dataframe
+  bind_rows() %>%
+  # convert appropriate columns to numeric
+  mutate(
+    across(-c(qty, CI), as.numeric)
   ) %>%
-  gtsave(
-    "images/OA_trends/dsurf_mixed_effects.png"
-  )
+  # rename quantities vector for tidier appearance in table
+  mutate(
+    qty = c("Temperature", "Salinity", "A~T~", "C~T~", "*p*CO2", "Revelle Factor", "pH", "CO~3~<sup>2-</sup>", "Ω~calcite~", "Ω~aragonite~"),
+    # add column of units for each quantity
+    units = c("degC yr^-1", "yr^-1", ":mu:mol kg^-1 yr^-1", ":mu:mol kg^-1 yr^-1", ":mu:atm yr^-1",
+              "yr^-1", "yr^-1", ":mu:mol kg^-1 yr^-1", "yr^-1", "yr^-1")
+  ) %>%
+  select(
+    -c("t value", "df")
+  ) %>%
+  gt(
+    rowname_col = "qty"
+  ) %>%
+  tab_header(
+    title = "Surface Level Mixed Effect Regression Statistics for CalCOFI Stations with Coastal Interaction"
+  ) %>%
+  tab_row_group(
+    label = "Seawater carbonate chemistry",
+    rows = c("C~T~", "A~T~", "*p*CO2", "Revelle Factor")
+  ) %>%
+  tab_row_group(
+    label = "Ocean acidification indicators",
+    rows = c("pH", "CO~3~<sup>2-</sup>", "Ω~calcite~", "Ω~aragonite~")
+  ) %>%
+  tab_row_group(
+    label = "Hydrography",
+    rows = c("Temperature", "Salinity")
+  ) %>%
+  # add label to row names
+  tab_stubhead(
+    label = "Parameter"
+  ) %>%
+  # rename columns
+  cols_label(
+    Estimate = "Coastal Interaction",
+    `Pr(>|t|)` = "p-value",
+    `Std. Error` = "Std. Error",
+    units = "Units",
+    r2 = md("r<sup>2</sup>"),
+    AIC = "AIC",
+    CI = "95% CI"
+  ) %>%
+  # move units to be next to estimate and standard error columns
+  cols_move(
+    CI,
+    after = `Std. Error`
+  ) %>%
+  cols_move(
+    units,
+    after = CI
+  ) |> 
+  fmt_markdown(
+    columns = c(qty, CI)
+  ) %>%
+  fmt_units(
+    columns = units
+  ) %>%
+  fmt_number(
+    columns = c("Estimate", "Std. Error", "Pr(>|t|)", "r2", "AIC"),
+    decimals = 4
+  ) %>%
+  sub_small_vals(
+    columns = `Pr(>|t|)`,
+    threshold = 0.0001
+  ) %>%
+  opt_stylize(
+    style = 3
+  ) |> 
+gtsave("images/OA_trends/hier_surf_coastal_int.png")
