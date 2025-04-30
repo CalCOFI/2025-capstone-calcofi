@@ -44,13 +44,10 @@ keep_stations <- bottle_co2sys %>%
     n = n()
   ) %>%
   filter(
-    n < 40
+    n > 150
   ) %>%
   pull(
     Station_ID
-  ) %>%
-  setdiff(
-    x = unique(bottle_co2sys$Station_ID)
   )
 bottle_co2sys <- bottle_co2sys %>%
   filter(

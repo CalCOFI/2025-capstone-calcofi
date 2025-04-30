@@ -4,7 +4,6 @@ library(lme4)
 library(gt)
 library(MuMIn)
 library(ModelMetrics)
-library(lmerTest)
 
 source(here::here("scripts/OA_trends/detrend_data.R"))
 
@@ -41,6 +40,7 @@ surf_bottle_co2sys <- surf_bottle_co2sys |> group_by(Station_ID, Depth, Date.cc)
             OmegaARin_dtd = mean(OmegaARin_dtd, na.rm = T),
             Salnty_dtd = mean(Salnty_dtd, na.rm = T)) |> 
   ungroup()
+
 
 
 # Modeling
@@ -149,7 +149,7 @@ lapply(
               "yr^-1", "yr^-1", ":mu:mol kg^-1 yr^-1", "yr^-1", "yr^-1")
   ) %>%
   select(
-    -c("t value")
+    -c("t value", "df")
   ) %>%
   gt(
     rowname_col = "qty"

@@ -7,6 +7,7 @@ library(rnaturalearth)
 library(scales)
 library(latex2exp)
 library(FDRestimation)
+library(stringr)
 
 
 # READ AND PROCESS DATA ---------------------------------------------------
@@ -96,7 +97,8 @@ surf_results <- surf_results %>%
 surf_results <- surf_results |> 
   mutate(adj_p_value = (p.fdr(pvalues = surf_results$`Pr(>|t|)`))$fdrs) |> 
   mutate(sigp = factor(ifelse(adj_p_value < 0.05, 1, 0), levels = c(1,0), labels = c("Yes", "No")),
-         sigp_ind = ifelse(adj_p_value < 0.05, 1, 0))
+         sigp_ind = ifelse(adj_p_value < 0.05, 1, 0)) |> 
+  filter(n >= 10)
 
 
 sign_stations <- surf_results |> group_by(station) |> 
@@ -105,9 +107,9 @@ sign_stations <- surf_results |> group_by(station) |>
             mean_n = mean(n),
             lat = mean(lat),
             lon = mean(lon),
-            num_sig = sum(sigp_ind)) |> 
-  ungroup() |> 
-  filter(min_n > 10)
+            num_sig = sum(sigp_ind),
+            prop_sig = mean(sigp_ind)) |> 
+  ungroup()
 
 # import map for plotting
 world <- ne_countries(scale = "medium", returnclass = "sf")
@@ -204,13 +206,13 @@ ggplot(
       x = lon,
       y = lat,
       fill = mean_n, # mean number of observations used for models
-      size = num_sig, # number of significany predictors
+      size = prop_sig, # number of significany predictors
     ),
     color = "black",
     pch = 21,
     show.legend=TRUE # force shape to always show in legend
   ) +
-  geom_text(data = sign_stations, nudge_y = -.07 , size = 1.4, aes(x = lon, y = lat, label = station)) + 
+#  geom_text(data = sign_stations, nudge_y = -.07 , size = 2, aes(x = lon, y = lat, label = station)) + 
   # manually adjust coordinates
   coord_sf(
     xlim = c(sign_stations$lon %>% min() - 2, sign_stations$lon %>% max() + 2),
@@ -245,6 +247,6 @@ ggplot(
     x = NULL,
     y = NULL,
     title = "Number of Time Significant Variables by Station at Surface (Depth<=20m)",
-    color = "Mean Observations per Model",
-    size = "Number of Time Significant Variables"
+    fill = "Mean Observations per Model",
+    size = str_wrap("Proportion of Variables of Interest with Significant Temporal Trend", 40)
   )
