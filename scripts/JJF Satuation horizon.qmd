@@ -1,0 +1,84 @@
+---
+title: "Untitled"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+library(readr)
+
+co2_data <- read_csv("/Users/fengci/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/merged_bottle_co2sys.csv")
+view(co2_data)
+```
+
+I choose OmegaARout is because it is the final output result after complete correction and consideration of environmental factors such as pressure, temperature and salinity, and is usually closer to the carbonate saturation state perceived by organisms in a real seawater environment.
+
+```{r}
+
+# required columns and remove the missing rows of OmegaARout
+co2_clean <- co2_data %>%
+  select(Station_ID, Depth, OmegaARout) %>%
+  filter(!is.na(OmegaARout))
+
+# Find the saturation depth of each site (the first time OmegaARout <1 ) 
+saturation_horizon <- co2_clean %>%
+  group_by(Station_ID) %>%
+  filter(OmegaARout < 1) %>%
+  arrange(Depth) %>%
+  slice(1) %>%
+  ungroup()
+
+
+print(saturation_horizon)
+
+# each station OmegaARout vs Depth
+co2_clean %>%
+  ggplot(aes(x = OmegaARout, y = Depth)) +
+  geom_point(alpha = 0.6) +
+  geom_line(aes(group = Station_ID), alpha = 0.4) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "red") +
+  facet_wrap(~ Station_ID, scales = "free_y") +
+  scale_y_reverse() +
+  labs(x = "Omega Aragonite", y = "Depth (m)", title = "Omega Aragonite vs Depth by Station") +
+  theme_minimal()
+```
+```{r}
+# first 10 station
+top_stations <- co2_clean %>% distinct(Station_ID) %>% slice(1:10)
+
+co2_clean %>%
+  filter(Station_ID %in% top_stations$Station_ID) %>%
+  ggplot(aes(x = OmegaARout, y = Depth)) +
+  geom_point(alpha = 0.6) +
+  geom_line(aes(group = Station_ID), alpha = 0.4) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "red") +
+  facet_wrap(~ Station_ID, scales = "free_y") +
+  scale_y_reverse() +
+  labs(x = "Omega Aragonite", y = "Depth (m)", title = "Top 10 Stations: Omega Aragonite vs Depth") +
+  theme_minimal()
+
+```
+090.0 090.0 has several kilometers of data, while other sites only have a dozen meters. The Y-axis scale is completely different → the graph is flattened.
+
+```{r}
+
+library(ggforce)
+
+
+co2_clean %>%
+  ggplot(aes(x = OmegaARout, y = Depth)) +
+  geom_point(alpha = 0.6, color = "black") +
+  geom_line(aes(group = Station_ID), alpha = 0.4, color = "gray") +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "red", size = 1) +
+  facet_wrap_paginate(~ Station_ID, ncol = 3, nrow = 3, page = 1, scales = "free") +
+  scale_y_reverse() +
+  labs(
+    x = "Omega Aragonite",
+    y = "Depth (m)",
+    title = "Omega Aragonite vs Depth by Station (Page 1)"
+  ) +
+  theme_minimal()
+
+```
+

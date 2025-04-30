@@ -155,7 +155,7 @@ lapply(
     rowname_col = "qty"
   ) %>%
   tab_header(
-    title = "Surface Level Mixed Effect Regression Statistics for CalCOFI Stations with Depth Correction"
+    title = "Surface Level Mixed Effect Regression Statistics for CalCOFI Stations"
   ) %>%
   tab_row_group(
     label = "Seawater carbonate chemistry",

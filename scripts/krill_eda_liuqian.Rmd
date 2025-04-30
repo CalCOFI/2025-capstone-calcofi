@@ -651,7 +651,7 @@ for (species in highlighted_species) {
 ```
 
 ```{r}
-# quartz(width = 20, height = 18)  # On Mac
+#quartz(width = 300, height = 18)  # On Mac
 
 # Set up 2x2 plot layout
 par(mfrow = c(2, 3))
@@ -667,8 +667,145 @@ for (species in setdiff(abundance_vars, highlighted_species)) {
   plot(gam_model, select = 1, scheme = 2,
        xlim = range(prpoos_summary$Longitude) + c(-0.5, 0.5),
        ylim = range(prpoos_summary$Latitude) + c(-0.5, 0.5),
-       main = paste(species, "~ Location + pH + OmegaCA + CO3"),
+     main = gsub("Abundance$", "", species),  # Clean title
        xlab = "Longitude", ylab = "Latitude")
 }
 ```
 
+```{r}
+library(ggplot2)
+
+ggplot(merged_bottle_co2sys, aes(x = OmegaARout, y = Depthm)) +
+  geom_point(alpha = 0.6, color = "blue") +
+  scale_y_reverse() +
+  theme_minimal() +
+  labs(
+    title = "Scatter Plot of OmegaARout vs. Depth",
+    x = "OmegaAR",
+    y = "Depth (m)"
+  ) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold")
+  )
+
+
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+years <- 2007:2025
+
+for (species in years) {
+  filtered_data <- merged_bottle_co2sys %>%
+    filter(!is.na(Depthm) & !is.na(OmegaARout)) %>% 
+    filter(Station_ID == "081.8 046.9") %>% 
+    filter(Year_UTC == species)
+
+  p <- ggplot(filtered_data, aes(x = OmegaARout, y = Depthm)) +
+    geom_point(alpha = 0.6, color = "blue") +
+    geom_smooth(method = "gam", formula = y ~ s(x, bs = "cs"), color = "red", se = FALSE) +
+    scale_y_reverse() +
+    theme_minimal() +
+    labs(
+      title = paste("Scatter Plot for Year", species),
+      x = "OmegaAR",
+      y = "Depth (m)"
+    ) +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold")
+    )
+  
+  print(p)
+}
+
+
+
+```
+
+```{r}
+# eda plots
+ggplot() +
+  geom_point(aes(x = Date_cc, y = Station_ID), 
+             alpha = 0.2, data = filtered_data) +
+  theme_minimal()
+```
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+# updated function - look at this
+plot_saturation_horizon <- function(station_id, data) {
+  
+  saturation_depths <- tibble(
+    Station_ID = character(),
+    Year_UTC = integer(),
+    Depth_Saturation_Horizon = numeric()
+  )
+  
+  years <- 2008:2021
+
+  
+  for (species in years) {
+    filtered_data <- data %>%
+      filter(!is.na(Depthm) & !is.na(OmegaARout)) %>%
+      filter(Station_ID == station_id) %>%
+      filter(Year_UTC == species)
+
+    n_unique <- filtered_data %>% pull(OmegaARout) %>% unique() %>% length()
+
+    if (nrow(filtered_data) > 1 && n_unique > 2) {  
+      safe_k <- min(4, n_unique - 1)  
+      # define knot points
+      knotpts <- c(1, 5, 10)
+
+      # fit an order 3 regression spline with three internal knots
+      fit_bs <- lm(Depthm ~ bs(OmegaARout, degree = 1, knots = knotpts),
+                   data = filtered_data) 
+      # Base R plot
+      plot(filtered_data$OmegaARout, filtered_data$Depthm, pch = 16, xlab = "OmegaARout", ylab = "Depth (m)", main = "Spline Fit")
+
+      # Add fitted line
+      ord <- order(filtered_data$OmegaARout)
+      lines(filtered_data$OmegaARout[ord], predict(fit_bs)[ord], col = "blue", lwd = 2)
+
+      
+      predicted_depth <- predict(fit_bs, newdata = tibble(OmegaARout = 1))
+      
+      saturation_depths <- saturation_depths %>%
+        add_row(Station_ID = station_id, Year_UTC = species, Depth_Saturation_Horizon = predicted_depth)
+      
+    } else {
+      saturation_depths <- saturation_depths %>%
+        add_row(Station_ID = station_id, Year_UTC = species, Depth_Saturation_Horizon = NA_real_)
+    }
+  }
+
+  year_counts <- data %>%
+    filter(Station_ID == station_id) %>%
+    count(Year_UTC, name = "n_obs")
+  
+  saturation_summary <- saturation_depths %>%
+    left_join(year_counts, by = "Year_UTC") %>%
+    mutate(data_quality = if_else(n_obs < 10, "Few Observations", "Sufficient Observations"))
+  
+  p <- ggplot(saturation_summary, aes(x = Year_UTC, y = Depth_Saturation_Horizon, color = data_quality)) +
+    geom_point(size = 3) +
+    geom_line(aes(group = 1), color = "grey50", alpha = 0.5) +
+    scale_color_manual(values = c("Few Observations" = "red", "Sufficient Observations" = "blue")) +
+    scale_y_reverse() +
+    labs(
+      title = paste("Depth of Saturation Horizon by Year for Station", station_id),
+      x = "Year",
+      y = "Depth of Saturation Horizon (m)",
+      color = "Data Quality"
+    ) +
+    theme_minimal() +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+  
+  print(p)
+}
+
+plot_saturation_horizon("080.0 080.0", merged_bottle_co2sys)
+```

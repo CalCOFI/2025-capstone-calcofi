@@ -45,7 +45,7 @@ stations <- bottle_co2sys %>%
     Station_ID, St_Line, St_Station
   ) %>%
   summarize(
-    length = max(Year_UTC) - min(Year_UTC),
+    length = max(Year_UTC) - min(Year_UTC) + 1,
     n = n(),
     unique = length(unique(Year_UTC)),
     lat = mean(Latitude),
