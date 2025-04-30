@@ -10,6 +10,9 @@ bottle_co2sys <- bind_cols(merged_bottle_data, co2sys_out) %>%
   filter(
     Salnty > 30,
     Depth < 1000
+  ) %>%
+  mutate(
+    Date_Dec = decimal_date(Date.cc)
   )
 
 mod_surface <- lm(

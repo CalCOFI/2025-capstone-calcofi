@@ -253,11 +253,85 @@ for (station in stations){
 
 
 ```{r}
-ggplot(data = `co2sys_090.0 090.0`, aes(x = OmegaCAin, y = Depth)) + 
-  geom_point(alpha = 0.5) + 
-  scale_y_continuous(trans = 'reverse') + 
-  facet_wrap('Year_UTC', ncol = 5)
+# calcium
+# plot for station 90.90
+years <- 2007:2025
+
+for (year in years){
+  p <- ggplot(data = `co2sys_090.0 090.0` %>% filter(Year_UTC == year),
+              aes(x = OmegaCAin, y = Depth)) + 
+    geom_point(alpha = 0.5) + 
+    geom_smooth(method = "gam", formula = y ~ s(x), color = "red", se = FALSE) +
+    scale_y_reverse() +
+    labs(
+      title = paste('Scatter Plot for Year', year),
+      x = 'OmegaCA',
+      y = 'Depth (m)'
+    )
+    theme_minimal()
+  
+  plot(p)
+}
 ```
+
+```{r}
+# aragonite
+# station 90.90
+
+years <- 2007:2025
+
+for (year in years){
+  p <- ggplot(data = `co2sys_090.0 090.0` %>% filter(Year_UTC == year),
+              aes(x = OmegaARin, y = Depth)) + 
+    geom_point(alpha = 0.5) + 
+    geom_smooth(method = "gam", formula = y ~ s(x), color = "red", se = FALSE) +
+    scale_y_reverse() +
+    labs(
+      title = paste('Scatter Plot for Year', year),
+      x = 'OmegaAR',
+      y = 'Depth (m)'
+    )
+    theme_minimal()
+  
+  plot(p)
+}
+
+```
+
+
+
+```{r}
+# plot for station 80.55
+years <- 2007:2025
+
+for (year in years){
+  p <- ggplot(data = `co2sys_080.0 055.0` %>% filter(Year_UTC == year),
+              aes(x = OmegaCAin, y = Depth)) + 
+    geom_point(alpha = 0.5) + 
+    geom_smooth(method = "gam", formula = y ~ s(x), color = "red", se = FALSE) +
+    scale_y_reverse() +
+    labs(
+      title = paste('Scatter Plot for Year', year),
+      x = 'OmegaCA',
+      y = 'Depth (m)'
+    )
+    theme_minimal()
+  
+  plot(p)
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
 
 ```{r}
 pteropoda %>%
