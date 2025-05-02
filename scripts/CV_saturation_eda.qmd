@@ -26,6 +26,19 @@ ggplot(df_timeline, aes(x = YearMonth, y = Station_ID)) +
 ```
 
 ```{r}
+# # add season variable
+# bottle_data <- bottle_data %>%
+#   mutate(Season = case_when(
+#     Month_UTC %in% c(12, 1, 2) ~ "Winter",
+#     Month_UTC %in% c(3, 4, 5)  ~ "Spring",
+#     Month_UTC %in% c(6, 7, 8)  ~ "Summer",
+#     Month_UTC %in% c(9, 10, 11) ~ "Fall",
+#     TRUE ~ NA_character_  
+#   )) %>%
+#   relocate(Season, .after = Date_cc)
+```
+
+```{r}
 station_counts <- bottle_data %>%
   filter(Year_UTC >= 2008) %>%
   count(Station_ID, sort = TRUE)
@@ -38,7 +51,7 @@ years <- 2008:2021
 for (species in years) {
   filtered_data <- bottle_data %>%
     filter(!is.na(Depthm) & !is.na(OmegaARout)) %>% 
-    filter(Station_ID == "080.0 080.0") %>% 
+    filter(Station_ID == "081.8 046.9") %>% 
     filter(Year_UTC == species)
 
   p <- ggplot(filtered_data, aes(x = OmegaARout, y = Depthm)) +
@@ -294,8 +307,17 @@ plot_saturation_horizon <- function(station_id, data) {
   print(p)
 }
 
-plot_saturation_horizon("080.0 080.0", bottle_data)
+plot_saturation_horizon("081.8 046.9", bottle_data)
 ```
 
+
+```{r}
+# function with season-year component
+
+```
+
+```{r}
+data <- read_csv(here::here("data/PRPOOS/pteropoda_heteropoda_merge.csv"))
+```
 questions for erika:
 - what is the best way to interpolate?

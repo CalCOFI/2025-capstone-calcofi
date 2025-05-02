@@ -807,7 +807,7 @@ total_zooplankton <- zooplankton %>%
 #   drop_na() %>%
 #   mutate(log_total_plankton = log1p(total_plankton)) %>%
 #   dplyr::select(-total_plankton) 
-corrplot::corrplot(cor(total_zooplankton), method = "number", type = "lower")
+#corrplot::corrplot(cor(total_zooplankton), method = "number", type = "lower")
 
 # Best LM
 summary(total_zooplankton_lm1)
@@ -854,7 +854,7 @@ summary(test_lm)
 # GAM model 4 (use this one)
 gam_model4 <- gam(
   log_total_plankton ~ 
-    te(Latitude, Longitude) +
+    te(Longitude, Latitude) +
                   s(pHout) +
                   s(TA) + s(DIC) +
                   s(Salinity_PSS78) +
@@ -893,12 +893,12 @@ small_gam_mod <- gam(log_small_plankton ~ te(Latitude, Longitude) +
                          s(Year_UTC) + s(Month_UTC) + s(Station_ID, bs = "re"),
     data = small_zooplankton)
 summary(small_gam_mod)
-aic(small_gam_mod)
+#aic(small_gam_mod)
 
 # use this
 small_gam_mod2 <- gam(
   log_small_plankton ~ 
-    te(Latitude, Longitude) +
+    te(Longitude, Latitude) +
                   s(pHout) +
                   s(TA) + s(DIC) +
                   s(Salinity_PSS78) +
@@ -907,7 +907,7 @@ small_gam_mod2 <- gam(
   data = small_zooplankton,
 )
 summary(small_gam_mod2)
-aic(small_gam_mod2)
+#aic(small_gam_mod2)
 
 plot(small_gam_mod2, select = 1, shade = TRUE, seWithMean = TRUE, scheme = 2)
 #plot(small_gam_mod2, page = 1, shade = TRUE, seWithMean = TRUE)
@@ -922,6 +922,40 @@ par(mfrow = c(1, 1))
 
 ```
 
+```{r}
+library(ggplot2)
+library(dplyr)
+library(rnaturalearth)
+library(sf)
+library(mgcv)
+
+# 1. Make prediction grid (finer resolution)
+lon_seq <- seq(min(small_zooplankton$Longitude), max(small_zooplankton$Longitude), length.out = 200)
+lat_seq <- seq(min(small_zooplankton$Latitude), max(small_zooplankton$Latitude), length.out = 200)
+grid <- expand.grid(Longitude = lon_seq, Latitude = lat_seq)
+
+# 2. Predict just spatial effect
+grid$effect <- predict(small_gam_mod2, newdata = grid, type = "terms")[, "te(Longitude,Latitude)"]
+
+# 3. Get coastline
+coast <- ne_countries(scale = "medium", returnclass = "sf")
+
+# 4. Plot with realistic style
+ggplot() +
+  geom_tile(data = grid, aes(x = Longitude, y = Latitude, fill = effect)) +
+  scale_fill_gradient2(low = "blue", mid = "white", high = "red", midpoint = 0, name = "Partial effect") +
+  geom_sf(data = coast, fill = "gray90", color = "black", size = 0.3, inherit.aes = FALSE) +
+  coord_sf(xlim = range(lon_seq), ylim = range(lat_seq), expand = FALSE) +
+  labs(title = "Spatial Effect of Latitude & Longitude on Plankton Abundance") +
+  theme_minimal() +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    legend.position = "right"
+  )
+
+
+
+```
 
 ### total krill
 ```{r}
