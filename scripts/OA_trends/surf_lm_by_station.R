@@ -274,23 +274,15 @@ ggplot(
     data = st_test,
     aes(
       x = lon,
-      y = lat # number of significany predictors
+      y = lat,
+      color = coastal
     ),
-    color = "black",
-    pch = 21,
     show.legend=TRUE # force shape to always show in legend
   ) +
-  geom_text(data = st_test, nudge_y = -.07 , size = 2, aes(x = lon, y = lat, label = coastal)) + 
   # manually adjust coordinates
   coord_sf(
     xlim = c(st_test$lon %>% min() - 2, st_test$lon %>% max() + 2),
     ylim = c(st_test$lat %>% min(), st_test$lat %>% max())
-  ) +
-  # create color scale for slope estimates
-  scale_fill_gradient2(
-    low = "#d7191c",
-    high = "#2c7bb6",
-    mid = "#ffffbf"
   ) +
   # create custom shape scale
   scale_shape_manual(
@@ -311,3 +303,25 @@ ggplot(
     size = guide_legend(order = 50),
     shape = guide_legend(order = 98)
   )
+
+ggsave("images/OA_trends/coastal_stations.png", bg = "white")
+
+
+
+surf_results$st <- 0
+surf_results$line <- 0
+for (i in 1:nrow(surf_results)){
+  surf_results$st[i] <- str_split(surf_results$station[i], " ")[[1]][1]
+  surf_results$line[i] <- str_split(surf_results$station[i], " ")[[1]][2]
+}
+surf_results <- surf_results |> 
+  mutate(coastal = case_when(
+    (as.numeric(st) <= 86) & (as.numeric(line) < 70) ~ TRUE,
+    (as.numeric(st) < 90) & (as.numeric(line) < 40) ~ TRUE,
+    (as.numeric(st)) >= 90 & (as.numeric(line) < 35) ~ TRUE,
+    TRUE ~ FALSE
+  ))
+
+surf_results |> group_by(coastal, qty) |> 
+  summarize(time_effect = mean(Estimate)) |> 
+  kable()

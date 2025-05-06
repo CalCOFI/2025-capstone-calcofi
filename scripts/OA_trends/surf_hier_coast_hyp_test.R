@@ -306,3 +306,6 @@ lapply(
     style = 3
   ) |> 
 gtsave("images/OA_trends/hier_surf_coastal_int.png")
+
+surf_bottle_co2sys |> group_by(coastal) |> 
+  summarize(n = n())
