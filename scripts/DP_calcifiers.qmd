@@ -3,6 +3,7 @@ library(tidyverse)
 library(sf)
 library(maps)
 library(ggplot2)
+library(scam)
 ```
 
 
@@ -222,18 +223,16 @@ ggplot(rhizaria_by_station, aes(x = longitude, y = latitude)) +
 ```
 
 
+
+
+
+
+
+
+# Depth of Saturation Horizon
 ```{r}
 co2sys <- read.csv('../data/merged_bottle_co2sys.csv')
 
-depth_omega <- co2sys %>%
-  select('Depth', 'OmegaCAin', 'OmegaARin') %>%
-  drop_na() %>%
-  mutate(log_Depth = log(Depth))
-
-depth_omega
-```
-
-```{r}
 # count by station
 co2sys_stations <- co2sys %>% 
   group_by(Station_ID) %>% 
@@ -246,26 +245,35 @@ stations <- unique(co2sys_stations$Station_ID)
 
 for (station in stations){
   assign(paste0('co2sys_', station), subset(co2sys, Station_ID == station) %>%
-    select('Station_ID', 'Year_UTC', 'Depth', 'OmegaCAin', 'OmegaARin') %>%
+    select('Station_ID', 'Year_UTC', 'Depth', 'pHin', 'OmegaCAin', 'OmegaARin') %>%
     drop_na())
 }
+
+# create empty tibble of saturation horizon depths
+saturation_depths <- tibble(
+  Station_ID = character(),
+  Year_UTC = integer(),
+  Depth_Saturation_Horizon = numeric()
+)
 ```
 
 
+# Station 80.55
 ```{r}
-# calcium
-# plot for station 90.90
-years <- 2007:2025
+# plot for station 80.55
+# b-spline
+
+years <- 2007:2022
 
 for (year in years){
-  p <- ggplot(data = `co2sys_090.0 090.0` %>% filter(Year_UTC == year),
-              aes(x = OmegaCAin, y = Depth)) + 
+  p <- ggplot(data = `co2sys_080.0 055.0` %>% filter(Year_UTC == year),
+              aes(x = OmegaARin, y = Depth)) + 
     geom_point(alpha = 0.5) + 
-    geom_smooth(method = "gam", formula = y ~ s(x), color = "red", se = FALSE) +
+    geom_smooth(method = "scam", formula = y ~ s(x, k=5, bs='mpi'), color = "red", se = FALSE) + 
     scale_y_reverse() +
     labs(
       title = paste('Scatter Plot for Year', year),
-      x = 'OmegaCA',
+      x = 'OmegaAR',
       y = 'Depth (m)'
     )
     theme_minimal()
@@ -275,10 +283,353 @@ for (year in years){
 ```
 
 ```{r}
-# aragonite
-# station 90.90
+# predict depth of saturation horizon by year
+for (year in years){
+  if (nrow(`co2sys_080.0 055.0` %>% filter(Year_UTC == year)) > 5){
+    fit_b_spline <- scam(data = `co2sys_080.0 055.0` %>% filter(Year_UTC == year),
+                       Depth ~ s(OmegaARin, k=5, bs='mpi'))
+  
+    predicted_depth <- predict(fit_b_spline, newdata = tibble(OmegaARin = 1))
+  
+    saturation_depths <- saturation_depths %>%
+      add_row(Station_ID = '080.0 055.0',
+              Year_UTC = year,
+              Depth_Saturation_Horizon = predicted_depth)
+  }
+  
+  else{
+    saturation_depths <- saturation_depths %>%
+      add_row(Station_ID = '080.0 055.0',
+              Year_UTC = year,
+              Depth_Saturation_Horizon = NA_real_)
+  }
+  
+}
+```
 
-years <- 2007:2025
+# Station 80.80
+```{r}
+# b-spline
+
+for (year in years){
+  p <- ggplot(data = `co2sys_080.0 080.0` %>% filter(Year_UTC == year),
+              aes(x = OmegaARin, y = Depth)) + 
+    geom_point(alpha = 0.5) + 
+    geom_smooth(method = "scam", formula = y ~ s(x, k=5, bs='mpi'), color = "red", se = FALSE) + 
+    scale_y_reverse() +
+    labs(
+      title = paste('Scatter Plot for Year', year),
+      x = 'OmegaAR',
+      y = 'Depth (m)'
+    )
+    theme_minimal()
+  
+  plot(p)
+}
+```
+
+```{r}
+# predict depth of saturation horizon by year
+for (year in years){
+  if (nrow(`co2sys_080.0 080.0` %>% filter(Year_UTC == year)) > 5){
+    fit_b_spline <- scam(data = `co2sys_080.0 080.0` %>% filter(Year_UTC == year),
+                       Depth ~ s(OmegaARin, k=5, bs='mpi'))
+  
+    predicted_depth <- predict(fit_b_spline, newdata = tibble(OmegaARin = 1))
+  
+    saturation_depths <- saturation_depths %>%
+      add_row(Station_ID = '080.0 080.0',
+              Year_UTC = year,
+              Depth_Saturation_Horizon = predicted_depth)
+  }
+  
+  else{
+    saturation_depths <- saturation_depths %>%
+      add_row(Station_ID = '080.0 080.0',
+              Year_UTC = year,
+              Depth_Saturation_Horizon = NA_real_)
+  }
+  
+}
+```
+
+# Station 81.8 46.9
+```{r}
+# b-spline
+
+for (year in years){
+  p <- ggplot(data = `co2sys_081.8 046.9` %>% filter(Year_UTC == year),
+              aes(x = OmegaARin, y = Depth)) + 
+    geom_point(alpha = 0.5) + 
+    geom_smooth(method = "scam", formula = y ~ s(x, k=5, bs='mpi'), color = "red", se = FALSE) + 
+    scale_y_reverse() +
+    labs(
+      title = paste('Scatter Plot for Year', year),
+      x = 'OmegaAR',
+      y = 'Depth (m)'
+    )
+    theme_minimal()
+  
+  plot(p)
+}
+```
+
+```{r}
+# predict depth of saturation horizon by year
+for (year in years){
+  if (nrow(`co2sys_081.8 046.9` %>% filter(Year_UTC == year)) > 5){
+    fit_b_spline <- scam(data = `co2sys_081.8 046.9` %>% filter(Year_UTC == year),
+                       Depth ~ s(OmegaARin, k=5, bs='mpi'))
+  
+    predicted_depth <- predict(fit_b_spline, newdata = tibble(OmegaARin = 1))
+  
+    saturation_depths <- saturation_depths %>%
+      add_row(Station_ID = '081.8 046.9',
+              Year_UTC = year,
+              Depth_Saturation_Horizon = predicted_depth)
+  }
+  
+  else{
+    saturation_depths <- saturation_depths %>%
+      add_row(Station_ID = '081.8 046.9',
+              Year_UTC = year,
+              Depth_Saturation_Horizon = NA_real_)
+  }
+  
+}
+```
+
+# Station 86.7 35.0
+```{r}
+# b-spline
+
+for (year in years){
+  p <- ggplot(data = `co2sys_086.7 035.0` %>% filter(Year_UTC == year),
+              aes(x = OmegaARin, y = Depth)) + 
+    geom_point(alpha = 0.5) + 
+    geom_smooth(method = "scam", formula = y ~ s(x, k=5, bs='mpi'), color = "red", se = FALSE) + 
+    scale_y_reverse() +
+    labs(
+      title = paste('Scatter Plot for Year', year),
+      x = 'OmegaAR',
+      y = 'Depth (m)'
+    )
+    theme_minimal()
+  
+  plot(p)
+}
+```
+
+```{r}
+# predict depth of saturation horizon by year
+for (year in years){
+  if (nrow(`co2sys_086.7 035.0` %>% filter(Year_UTC == year)) > 5){
+    fit_b_spline <- scam(data = `co2sys_086.7 035.0` %>% filter(Year_UTC == year),
+                       Depth ~ s(OmegaARin, k=5, bs='mpi'))
+  
+    predicted_depth <- predict(fit_b_spline, newdata = tibble(OmegaARin = 1))
+  
+    saturation_depths <- saturation_depths %>%
+      add_row(Station_ID = '086.7 035.0',
+              Year_UTC = year,
+              Depth_Saturation_Horizon = predicted_depth)
+  }
+  
+  else{
+    saturation_depths <- saturation_depths %>%
+      add_row(Station_ID = '086.7 035.0',
+              Year_UTC = year,
+              Depth_Saturation_Horizon = NA_real_)
+  }
+  
+}
+```
+
+# Station 90.30
+```{r}
+# b-spline
+
+for (year in years){
+  p <- ggplot(data = `co2sys_090.0 030.0` %>% filter(Year_UTC == year),
+              aes(x = OmegaARin, y = Depth)) + 
+    geom_point(alpha = 0.5) + 
+    geom_smooth(method = "scam", formula = y ~ s(x, k=5, bs='mpi'), color = "red", se = FALSE) + 
+    scale_y_reverse() +
+    labs(
+      title = paste('Scatter Plot for Year', year),
+      x = 'OmegaAR',
+      y = 'Depth (m)'
+    )
+    theme_minimal()
+  
+  plot(p)
+}
+```
+
+```{r}
+for (year in years){
+  if (nrow(`co2sys_090.0 030.0` %>% filter(Year_UTC == year)) > 5){
+    fit_b_spline <- scam(data = `co2sys_090.0 030.0` %>% filter(Year_UTC == year),
+                       Depth ~ s(OmegaARin, k=5, bs='mpi'))
+  
+    predicted_depth <- predict(fit_b_spline, newdata = tibble(OmegaARin = 1))
+  
+    saturation_depths <- saturation_depths %>%
+      add_row(Station_ID = '090.0 030.0',
+              Year_UTC = year,
+              Depth_Saturation_Horizon = predicted_depth)
+  }
+  
+  else{
+    saturation_depths <- saturation_depths %>%
+      add_row(Station_ID = '090.0 030.0',
+              Year_UTC = year,
+              Depth_Saturation_Horizon = NA_real_)
+  }
+  
+}
+```
+
+# Station 90.53
+```{r}
+# b-spline
+
+for (year in years){
+  p <- ggplot(data = `co2sys_090.0 053.0` %>% filter(Year_UTC == year),
+              aes(x = OmegaARin, y = Depth)) + 
+    geom_point(alpha = 0.5) + 
+    geom_smooth(method = "scam", formula = y ~ s(x, k=5, bs='mpi'), color = "red", se = FALSE) + 
+    scale_y_reverse() +
+    labs(
+      title = paste('Scatter Plot for Year', year),
+      x = 'OmegaAR',
+      y = 'Depth (m)'
+    )
+    theme_minimal()
+  
+  plot(p)
+}
+```
+
+```{r}
+for (year in years){
+  if (nrow(`co2sys_090.0 053.0` %>% filter(Year_UTC == year)) > 5){
+    fit_b_spline <- scam(data = `co2sys_090.0 053.0` %>% filter(Year_UTC == year),
+                       Depth ~ s(OmegaARin, k=5, bs='mpi'))
+  
+    predicted_depth <- predict(fit_b_spline, newdata = tibble(OmegaARin = 1))
+  
+    saturation_depths <- saturation_depths %>%
+      add_row(Station_ID = '090.0 053.0',
+              Year_UTC = year,
+              Depth_Saturation_Horizon = predicted_depth)
+  }
+  
+  else{
+    saturation_depths <- saturation_depths %>%
+      add_row(Station_ID = '090.0 053.0',
+              Year_UTC = year,
+              Depth_Saturation_Horizon = NA_real_)
+  }
+  
+}
+```
+
+# Station 90.60
+```{r}
+# b-spline
+
+for (year in years){
+  p <- ggplot(data = `co2sys_090.0 060.0` %>% filter(Year_UTC == year),
+              aes(x = OmegaARin, y = Depth)) + 
+    geom_point(alpha = 0.5) + 
+    geom_smooth(method = "scam", formula = y ~ s(x, k=5, bs='mpi'), color = "red", se = FALSE) + 
+    scale_y_reverse() +
+    labs(
+      title = paste('Scatter Plot for Year', year),
+      x = 'OmegaAR',
+      y = 'Depth (m)'
+    )
+    theme_minimal()
+  
+  plot(p)
+}
+```
+
+```{r}
+for (year in years){
+  if (nrow(`co2sys_090.0 060.0` %>% filter(Year_UTC == year)) > 5){
+    fit_b_spline <- scam(data = `co2sys_090.0 060.0` %>% filter(Year_UTC == year),
+                       Depth ~ s(OmegaARin, k=5, bs='mpi'))
+  
+    predicted_depth <- predict(fit_b_spline, newdata = tibble(OmegaARin = 1))
+  
+    saturation_depths <- saturation_depths %>%
+      add_row(Station_ID = '090.0 060.0',
+              Year_UTC = year,
+              Depth_Saturation_Horizon = predicted_depth)
+  }
+  
+  else{
+    saturation_depths <- saturation_depths %>%
+      add_row(Station_ID = '090.0 060.0',
+              Year_UTC = year,
+              Depth_Saturation_Horizon = NA_real_)
+  }
+  
+}
+```
+
+# Station 90.90
+```{r}
+# station 90.90
+# b-spline
+
+for (year in years){
+  p <- ggplot(data = `co2sys_090.0 090.0` %>% filter(Year_UTC == year),
+              aes(x = OmegaARin, y = Depth)) + 
+    geom_point(alpha = 0.5) + 
+    geom_smooth(method = "scam", formula = y ~ s(x, k=5, bs='mpi'), color = "red", se = FALSE) +
+    scale_y_reverse() +
+    labs(
+      title = paste('Scatter Plot for Year', year),
+      x = 'OmegaAR',
+      y = 'Depth (m)'
+    )
+    theme_minimal()
+  
+  plot(p)
+}
+```
+
+```{r}
+# predict depth of saturation horizon by year
+for (year in years){
+  if (nrow(`co2sys_090.0 090.0` %>% filter(Year_UTC == year)) > 5){
+    fit_b_spline <- scam(data = `co2sys_090.0 090.0` %>% filter(Year_UTC == year),
+                       Depth ~ s(OmegaARin, k=5, bs='mpi'))
+  
+    predicted_depth <- predict(fit_b_spline, newdata = tibble(OmegaARin = 1))
+  
+    saturation_depths <- saturation_depths %>%
+      add_row(Station_ID = '090.0 090.0',
+              Year_UTC = year,
+              Depth_Saturation_Horizon = predicted_depth)
+  }
+  
+  else{
+    saturation_depths <- saturation_depths %>%
+      add_row(Station_ID = '090.0 090.0',
+              Year_UTC = year,
+              Depth_Saturation_Horizon = NA_real_)
+  }
+  
+}
+```
+
+```{r}
+# station 90.90
+# GAM
 
 for (year in years){
   p <- ggplot(data = `co2sys_090.0 090.0` %>% filter(Year_UTC == year),
@@ -298,21 +649,19 @@ for (year in years){
 
 ```
 
-
-
+# Station 93.3 30.0
 ```{r}
-# plot for station 80.55
-years <- 2007:2025
+# b-spline
 
 for (year in years){
-  p <- ggplot(data = `co2sys_080.0 055.0` %>% filter(Year_UTC == year),
-              aes(x = OmegaCAin, y = Depth)) + 
+  p <- ggplot(data = `co2sys_093.3 030.0` %>% filter(Year_UTC == year),
+              aes(x = OmegaARin, y = Depth)) + 
     geom_point(alpha = 0.5) + 
-    geom_smooth(method = "gam", formula = y ~ s(x), color = "red", se = FALSE) +
+    geom_smooth(method = "scam", formula = y ~ s(x, k=5, bs='mpi'), color = "red", se = FALSE) + 
     scale_y_reverse() +
     labs(
       title = paste('Scatter Plot for Year', year),
-      x = 'OmegaCA',
+      x = 'OmegaAR',
       y = 'Depth (m)'
     )
     theme_minimal()
@@ -321,12 +670,30 @@ for (year in years){
 }
 ```
 
-
-
-
-
-
-
+```{r}
+# predict depth of saturation horizon by year
+for (year in years){
+  if (nrow(`co2sys_093.3 030.0` %>% filter(Year_UTC == year)) > 5){
+    fit_b_spline <- scam(data = `co2sys_093.3 030.0` %>% filter(Year_UTC == year),
+                       Depth ~ s(OmegaARin, k=5, bs='mpi'))
+  
+    predicted_depth <- predict(fit_b_spline, newdata = tibble(OmegaARin = 1))
+  
+    saturation_depths <- saturation_depths %>%
+      add_row(Station_ID = '093.3 030.0',
+              Year_UTC = year,
+              Depth_Saturation_Horizon = predicted_depth)
+  }
+  
+  else{
+    saturation_depths <- saturation_depths %>%
+      add_row(Station_ID = '093.3 030.0',
+              Year_UTC = year,
+              Depth_Saturation_Horizon = NA_real_)
+  }
+  
+}
+```
 
 
 
@@ -334,9 +701,111 @@ for (year in years){
 
 
 ```{r}
-pteropoda %>%
-  arrange(Cruise, Station_ID, Cruise.mid.date, Local.time..PST.)
+# plot change in saturation horizon by station
+ggplot(data = saturation_depths %>% filter(Station_ID %in% intersect(stations, unique(byrozoan$Station_ID))),
+       aes(x = Year_UTC, y = Depth_Saturation_Horizon,
+           col = Station_ID)) + 
+  geom_point() + 
+  geom_line() + 
+  scale_y_reverse() + 
+  scale_x_continuous(breaks = seq(2005, 2023, by = 1), minor_breaks = seq(2005, 2023, by = 1)) + 
+  theme_minimal() +
+  labs(
+      title = 'Depth of Aragonite Saturation Horizon by Year',
+      x = 'Year',
+      y = 'Depth (m)'
+  )
 ```
+
+
+
+```{r}
+byrozoan_yearly <- byrozoan %>% 
+  filter(Station_ID %in% stations, year %in% years) %>%
+  group_by(Station_ID, year) %>%
+  summarise(across(Abundance..No..per.m2., mean)) %>%
+  rename(mean_abundance = Abundance..No..per.m2.)
+
+ggplot(data = byrozoan_yearly, aes(x = year, y = mean_abundance, col = Station_ID)) + 
+  geom_point() + 
+  geom_line() + 
+  scale_x_continuous(breaks = seq(2005, 2023, by = 1), minor_breaks = seq(2005, 2023, by = 1)) +
+  theme_minimal() + 
+  labs(
+    title = 'Yearly Byrozoan Abundance by Station',
+    x = 'Year',
+    y = 'Abundance'
+  )
+```
+
+```{r}
+ostracods_yearly <- ostracods %>% 
+  filter(Station_ID %in% stations, year %in% years) %>%
+  group_by(Station_ID, year) %>%
+  summarise(across(Abundance..No..per.m2., mean)) %>%
+  rename(mean_abundance = Abundance..No..per.m2.)
+
+ggplot(data = ostracods_yearly, aes(x = year, y = mean_abundance, col = Station_ID)) + 
+  geom_point() + 
+  geom_line() + 
+  scale_x_continuous(breaks = seq(2005, 2023, by = 1), minor_breaks = seq(2005, 2023, by = 1)) +
+  theme_minimal() + 
+  labs(
+    title = 'Yearly Ostracod Abundance by Station',
+    x = 'Year',
+    y = 'Abundance'
+  )
+```
+
+```{r}
+pteropoda_yearly <- pteropoda %>% 
+  filter(Station_ID %in% stations, year %in% years) %>%
+  group_by(Station_ID, year) %>%
+  summarise(across(Abundance..No..per.m2., mean)) %>%
+  rename(mean_abundance = Abundance..No..per.m2.)
+
+ggplot(data = pteropoda_yearly, aes(x = year, y = mean_abundance, col = Station_ID)) + 
+  geom_point() + 
+  geom_line() + 
+  scale_x_continuous(breaks = seq(2005, 2023, by = 1), minor_breaks = seq(2005, 2023, by = 1)) +
+  theme_minimal() + 
+  labs(
+    title = 'Yearly Pterapod Abundance by Station',
+    x = 'Year',
+    y = 'Abundance'
+  )
+```
+
+```{r}
+rhizaria_yearly <- rhizaria %>% 
+  filter(Station_ID %in% stations, year %in% years) %>%
+  group_by(Station_ID, year) %>%
+  summarise(across(Abundance..No..per.m2., mean)) %>%
+  rename(mean_abundance = Abundance..No..per.m2.)
+
+ggplot(data = rhizaria_yearly, aes(x = year, y = mean_abundance, col = Station_ID)) + 
+  geom_point() + 
+  geom_line() + 
+  scale_x_continuous(breaks = seq(2005, 2023, by = 1), minor_breaks = seq(2005, 2023, by = 1)) +
+  theme_minimal() + 
+  labs(
+    title = 'Yearly Rhizaria Abundance by Station',
+    x = 'Year',
+    y = 'Abundance'
+  )
+```
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
