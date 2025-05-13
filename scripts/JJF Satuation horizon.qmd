@@ -9,7 +9,8 @@ library(tidyverse)
 library(readr)
 
 co2_data <- read_csv("/Users/fengci/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/merged_bottle_co2sys.csv")
-view(co2_data)
+
+#str(co2_data)
 ```
 
 I choose OmegaARout is because it is the final output result after complete correction and consideration of environmental factors such as pressure, temperature and salinity, and is usually closer to the carbonate saturation state perceived by organisms in a real seawater environment.
@@ -43,6 +44,7 @@ co2_clean %>%
   labs(x = "Omega Aragonite", y = "Depth (m)", title = "Omega Aragonite vs Depth by Station") +
   theme_minimal()
 ```
+
 ```{r}
 # first 10 station
 top_stations <- co2_clean %>% distinct(Station_ID) %>% slice(1:10)
@@ -81,4 +83,153 @@ co2_clean %>%
   theme_minimal()
 
 ```
+
+```{r}
+# Find out the saturation layer depth of each site
+saturation_horizon <- co2_clean %>%
+  group_by(Station_ID) %>%
+  filter(OmegaARout < 1) %>%
+  arrange(Depth) %>%
+  slice(1) %>%
+  ungroup()
+
+# Visualize the depth distribution of the saturation layer
+ggplot(saturation_horizon, aes(x = reorder(Station_ID, Depth), y = Depth)) +
+  geom_col(fill = "steelblue") +
+  coord_flip() +
+  labs(x = "Station", y = "Saturation Horizon Depth (m)", title = "Saturation Horizon Depth by Station") +
+  theme_minimal()
+
+```
+
+Is pH significantly correlated with Omega-Arout?
+Are there certain ecological threshold areas, such as shallow water areas that are prone to unsaturated?
+```{r}
+# Scatter plot: pHout vs OmegaARout
+
+ggplot(co2_data, aes(x = pHout, y = OmegaARout)) +
+  geom_point(alpha = 0.3) +
+  geom_smooth(method = "lm", color = "blue") +
+  labs(x = "pH", y = "Omega Aragonite", title = "Relationship Between pH and Omega") +
+  theme_minimal()
+
+```
+Observations:
+The figure shows an obvious positive correlation: The higher the pH, the higher the Omega AR.
+
+When the pH approaches below 7.8, the Omega value drops rapidly, and even quite a few data points fall within the Omega. Area 1 → indicates unsaturated water body.
+
+Although the linear model is generally reasonable, in the area with a higher pH (> 8.1) There may be a nonlinear upward trend, which might be suitable for further exploration using GAM or logarithmic models.
+
+```{r}
+cor.test(co2_data$pHout, co2_data$OmegaARout, use = "complete.obs")
+
+```
+We found a strong positive correlation between pH and OmegaARout (r = 0.970378, p <2.2e-16)
+
+Linear
+```{r}
+lm_model <- lm(OmegaARout ~ pHout, data = co2_data)
+summary(lm_model)
+
+```
+```{r}
+library(mgcv)
+gam_model <- gam(OmegaARout ~ s(pHout), data = co2_data)
+plot(gam_model)
+
+```
+
+
+```{r}
+#add longtitude and latitude
+
+station_coords <- co2_data %>%
+  select(Station_ID, Latitude, Longitude) %>%
+  distinct()
+
+
+saturation_map <- saturation_horizon %>%
+  left_join(station_coords, by = "Station_ID")
+
+saturation_map_filtered <- saturation_map %>%
+  filter(Depth < 2000)
+
+
+ggplot(saturation_map_filtered, aes(x = Longitude, y = Latitude, color = Depth)) +
+  geom_point(size = 3) +
+  scale_color_viridis_c(option = "C", direction = -1) +
+  labs(title = "Geographic Distribution of Aragonite Saturation Horizon Depth",
+       color = "Depth (m)") +
+  theme_minimal()
+
+```
+```{r}
+library(ggplot2)
+library(ggspatial)
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthhires)
+
+# 获取高分辨率国家边界（包含海岸线）
+world <- ne_countries(scale = "large", returnclass = "sf")
+
+# 加州一带经纬度范围
+bbox <- c(xmin = -125, xmax = -115, ymin = 29, ymax = 36)
+
+# 画图
+ggplot() +
+  geom_sf(data = world, fill = "gray90", color = "gray50") +
+  geom_point(data = saturation_map_filtered, 
+             aes(x = Longitude, y = Latitude, color = Depth), size = 3) +
+  scale_color_viridis_c(option = "C", direction = -1) +
+  coord_sf(xlim = c(bbox["xmin"], bbox["xmax"]), 
+           ylim = c(bbox["ymin"], bbox["ymax"]), expand = FALSE) +
+  annotation_scale(location = "bl", width_hint = 0.4) +
+  annotation_north_arrow(location = "tl", which_north = "true") +
+  labs(
+    title = "Aragonite Saturation Horizon Depth along the California Coast",
+    x = "Longitude", y = "Latitude", color = "Depth (m)"
+  ) +
+  theme_minimal()
+
+```
+
+Nearshore vs Offshore
+```{r}
+library(tidyverse)
+# 基于经度划分 Nearshore vs Offshore
+saturation_grouped <- saturation_map %>%
+  mutate(Region = if_else(Longitude > -119, "Nearshore", "Offshore"))
+
+ggplot(saturation_grouped, aes(x = Region, y = Depth, fill = Region)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(title = "Saturation Horizon Depth: Nearshore vs Offshore",
+       x = "", y = "Depth (m)") +
+  theme_minimal()
+
+
+```
+```{r}
+# every station average pH
+station_pH <- co2_data %>%
+  group_by(Station_ID) %>%
+  summarise(mean_pH = mean(pHout, na.rm = TRUE)) %>%
+  ungroup()
+
+
+saturation_grouped_ph <- saturation_grouped %>%
+  left_join(station_pH, by = "Station_ID")
+
+ggplot(saturation_grouped_ph, aes(x = Region, y = mean_pH, fill = Region)) +
+  geom_boxplot(alpha = 0.7) +
+  labs(title = "Average pH by Region",
+       x = "", y = "Mean pH (per station)") +
+  theme_minimal()
+
+```
+The average pH of Nearshore sites is lower (more acidic).
+Offshore sites are more widely distributed and have a relatively high pH
+
+Analysis shows that the depth of the arsonite saturation layer at nearshore stations is significantly shallower, and the average pH is also lower, indicating that the nearshore area is more likely to enter an unsaturated state. This trend indicates that nearshore ecosystems are at a higher risk of being affected by ocean acidification, which may be related to factors such as upwelling, freshwater input from estuaries, and the decline in buffering capacity. This geographical distribution pattern is consistent with the known nearshore biogeochemical mechanisms, suggesting that nearshore crustaceans face greater survival pressure
 
