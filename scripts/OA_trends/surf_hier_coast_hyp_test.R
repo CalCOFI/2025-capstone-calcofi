@@ -228,7 +228,7 @@ lapply(
   1:10,
   function(i) {
     c(qty = qty[i], coef(summary(models[[i]]))[nrow(coef(summary(models[[i]]))),], n = nobs(models[[i]]), AIC = AIC(models[[i]]), r2 = r.squaredGLMM(models[[i]])[2],
-      CI = paste0("(", format(round(confint(models[[i]])[4,1], 5), nsmall = 5), ", ", format(round(confint(models[[i]])[4,2], 5), nsmall = 5), ")"))
+      CI = paste0("(", format(round(confint(models[[i]])[nrow(confint(models[[i]])),1], 5), nsmall = 5), ", ", format(round(confint(models[[i]])[nrow(confint(models[[i]])),2], 5), nsmall = 5), ")"))
   }
 ) %>%
   # combine results into a dataframe
