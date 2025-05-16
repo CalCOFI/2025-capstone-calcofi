@@ -8,7 +8,7 @@ library(scales)
 library(latex2exp)
 library(FDRestimation)
 library(stringr)
-
+library(ggrepel)
 
 # READ AND PROCESS DATA ---------------------------------------------------
 
@@ -97,7 +97,8 @@ surf_results <- surf_results %>%
 surf_results <- surf_results |> 
   mutate(adj_p_value = (p.fdr(pvalues = surf_results$`Pr(>|t|)`))$fdrs) |> 
   mutate(sigp = factor(ifelse(adj_p_value < 0.05, 1, 0), levels = c(1,0), labels = c("Yes", "No")),
-         sigp_ind = ifelse(adj_p_value < 0.05, 1, 0)) |> 
+         sigp_ind = ifelse(adj_p_value < 0.05, 1, 0),
+         sig_label = ifelse(adj_p_value < 0.05, paste("(",station,",",signif(Estimate, digits = 4), ")"), "")) |> 
   filter(n >= 10)
 
 
@@ -150,8 +151,8 @@ for (i in 1:10) {
       ),
       color = "black",
       show.legend=TRUE # force shape to always show in legend
-    ) +
-    geom_text(data = data, nudge_y = -.07 , size = 1.4, aes(x = lon, y = lat, label=paste("(",station,",",signif(Estimate, digits = 4), ")"))) + 
+    ) + 
+    geom_text_repel(data = data, aes(x = lon, y = lat, label=sig_label), max.overlaps = 30, box.padding = 1) +
     # manually adjust coordinates
     coord_sf(
       xlim = c(surf_results$lon %>% min() - 2, surf_results$lon %>% max() + 2),
@@ -189,11 +190,11 @@ for (i in 1:10) {
       color = "Estimate",
       size = "N",
       shape = "adjusted p<0.05",
-      caption = TeX(paste("Mean Slope (weighted by $N$):", format(round(weighted.mean(data$Estimate, data$n), 4), nsmall = 4), units[i]))
+      # caption = TeX(paste("Mean Slope (weighted by $N$):", format(round(weighted.mean(data$Estimate, data$n), 4), nsmall = 4), units[i]))
     )
   
   # save plots
-  ggsave(paste0("images/OA_trends/surf_", qty[i], "_by_station.png"), bg = "white")
+  ggsave(paste0("images/OA_trends/surf_", qty[i], "_by_station.png"), bg = "white", units = "in", width = 8, height = 8)
 }
 
 ggplot(
@@ -323,5 +324,8 @@ surf_results <- surf_results |>
   ))
 
 surf_results |> group_by(coastal, qty) |> 
-  summarize(time_effect = mean(Estimate)) |> 
-  kable()
+  summarize(time_effect = sum(Estimate*n)/sum(n))
+surf_results |> group_by(coastal, qty) |> 
+  summarize(n = sum(n)) |> 
+  group_by(coastal) |> 
+  summarize(n = mean(n))
