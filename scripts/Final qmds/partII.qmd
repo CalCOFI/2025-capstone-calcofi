@@ -1,0 +1,206 @@
+---
+title: "Carbonate Chemistry Trend Analysis"
+format: html
+---
+
+# Overview
+
+This project is sponsored by California Cooperative Oceanic Fisheries Investigations (CalCOFI), an organization founded in 1949 to study the ecological aspects of the Pacific sardine collapse off of the coast of California. CalCOFI is committed to studying California’s coastal marine environment and collecting relevant oceanographic data in order to provide insight on important climate change related topics such as renewable energy, integrated ocean management, and marine spatial planning.
+
+We aim to extend the research done in “A 37 year record of ocean acidification in the Southern California current” by Wolfe et al. on the yearly rate of change of certain carbonate chemistry variables by examining all available carbonate chemistry data collected across CalCOFI observation stations rather than only surface data collected at station 90.90.
+
+In particular, it is of interest to examine how the measurements of important ocean carbon chemistry and oceanographic variables have changed over time, namely total alkalinity (TA), total dissolved inorganic carbon (DIC), the Revelle Factor, pH, pCO2, Omega aragonite ($\\Omega_{aragonite}$), Omega calcite ($\\Omega_{calcite}$), temperature, salinity, and CO2-. Additionally, we aim to examine whether there is a difference in carbon uptake between coastal and non coastal stations due to coastal upwelling. Finally, we wish to assess the performance of Empirical Seawater Property Estimation Routines (ESPER) in predicting carbonate chemistry variables across different depths with easy to collect oceanographic variables such as temperature and salinity as inputs. 
+
+# Data
+
+CalCOFI samples from a predetermined sampling grid off the coast of California on a quarterly basis. Typical stations are set 40 nautical miles apart. At each sampling point, identified by a station and line number, CalCOFI lowers a carousel of 24 bottles into the water, which collect seawater samples from around 20 different depths (typically ranging from 20 to 515 meters). Researchers on the ship then measure oceanographic values such as the temperature, salinity, macronutrient concentration and other properties of these samples. This results in the oceanographic dataset used in this study. 
+
+While oceanographic data is measured on every CalCOFI cruise, carbonate chemistry values such as TA and DIC are only occasionally measured from the collected water samples and are stored in their own dataset. 
+
+The oceanographic dataset can be found here https://calcofi.org/data/oceanographic-data/bottle-database/, while the carbonate chemistry dataset can be found here https://calcofi.org/data/oceanographic-data/dic/
+
+In order to proceed, we need to merge these two datasets into one, the process of which can be seen below. 
+
+```{r}
+library(tidyverse)
+
+# Read in oceanographic bottle data
+hydro_bottle <- read_csv(
+  "data/calcofi_hydro_bottle/194903-202105_Bottle.csv",
+   # change encoding
+   locale=locale(encoding="latin1"),
+   # increase guess_max to correctly guess column types
+   guess_max = Inf
+)
+
+# Read in cast data
+cast_bottle <- read_csv("data/calcofi_hydro_bottle/194903-202105_Cast.csv")
+
+# Read in carbonate chemistry bottle data
+cc_bottle <- read_csv("data/carbonate_chem_bottle.csv")
+
+# Drop first row (containing units) of carbonate chemistry bottle data
+cc_bottle <- cc_bottle[2:nrow(cc_bottle),]
+
+# Merge oceanographic and cast data based on Cst_Cnt (Cast Count) and Sta_ID (Station ID)
+hydro_bottle <- hydro_bottle %>%
+  left_join(
+    cast_bottle,
+    by = join_by(Cst_Cnt, Sta_ID)
+  )
+
+# Prepare hydro bottle data for merging
+depth_tol <- 0.9
+hydro_bottle <- hydro_bottle %>%
+  mutate(
+    Date = as.Date(Date, format = c("%m/%d/%Y"))
+  ) %>%
+  mutate(
+    Year = year(Date),
+    Month = month(Date)
+  ) %>%
+  mutate(
+    Depthm_Upper = Depthm + depth_tol,
+    Depthm_Lower = Depthm - depth_tol
+  )
+
+# Prepare carbonate chemistry data for merging
+cc_bottle <- cc_bottle %>%
+  # Create new date column for merging
+  mutate(
+    Date = as.Date(
+      paste(Month_UTC, Day_UTC, Year_UTC, sep = "/"),
+      tryFormats = c("%m/%d/%Y")
+    ),
+    .before = Year_UTC
+  ) %>%
+  # Change column types for merging
+  mutate(
+    Depth = as.double(Depth),
+    Latitude = as.double(Latitude),
+    Longitude = as.double(Longitude)
+  )
+
+# Merge carbonate chemistry and oceanographic bottle data based on date, location, and depth
+merged_bottle_data <- inner_join(
+  cc_bottle, 
+  hydro_bottle,
+  by = join_by(Month_UTC == Month,
+               Year_UTC == Year,
+               Station_ID == Sta_ID,
+               between(Depth, Depthm_Lower, Depthm_Upper)),
+  suffix = c(".cc", ".hydro")
+)
+
+# Save merged data
+write_csv(merged_bottle_data, "data/merged_bottle_data.csv")
+```
+
+## CO2SYS
+
+# ESPER Model Validation
+
+
+
+# Carbon Trend Analysis
+
+As mentioned prior, we are interested in examining how carbonate chemistry variables have been changing over time, and whether this temporal trend differs among coastal versus non coastal stations. 
+
+As pointed out in  “Advancing best practices for assessing trends of ocean acidification time series” by Sutton et al, oceanographic carbonate time series data is likely to have a seasonal trend. Below we create a function we can apply to our data to deal with this by following the procedure that Sutton outlined in the above article.
+
+```{r}
+sea_dtd_data <- function(qty, df, date_col) {
+  # Seasonally detrend in a dataframe based on Sutton, A. J. et al. (2022)
+  #   qty: vector of column names of variables to be detrended
+  #   df: dataframe with observations to be detrended
+  #   date_col: date column to be used for fitting
+  # Outputs original dataframe with appended columns of detrended data with name format qty_dtd
+  
+  # Check if date_col is in decimal format and convert if not
+  if (!is.double(date_col)) {
+    df <- df %>%
+      mutate(
+        Date_Dec = decimal_date(get(date_col))
+      )
+  }
+  
+  # Detrend data for each desired quantity
+  for (i in qty) {
+    # Extract overall linear trend
+    lin_trend <- lm(get(i) ~ Date_Dec, data = df, na.action = na.exclude)
+    
+    # Remove overall linear trend
+    df <- df %>%
+      mutate(
+        lin_dtd_obs = as.vector(residuals(lin_trend))
+      )
+    
+    # Bin observations into a three month sliding scale
+    df_minus <- df %>% 
+      mutate(
+        bin_month = ifelse((Month_UTC - 1) == 0, 12, Month_UTC - 1)
+      )
+    df_0 <- df %>%
+      mutate(
+        bin_month = Month_UTC
+      )
+    df_plus <- df %>%
+      mutate(
+        bin_month = ifelse((Month_UTC + 1) == 13, 1, Month_UTC + 1)
+      )
+    df_binned <- bind_rows(df_minus, df_0, df_plus)
+    
+    # Compute monthly means of each 3-month bin
+    monthly_means_df <- df_binned %>%
+      group_by(
+        bin_month
+      ) %>%
+      summarize(
+        monthly_mean = mean(lin_dtd_obs, na.rm = TRUE),
+        .groups = "drop"
+      )
+    
+    # Compute anomaly for each bin
+    monthly_means_df <- monthly_means_df %>%
+      mutate(
+        anomaly = monthly_mean - mean(monthly_mean, na.rm = TRUE)
+      )
+    
+    # Subtract anomalies from observations
+    df <- df %>% 
+      left_join(
+        monthly_means_df,
+        by = join_by(Month_UTC == bin_month)
+      ) %>%
+      mutate(
+        i_dtd = get(i) - anomaly
+      ) %>%
+      rename_with(
+        .cols = i_dtd,
+        ~ paste0(i, "_dtd")
+      )
+    
+    # Remove extra columns that are no longer needed
+    df <- df %>% 
+      select(
+        -c(lin_dtd_obs,monthly_mean,anomaly)
+      )
+  }
+  
+  # Return dataframe as output
+  return(df)
+}
+```
+
+
+We take two approaches in achieving this, namely modeling each of the variables of interest at each station individually, and creating a hierarchical model that looks at all of the data at once. 
+
+## Station by Station Models
+
+
+
+
+## Hierarchical Model
+
+
+# Conclusion
