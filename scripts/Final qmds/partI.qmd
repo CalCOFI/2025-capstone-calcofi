@@ -98,6 +98,12 @@ write_csv(merged_bottle_data, "data/merged_bottle_data.csv")
 
 ## CO2SYS
 
+In the merged dataset above, the only carbonate chemistry variables that have been recorded are TA and DIC. To remedy this, we can use CO2SYS, a program that uses a mechanistic model to calculate all other carbonate chemistry variables given at least two carbonate chemistry variables as well as envirornmental variables such as
+temperature and salinity. The CO2SYS routines are written and contained in MATLAB files, so we unfortunately cannot run them in this document. However, the folder titled CO2SYS contains both the CO2SYS routines as well as a script called CO2SYS_calc.m where we apply CO2SYS to our data in order to get the other carbonate variables of interest. 
+
+The resulting dataset of CO2SYS calculated varaibles is named CO2SYS_out.csv in the data folder.
+
+
 # ESPER Model Validation
 
 
