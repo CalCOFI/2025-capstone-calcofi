@@ -210,3 +210,11 @@ We take two approaches in achieving this, namely modeling each of the variables 
 
 
 # Conclusion
+
+
+
+# ALSO NEEDED
+- Note of Gap in data
+- graph showing observations over time
+- EDA?
+- Either examining columns in data or pointing to a website that does it
