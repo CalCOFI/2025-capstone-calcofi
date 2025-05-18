@@ -19,6 +19,8 @@ While oceanographic data is measured on every CalCOFI cruise, carbonate chemistr
 
 The oceanographic dataset can be found here https://calcofi.org/data/oceanographic-data/bottle-database/, while the carbonate chemistry dataset can be found here https://calcofi.org/data/oceanographic-data/dic/
 
+The above datasets must be downloaded manually and put in the data folder in order for this qmd to run. They are unfortunately too large to upload to Github.
+
 In order to proceed, we need to merge these two datasets into one, the process of which can be seen below. 
 
 ```{r}
@@ -415,7 +417,7 @@ for (i in 1:10) {
     )
   
   # save plots
-  ggsave(paste0("images/OA_trends/surf_", qty[i], "_by_station.png"), bg = "white", units = "in", width = 8, height = 8)
+  ggsave(paste0("images/surf_", qty[i], "_by_station.png"), bg = "white", units = "in", width = 8, height = 8)
 }
 ```
 
@@ -423,7 +425,7 @@ All of the plots can be found in the images folder, below we can see an example 
 
 
 ```{r, echo=FALSE}
-knitr::include_graphics(here::here("images/OA_trends/surf_DIC_by_station.png"))
+knitr::include_graphics("images/surf_DIC_by_station.png")
 ```
 
 We can also use the `sign_stations` dataframe we made earlier to create a map that shows the proportion of models with a significant temporal trend for each station. 
