@@ -61,6 +61,7 @@ co2_clean %>%
   theme_minimal()
 
 ```
+
 090.0 090.0 has several kilometers of data, while other sites only have a dozen meters. The Y-axis scale is completely different → the graph is flattened.
 
 ```{r}
@@ -102,8 +103,8 @@ ggplot(saturation_horizon, aes(x = reorder(Station_ID, Depth), y = Depth)) +
 
 ```
 
-Is pH significantly correlated with Omega-Arout?
-Are there certain ecological threshold areas, such as shallow water areas that are prone to unsaturated?
+Is pH significantly correlated with Omega-Arout? Are there certain ecological threshold areas, such as shallow water areas that are prone to unsaturated?
+
 ```{r}
 # Scatter plot: pHout vs OmegaARout
 
@@ -114,32 +115,34 @@ ggplot(co2_data, aes(x = pHout, y = OmegaARout)) +
   theme_minimal()
 
 ```
-Observations:
-The figure shows an obvious positive correlation: The higher the pH, the higher the Omega AR.
+
+Observations: The figure shows an obvious positive correlation: The higher the pH, the higher the Omega AR.
 
 When the pH approaches below 7.8, the Omega value drops rapidly, and even quite a few data points fall within the Omega. Area 1 → indicates unsaturated water body.
 
-Although the linear model is generally reasonable, in the area with a higher pH (> 8.1) There may be a nonlinear upward trend, which might be suitable for further exploration using GAM or logarithmic models.
+Although the linear model is generally reasonable, in the area with a higher pH (\> 8.1) There may be a nonlinear upward trend, which might be suitable for further exploration using GAM or logarithmic models.
 
 ```{r}
 cor.test(co2_data$pHout, co2_data$OmegaARout, use = "complete.obs")
 
 ```
-We found a strong positive correlation between pH and OmegaARout (r = 0.970378, p <2.2e-16)
+
+We found a strong positive correlation between pH and OmegaARout (r = 0.970378, p \<2.2e-16)
 
 Linear
+
 ```{r}
 lm_model <- lm(OmegaARout ~ pHout, data = co2_data)
 summary(lm_model)
 
 ```
+
 ```{r}
 library(mgcv)
 gam_model <- gam(OmegaARout ~ s(pHout), data = co2_data)
 plot(gam_model)
 
 ```
-
 
 ```{r}
 #add longtitude and latitude
@@ -164,6 +167,7 @@ ggplot(saturation_map_filtered, aes(x = Longitude, y = Latitude, color = Depth))
   theme_minimal()
 
 ```
+
 ```{r}
 library(ggplot2)
 library(ggspatial)
@@ -196,6 +200,7 @@ ggplot() +
 ```
 
 Nearshore vs Offshore
+
 ```{r}
 library(tidyverse)
 # 基于经度划分 Nearshore vs Offshore
@@ -210,6 +215,7 @@ ggplot(saturation_grouped, aes(x = Region, y = Depth, fill = Region)) +
 
 
 ```
+
 ```{r}
 # every station average pH
 station_pH <- co2_data %>%
@@ -228,8 +234,226 @@ ggplot(saturation_grouped_ph, aes(x = Region, y = mean_pH, fill = Region)) +
   theme_minimal()
 
 ```
-The average pH of Nearshore sites is lower (more acidic).
-Offshore sites are more widely distributed and have a relatively high pH
+
+The average pH of Nearshore sites is lower (more acidic). Offshore sites are more widely distributed and have a relatively high pH
 
 Analysis shows that the depth of the arsonite saturation layer at nearshore stations is significantly shallower, and the average pH is also lower, indicating that the nearshore area is more likely to enter an unsaturated state. This trend indicates that nearshore ecosystems are at a higher risk of being affected by ocean acidification, which may be related to factors such as upwelling, freshwater input from estuaries, and the decline in buffering capacity. This geographical distribution pattern is consistent with the known nearshore biogeochemical mechanisms, suggesting that nearshore crustaceans face greater survival pressure
+
+```{r}
+# 加载所需包
+library(ggplot2)
+library(dplyr)
+library(patchwork)
+
+# 读取数据
+data <- read.csv("/Users/fengci/Desktop/Pstat197BC/capstone-calcofi-seagrant/data/merged_bottle_co2sys.csv")
+
+# 筛选所需列并限制深度在 1000 米以内
+filtered_data <- data %>%
+  select(Station_ID, Depthm, Longitude, Latitude, CTDTEMP_ITS90, SAL, OmegaARout, O2ml_L, pHout) %>%
+  filter(Depthm <= 1000)
+
+
+# 设置统一的主题样式
+base_theme <- theme_minimal(base_size = 14) +
+  theme(
+    panel.grid.major = element_line(color = "grey85"),
+    panel.grid.minor = element_blank(),
+    axis.title.y = element_text(size = 12),
+    axis.title.x = element_text(size = 12)
+  )
+
+# pH 剖面图
+p1 <- ggplot(filtered_data, aes(x = pHout, y = Depthm, group = Station_ID)) +
+  geom_path(alpha = 0.3, color = "#1f77b4") +
+  scale_y_reverse() +
+  labs(x = "pH", y = "Depth (m)", title = "pH Profile") +
+  base_theme
+
+# 氧气剖面图
+p2 <- ggplot(filtered_data, aes(x = O2ml_L, y = Depthm, group = Station_ID)) +
+  geom_path(alpha = 0.3, color = "#2ca02c") +
+  scale_y_reverse() +
+  labs(x = "Oxygen (ml/L)", y = "", title = "Oxygen Profile") +
+  base_theme
+
+# 碳酸钙饱和度剖面图
+p3 <- ggplot(filtered_data, aes(x = OmegaARout, y = Depthm, group = Station_ID)) +
+  geom_path(alpha = 0.3, color = "#d62728") +
+  scale_y_reverse() +
+  labs(x = "Ω_AR", y = "", title = "Calcium Carbonate Saturation") +
+  base_theme
+
+# 合并三个图
+(p1 | p2 | p3) + plot_layout(guides = "collect") +
+  plot_annotation(title = "Profiling Analysis: pH, Oxygen, and Calcium Carbonate Saturation (Depth <= 1000m)")
+```
+
+#----------------------------#
+```{r}
+zooplankton <- read_csv("../data/zoop_data/zooplankton_pH.csv")
+prpoos <- read_csv("../data/PRPOOS/prpoos_summary_namecleaned.csv")
+```
+
+```{r}
+library(readr)
+library(dplyr)
+library(mgcv)
+library(ggplot2)
+
+# Load the dataset
+
+# Data preprocessing
+zooplankton_clean <- zooplankton %>%
+  select(Longitude, Latitude, Year_UTC, Month_UTC, total_plankton, small_plankton, pHout, OmegaARout, CO3out, CTDTEMP_ITS90, Salinity_PSS78) %>%
+  drop_na() %>%
+  mutate(
+    log_total_plankton = log1p(total_plankton),
+    log_small_plankton = log1p(small_plankton)
+  )
+
+# GAM with interaction terms
+gam_interaction <- gam(
+  log_total_plankton ~ te(Longitude, Latitude) +
+                       s(pHout, OmegaARout) +
+                       s(CTDTEMP_ITS90, Salinity_PSS78),
+  data = zooplankton_clean
+)
+
+# Model summary
+summary(gam_interaction)
+
+# Plot interaction effects
+par(mfrow = c(2, 2))
+plot(gam_interaction, select = 2, shade = TRUE)
+plot(gam_interaction, select = 3, shade = TRUE)
+par(mfrow = c(1, 1))
+
+# Save the plot
+ggsave("interaction_effects.png")
+
+```
+
+```{r}
+library(readr)
+library(dplyr)
+library(mgcv)
+library(ggplot2)
+
+
+# Data preprocessing
+zooplankton_clean <- zooplankton %>%
+  select(Longitude, Latitude, Year_UTC, Month_UTC, total_plankton, small_plankton, pHout, OmegaARout, CO3out, CTDTEMP_ITS90, Salinity_PSS78) %>%
+  drop_na() %>%
+  mutate(
+    log_total_plankton = log1p(total_plankton),
+    log_small_plankton = log1p(small_plankton)
+  )
+
+# Segment data into two time periods
+zooplankton_1 <- zooplankton_clean %>% filter(Year_UTC >= 2010 & Year_UTC <= 2015)
+zooplankton_2 <- zooplankton_clean %>% filter(Year_UTC >= 2016 & Year_UTC <= 2021)
+
+# GAM for 2010-2015
+gam_2010_2015 <- gam(
+  log_total_plankton ~ te(Longitude, Latitude) + s(OmegaARout),
+  data = zooplankton_1
+)
+
+# GAM for 2016-2021
+gam_2016_2021 <- gam(
+  log_total_plankton ~ te(Longitude, Latitude) + s(OmegaARout),
+  data = zooplankton_2
+)
+
+# Compare models
+summary(gam_2010_2015)
+summary(gam_2016_2021)
+
+# Plot comparison
+par(mfrow = c(2, 1))
+plot(gam_2010_2015, select = 2, shade = TRUE, main = "2010-2015")
+plot(gam_2016_2021, select = 2, shade = TRUE, main = "2016-2021")
+par(mfrow = c(1, 1))
+
+# Save the plot
+ggsave("time_segment_comparison.png")
+
+```
+```{r}
+library(readr)
+library(dplyr)
+library(mgcv)
+library(ggplot2)
+
+
+
+
+# Data preprocessing for PRPOOS
+calcifying_species <- c("bryozoan_larvaeAbundance", "pteropoda_heteropodaAbundance", "ostracodsAbundance", "rhizariaAbundance")
+non_calcifying_species <- c("appendiculariaAbundance", "chaetognathaAbundance", "copepoda_calanoida_minus_eucalanidsAbundance")
+
+prpoos <- prpoos %>%
+  drop_na() %>%
+  mutate(
+    calcifying_abundance = rowSums(select(., all_of(calcifying_species))),
+    non_calcifying_abundance = rowSums(select(., all_of(non_calcifying_species))),
+    calcifying_ratio = calcifying_abundance / (non_calcifying_abundance + 1),  # Adding 1 to avoid division by zero
+    log_calcifying_ratio = log1p(calcifying_ratio)
+  )
+
+# GAM model for calcifying ratio
+gam_calc_ratio <- gam(
+  log_calcifying_ratio ~ s(pH_mean) + s(OmegaAR_mean) + s(CO3_mean),
+  data = prpoos
+)
+
+# Model summary
+summary(gam_calc_ratio)
+
+# Plot
+par(mfrow = c(2, 2))
+plot(gam_calc_ratio, shade = TRUE)
+par(mfrow = c(1, 1))
+
+ggsave("calcifying_ratio_gam.png")
+
+```
+
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(cluster)
+library(factoextra)
+
+
+
+# Select abundance columns
+abundance_cols <- grep("Abundance$", names(prpoos), value = TRUE)
+
+# Create species abundance matrix
+species_matrix <- prpoos %>%
+  select(all_of(abundance_cols)) %>%
+  drop_na()
+
+# Calculate distance matrix
+dist_matrix <- dist(species_matrix)
+
+# Hierarchical clustering
+hclust_model <- hclust(dist_matrix, method = "ward.D2")
+
+# Plot dendrogram
+plot(hclust_model, main = "Hierarchical Clustering of Species Abundance")
+
+# K-means clustering
+set.seed(123)
+kmeans_model <- kmeans(species_matrix, centers = 3)
+
+# Visualize clusters
+fviz_cluster(list(data = species_matrix, cluster = kmeans_model$cluster))
+
+ggsave("species_clustering.png")
+
+```
 

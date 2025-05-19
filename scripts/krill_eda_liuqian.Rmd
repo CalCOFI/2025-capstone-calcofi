@@ -59,6 +59,7 @@ mollusca1_unpool_merged <- inner_join(
 ```
 
 ```{r}
+library(ggplot2)
 # eda plots
 ggplot() +
   geom_point(aes(x = Date, y = Station_ID, color = "ZooDB Data"), 
@@ -135,13 +136,13 @@ colnames(prpoos_summary) <- colnames(prpoos_summary) %>%
   str_replace(" Abundance \\(No\\. per m2\\)", "Abundance") %>%
   str_replace(" Estimated C Biomass \\(mgC m-2\\)", "EstimatedBiomass") %>%
   str_replace_all(" ", "")  # Remove any remaining spaces
-write.csv(prpoos_summary, "../data/PRPOOS/prpoos_summary_namecleaned.csv", row.names = FALSE)
 prpoos_summary$YearMonth <- ym(paste(prpoos_summary$Year_UTC, prpoos_summary$Month_UTC))
 unique_stations <- merged_zoop_avg_monthly %>%
   select(Station_ID, Longitude, Latitude) %>%
   distinct()
 prpoos_summary <- prpoos_summary %>%
   inner_join(unique_stations, by = "Station_ID")
+write.csv(prpoos_summary, "../data/PRPOOS/prpoos_summary_namecleaned.csv", row.names = FALSE)
 
 names(prpoos_summary)
 ```
@@ -169,7 +170,7 @@ long_df <- prpoos_summary %>%
   )
 
 # Plot with color based on highlight status
-ggplot(long_df, aes(x = OmegaCA_mean, y = Abundance, color = highlight)) +
+ggplot(long_df, aes(x = OmegaCA_mean, y = log(Abundance), color = highlight)) +
   geom_point(alpha = 0.3, size = 0.2) +
   facet_wrap(~ Taxa, scales = "free_y") +
   scale_color_manual(values = c("Highlighted" = "red", "Normal" = "black")) +
@@ -197,7 +198,7 @@ long_df <- abundance_df %>%
   )
 
 # Plot with color based on highlight status
-ggplot(long_df, aes(x = pH_mean, y = Abundance, color = highlight)) +
+ggplot(long_df, aes(x = pH_mean, y = log(Abundance), color = highlight)) +
   geom_point(alpha = 0.3, size = 0.2) +
   facet_wrap(~ Taxa, scales = "free_y") +
   scale_color_manual(values = c("Highlighted" = "red", "Normal" = "black")) +
@@ -228,7 +229,7 @@ long_df <- prpoos_summary %>%
   )
 
 # Plot with color based on highlight status
-ggplot(long_df, aes(x = CO3_mean, y = Abundance, color = highlight)) +
+ggplot(long_df, aes(x = CO3_mean, y = log(Abundance), color = highlight)) +
   geom_point(alpha = 0.3, size = 0.2) +
   facet_wrap(~ Taxa, scales = "free_y") +
   scale_color_manual(values = c("Highlighted" = "red", "Normal" = "black")) +
@@ -245,23 +246,27 @@ library(stringr)
 library(tidyr)
 library(purrr)
 
+
 # Step 1: Prepare predictors
 X <- model.matrix(~ pH_mean + OmegaCA_mean + CO3_mean, data = prpoos_summary)[, -1]  # remove intercept
 
 # Step 2: Identify all abundance columns
 abundance_vars <- names(prpoos_summary)[str_detect(names(prpoos_summary), "Abundance$")]
 
-# Step 3: Fit lasso models for each abundance variable
+# Step 3: Fit lasso models for each abundance variable (with log-transform)
 lasso_models <- map(abundance_vars, function(var_name) {
-  y <- prpoos_summary[[var_name]]
+  y_raw <- prpoos_summary[[var_name]]
+  
+  # Log-transform response using log1p
+  y <- log1p(y_raw)  # log(y + 1)
   
   # Remove missing values
   complete_idx <- complete.cases(X, y)
   x_clean <- X[complete_idx, ]
   y_clean <- y[complete_idx]
   
-  # Fit lasso model using cross-validation
-  cv_fit <- cv.glmnet(x_clean, y_clean, alpha = 1)  # alpha = 1 → Lasso
+  # Fit Lasso model
+  cv_fit <- cv.glmnet(x_clean, y_clean, alpha = 1)
   
   list(
     variable = var_name,
@@ -271,7 +276,7 @@ lasso_models <- map(abundance_vars, function(var_name) {
   )
 })
 
-# Step 4: Convert coefficients into a tidy summary
+# Step 4: Convert coefficients into tidy summary
 lasso_summary <- map_dfr(lasso_models, function(res) {
   coefs <- as.matrix(res$coefficients)
   data.frame(
@@ -303,7 +308,7 @@ abundance_vars <- names(prpoos_summary)[str_detect(names(prpoos_summary), "Abund
 
 # Step 3: Loop over each response variable
 model_summary <- map_dfr(abundance_vars, function(var_name) {
-  y <- prpoos_summary[[var_name]]
+  y <- prpoos_summary[[var_name]] %>% log1p()
   
   # Drop rows with NA in X or y
   complete_idx <- complete.cases(X, y)
@@ -638,7 +643,7 @@ par(mfrow = c(2, 2))
 # Loop through each species and fit the GAM model
 for (species in highlighted_species) {
   # Fit GAM model
-  formula_text <- as.formula(paste(species, "~ s(Longitude, Latitude, k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean)"))
+  formula_text <- as.formula(paste("log1p(", species, ") ~ s(Longitude, Latitude, k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean)"))
   gam_model <- gam(formula_text, data = prpoos_summary)
   
   # Plot spatial smooth for this species
@@ -656,11 +661,12 @@ for (species in highlighted_species) {
 # Set up 2x2 plot layout
 par(mfrow = c(2, 3))
 
-abundance_vars <- names(prpoos_summary)[str_detect(names(prpoos_summary), "Abundance$")]
+abundance_vars <- names(prpoos_summary)[str_detect(names(prpoos_summary), "Abundance$")] 
 
 for (species in setdiff(abundance_vars, highlighted_species)) {
   # Fit GAM model
-  formula_text <- as.formula(paste(species, "~ s(Longitude, Latitude, k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean)"))
+  
+  formula_text <- as.formula(paste("log1p(", species, ") ~ s(Longitude, Latitude, k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean)"))
   gam_model <- gam(formula_text, data = prpoos_summary)
   
   # Plot spatial smooth for this species
@@ -670,6 +676,60 @@ for (species in setdiff(abundance_vars, highlighted_species)) {
      main = gsub("Abundance$", "", species),  # Clean title
        xlab = "Longitude", ylab = "Latitude")
 }
+```
+
+
+```{r}
+abundance_vars <- names(prpoos_summary)[str_detect(names(prpoos_summary), "Abundance$")]
+
+# Example for one species, you can wrap in loop later
+species <- "ostracodsAbundance"
+
+# Fit the GAM
+formula_text <- as.formula(paste("log1p(", species, ") ~ s(Longitude, Latitude, k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean) + s(TA_mean) + s(DIC_mean) + s(RF_mean) + s(OmegaAR_mean)"))
+gam_model_bl <- gam(formula_text, data = prpoos_summary)
+
+# Make a prediction grid over your spatial extent
+lon_seq <- seq(min(prpoos_summary$Longitude) - 3,
+               max(prpoos_summary$Longitude) + 3,
+               length.out = 200)
+lat_seq <- seq(min(prpoos_summary$Latitude) - 3,
+               max(prpoos_summary$Latitude) + 3,
+               length.out = 200)
+grid <- expand.grid(Longitude = lon_seq, Latitude = lat_seq)
+
+# Use mean values for non-spatial covariates
+grid$pH_mean <- mean(prpoos_summary$pH_mean, na.rm = TRUE)
+grid$OmegaCA_mean <- mean(prpoos_summary$OmegaCA_mean, na.rm = TRUE)
+grid$CO3_mean <- mean(prpoos_summary$CO3_mean, na.rm = TRUE)
+grid$TA_mean <- mean(prpoos_summary$TA_mean, na.rm = TRUE)
+grid$DIC_mean <- mean(prpoos_summary$DIC_mean, na.rm = TRUE)
+grid$RF_mean <- mean(prpoos_summary$RF_mean, na.rm = TRUE)
+grid$OmegaAR_mean <- mean(prpoos_summary$OmegaAR_mean, na.rm = TRUE)
+
+# Predict from GAM
+grid$fit <- predict(gam_model_bl, newdata = grid)
+
+# World map data
+world <- map_data("world")
+
+# Plot with ggplot2
+ggplot() +
+  geom_raster(data = grid, aes(x = Longitude, y = Latitude, fill = fit), alpha = 0.8) +  # transparency
+  borders("world", colour = "black") +
+  coord_quickmap(xlim = range(prpoos_summary$Longitude) + c(-2, 2),
+                 ylim = range(prpoos_summary$Latitude) + c(-2, 2)) +
+  scale_fill_viridis_c(name = paste("log1p(", species, ")", sep = "")) +
+  labs(title = paste("GAM Spatial Smooth for", gsub("Abundance$", "", species)),
+       x = "Longitude", y = "Latitude") +
+  geom_point(data = prpoos_summary, aes(x = Longitude, y = Latitude), 
+             shape = 21, fill = "white", color = "black", size = 2, stroke = 0.3) + 
+
+  theme_minimal()
+summary(gam_model_bl)
+AIC(gam_model_bl)
+plot(gam_model_bl)
+
 ```
 
 ```{r}
@@ -732,6 +792,8 @@ ggplot() +
   theme_minimal()
 ```
 
+## yearly 
+
 ```{r}
 library(tidyverse)
 library(ggplot2)
@@ -757,21 +819,9 @@ plot_saturation_horizon <- function(station_id, data) {
 
     if (nrow(filtered_data) > 1 && n_unique > 2) {  
       safe_k <- min(4, n_unique - 1)  
-      # define knot points
-      knotpts <- c(1, 5, 10)
-
-      # fit an order 3 regression spline with three internal knots
-      fit_bs <- lm(Depthm ~ bs(OmegaARout, degree = 1, knots = knotpts),
-                   data = filtered_data) 
-      # Base R plot
-      plot(filtered_data$OmegaARout, filtered_data$Depthm, pch = 16, xlab = "OmegaARout", ylab = "Depth (m)", main = "Spline Fit")
-
-      # Add fitted line
-      ord <- order(filtered_data$OmegaARout)
-      lines(filtered_data$OmegaARout[ord], predict(fit_bs)[ord], col = "blue", lwd = 2)
-
+      gam_fit <- gam(Depthm ~ s(OmegaARout, bs = "cs", k = safe_k), data = filtered_data)
       
-      predicted_depth <- predict(fit_bs, newdata = tibble(OmegaARout = 1))
+      predicted_depth <- predict(gam_fit, newdata = tibble(OmegaARout = 1))
       
       saturation_depths <- saturation_depths %>%
         add_row(Station_ID = station_id, Year_UTC = species, Depth_Saturation_Horizon = predicted_depth)
@@ -808,4 +858,219 @@ plot_saturation_horizon <- function(station_id, data) {
 }
 
 plot_saturation_horizon("080.0 080.0", merged_bottle_co2sys)
+```
+
+## seasonally
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+# Step 1: Define season from month
+get_season <- function(month) {
+  if (month %in% c(12, 1, 2)) return("Winter")
+  if (month %in% c(3, 4, 5)) return("Spring")
+  if (month %in% c(6, 7, 8)) return("Summer")
+  if (month %in% c(9, 10, 11)) return("Fall")
+}
+
+# Step 2: Add Season column
+merged_bottle_co2sys <- merged_bottle_co2sys %>%
+  mutate(Season = sapply(Month_UTC, get_season))
+
+# Step 3: Get all unique Year × Season combinations
+year_season_combos <- merged_bottle_co2sys %>%
+  filter(!is.na(Depthm), !is.na(OmegaARout), Station_ID == "081.8 046.9") %>%
+  distinct(Year_UTC, Season)
+
+# Step 4: Loop through each Year × Season and plot
+for (i in seq_len(nrow(year_season_combos))) {
+  yr <- year_season_combos$Year_UTC[i]
+  szn <- year_season_combos$Season[i]
+  
+  filtered_data <- merged_bottle_co2sys %>%
+    filter(Station_ID == "081.8 046.9",
+           Year_UTC == yr,
+           Season == szn,
+           !is.na(Depthm),
+           !is.na(OmegaARout))
+  
+  # Skip if no data
+  if (nrow(filtered_data) == 0) next
+  
+  p <- ggplot(filtered_data, aes(x = OmegaARout, y = Depthm)) +
+    geom_point(alpha = 0.6, color = "blue") +
+    geom_smooth(method = "loess", formula = y ~ x, color = "red", se = FALSE) +
+    scale_y_reverse() +
+    theme_minimal() +
+    labs(
+      title = paste("OmegaAR vs. Depth for", szn, yr),
+      x = "OmegaAR",
+      y = "Depth (m)"
+    ) +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold")
+    )
+  
+  print(p)
+}
+
+```
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(mgcv)
+
+plot_saturation_horizon_by_season <- function(station_id, data) {
+  
+  # Helper: Convert month to season
+  get_season <- function(month) {
+    if (month %in% c(12, 1, 2)) return("Winter")
+    if (month %in% c(3, 4, 5)) return("Spring")
+    if (month %in% c(6, 7, 8)) return("Summer")
+    if (month %in% c(9, 10, 11)) return("Fall")
+  }
+  
+  # Add Season column
+  data <- data %>%
+    mutate(Season = sapply(Month_UTC, get_season))
+  
+  # Initialize result dataframe
+  season_depths <- tibble(
+    Station_ID = character(),
+    Year_UTC = integer(),
+    Season = character(),
+    Depth_Saturation_Horizon = numeric()
+  )
+  
+  # Define range of years and seasons
+  years <- 2008:2021
+  seasons <- c("Winter", "Spring", "Summer", "Fall")
+  
+  # Loop through year-season combinations
+  for (yr in years) {
+    for (szn in seasons) {
+      filtered_data <- data %>%
+        filter(!is.na(Depthm), !is.na(OmegaARout),
+               Station_ID == station_id,
+               Year_UTC == yr,
+               Season == szn)
+
+      n_unique <- filtered_data %>% pull(OmegaARout) %>% unique() %>% length()
+
+      if (nrow(filtered_data) > 1 && n_unique > 2) {
+        safe_k <- min(4, n_unique - 1)
+        gam_fit <- gam(Depthm ~ s(OmegaARout, bs = "cs", k = safe_k), data = filtered_data)
+
+        predicted_depth <- predict(gam_fit, newdata = tibble(OmegaARout = 1))
+
+        season_depths <- season_depths %>%
+          add_row(Station_ID = station_id, Year_UTC = yr, Season = szn, Depth_Saturation_Horizon = predicted_depth)
+      } else {
+        season_depths <- season_depths %>%
+          add_row(Station_ID = station_id, Year_UTC = yr, Season = szn, Depth_Saturation_Horizon = NA_real_)
+      }
+    }
+  }
+
+  # Count data points per Year × Season
+  year_counts <- data %>%
+    filter(Station_ID == station_id) %>%
+    count(Year_UTC, Season, name = "n_obs")
+
+  # Join and label data quality
+  saturation_summary <- season_depths %>%
+    left_join(year_counts, by = c("Year_UTC", "Season")) %>%
+    mutate(data_quality = if_else(n_obs < 10, "Few Observations", "Sufficient Observations"))
+
+  # Step: Set season as ordered factor and generate ordered Season-Year index
+  season_levels <- c("Winter", "Spring", "Summer", "Fall")
+  saturation_summary <- saturation_summary %>%
+    mutate(Season = factor(Season, levels = season_levels)) %>%
+    arrange(Year_UTC, Season) %>%
+    mutate(Season_Year_Index = paste(Year_UTC, Season, sep = "-"),
+           Season_Year_Index = factor(Season_Year_Index, levels = unique(Season_Year_Index)))
+
+  # Final plot
+  p <- ggplot(saturation_summary, aes(x = Season_Year_Index, 
+                                      y = Depth_Saturation_Horizon, 
+                                      color = data_quality)) +
+    geom_point(size = 3) +
+    geom_line(aes(group = 1), color = "grey50", alpha = 0.5) +
+    scale_color_manual(values = c("Few Observations" = "red", "Sufficient Observations" = "blue")) +
+    scale_y_reverse() +
+    labs(
+      title = paste("Saturation Horizon by Season-Year for Station", station_id),
+      x = "Season-Year",
+      y = "Depth of Saturation Horizon (m)",
+      color = "Data Quality"
+    ) +
+    theme_minimal() +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold"),
+      axis.text.x = element_text(angle = 45, hjust = 1)
+    )
+
+  print(p)
+}
+
+
+plot_saturation_horizon_by_season("080.0 080.0", merged_bottle_co2sys)
+
+```
+
+```{r}
+library(ggplot2)
+library(dplyr)
+
+# Step 1: Define season from month
+get_season <- function(month) {
+  if (month %in% c(12, 1, 2)) return("Winter")
+  if (month %in% c(3, 4, 5)) return("Spring")
+  if (month %in% c(6, 7, 8)) return("Summer")
+  if (month %in% c(9, 10, 11)) return("Fall")
+}
+
+# Step 2: Add Season column
+merged_bottle_co2sys <- merged_bottle_co2sys %>%
+  mutate(Season = sapply(Month_UTC, get_season))
+
+# Step 3: Get all unique Year × Season combinations
+year_season_combos <- merged_bottle_co2sys %>%
+  filter(!is.na(Depthm), !is.na(pHout), Station_ID == "081.8 046.9") %>%
+  distinct(Year_UTC, Season)
+
+# Step 4: Loop through each Year × Season and plot
+for (i in seq_len(nrow(year_season_combos))) {
+  yr <- year_season_combos$Year_UTC[i]
+  szn <- year_season_combos$Season[i]
+  
+  filtered_data <- merged_bottle_co2sys %>%
+    filter(Station_ID == "081.8 046.9",
+           Year_UTC == yr,
+           Season == szn,
+           !is.na(Depthm),
+           !is.na(pHout))
+  
+  # Skip if no data
+  if (nrow(filtered_data) == 0) next
+  
+  p <- ggplot(filtered_data, aes(x = pHout, y = Depthm)) +
+    geom_point(alpha = 0.6, color = "blue") +
+    geom_smooth(method = "loess", formula = y ~ x, color = "red", se = FALSE) +
+    scale_y_reverse() +
+    theme_minimal() +
+    labs(
+      title = paste("pHout vs. Depth for", szn, yr),
+      x = "pHout",
+      y = "Depth (m)"
+    ) +
+    theme(
+      plot.title = element_text(hjust = 0.5, face = "bold")
+    )
+  
+  print(p)
+}
+
 ```
