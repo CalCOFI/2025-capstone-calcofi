@@ -27,32 +27,39 @@ library(mgcv)
 
 # Introduction
 
-
 # Problems of Interest
 
-Our goal is to study the impact of ocean acidification on zooplankton and krill biovolumes off of the California coast. First, we want to conduct a cross-comparison of bottle data and biological data to assess the amount of spatial and temporal overlap present. Using co-located measurements, we wish to model the effects of ocean acidification, using carbonate chemistry and oceanographic variables, on zooplankton and krill abundance. In addition, we are interested in exploring how pH and related environmental factors affect the abundance of calcifying versus non-calcifying species. 
+Our goal is to study the impact of ocean acidification on zooplankton and krill biovolumes off of the California coast. First, we want to conduct a cross-comparison of bottle data and biological data to assess the amount of spatial and temporal overlap present. Using co-located measurements, we wish to model the effects of ocean acidification, using carbonate chemistry and oceanographic variables, on zooplankton and krill abundance. In addition, we are interested in exploring how pH and related environmental factors affect the abundance of calcifying versus non-calcifying species.
 
 # Data
 
-## Bottle Data^[Bottle Database: <https://calcofi.org/data/oceanographic-data/bottle-database/>]
+## Bottle Data[^1]
+
+[^1]: Bottle Database: <https://calcofi.org/data/oceanographic-data/bottle-database/>
 
 CalCOFI has collected environmental and hydrographic data for over 70 years during their quarterly cruises to their CalCOFI stations. We used the merged data from Part I which contains oceanographic and carbonate chemistry data as well as computed CO2SYS values for variables such as $pH$, $CO_3$, and $\Omega_{aragonite}$. This merged dataset we are working with is called merged_bottle_co2sys.csv. One important thing to note is that there is a large temporal gap between the years 2002-2007.
 
-There are three datasets that we are focusing on for our biological data: (1) CalCOFI NOAA Zooplankton Volume, (2) BTEDB (Krill) Abundances, and (3) PRPOOS Data (for Zooplankton Calcifiers/Non-Calcifiers Abundance). The zooplankton and krill biovolume data are obtained using net tows (Bongo and/or Pairovet) at each standard CalCOFI station. The PRPOOS data is also obtained using a net tow but rather than sampling at station, it is conducted during transits between stations. These three datasets have each been merged with the bottle data to create zoop_data/zooplankton_pH.csv, krill_data/CV_merged_krill.csv, and PRPOOS/prpoos_summary.csv, respectively. 
+There are three datasets that we are focusing on for our biological data: (1) CalCOFI NOAA Zooplankton Volume, (2) BTEDB (Krill) Abundances, and (3) PRPOOS Data (for Zooplankton Calcifiers/Non-Calcifiers Abundance). The zooplankton and krill biovolume data are obtained using net tows (Bongo and/or Pairovet) at each standard CalCOFI station. The PRPOOS data is also obtained using a net tow but rather than sampling at station, it is conducted during transits between stations. These three datasets have each been merged with the bottle data to create zoop_data/zooplankton_pH.csv, krill_data/CV_merged_krill.csv, and PRPOOS/prpoos_summary.csv, respectively.
 
-## CalCOFI NOAA Zooplankton Volume^[CalCOFI Zooplankton Volume Database: <https://oceanview.pfeg.noaa.gov/erddap/tabledap/erdCalCOFIzoovol.html>]:
+## CalCOFI NOAA Zooplankton Volume[^2]:
+
+[^2]: CalCOFI Zooplankton Volume Database: <https://oceanview.pfeg.noaa.gov/erddap/tabledap/erdCalCOFIzoovol.html>
+
 The zooplankton biovolume data measures the amount of “plankton” (the small and microscopic organisms floating in the sea, consisting chiefly of diatoms, protozoans, small crustaceans, and the eggs and larval stages of larger animals) in the volume of sea water sampled. In particular, we are interested in the variables `total_plankton` and `small_plankton`.
 
-## BTEDB (Krill) Abundances^[BTEDB (Krill Volume) Data: <https://portal.edirepository.org/nis/mapbrowse?packageid=knb-lter-cce.313.1>]:
+## BTEDB (Krill) Abundances[^3]:
+
+[^3]: BTEDB (Krill Volume) Data: <https://portal.edirepository.org/nis/mapbrowse?packageid=knb-lter-cce.313.1>
 
 The krill dataset provides information on krill abundance from the Brinton and Townsend Euphausiid Database (BTEDB). The samples collected include species such as *Euphausia pacifica*, *Nematoscelis difficilis*, and *Thysanoessa spinifera*, with individuals categorized by size and developmental phase (e.g., calyptopis, furcilia, juvenile, adult).
 
-## PRPOOS (Calcifiers/Non-Calcifiers)^[PRPOOS (Zooplankton Calcifiers/Non-Calcifiers Volume) Zooscan Database: <https://oceaninformatics.ucsd.edu/zooscandb/>]:
-The PRPOOS (Planktonic Rate Processes in Oligotrophic Ocean Systems) dataset contains abundance and estimated biomass values for various zooplankton taxa, which can be categorized into calcifying and non-calcifying groups. The calcifying taxa are defined as *byrozoan larvae*, *pteropoda heteropoda*, *ostracods*, and *rhizaria*; the remaining taxa are considered non-calcifying. 
+## PRPOOS (Calcifiers/Non-Calcifiers)[^4]:
 
+[^4]: PRPOOS (Zooplankton Calcifiers/Non-Calcifiers Volume) Zooscan Database: <https://oceaninformatics.ucsd.edu/zooscandb/>
 
-# Methods 
+The PRPOOS (Planktonic Rate Processes in Oligotrophic Ocean Systems) dataset contains abundance and estimated biomass values for various zooplankton taxa, which can be categorized into calcifying and non-calcifying groups. The calcifying taxa are defined as *byrozoan larvae*, *pteropoda heteropoda*, *ostracods*, and *rhizaria*; the remaining taxa are considered non-calcifying.
 
+# Methods
 
 # Results
 
@@ -85,7 +92,6 @@ df %>%
   tab_source_note(source_note = "*Note temporal gap from 2002-2007.")
 
 ```
-
 
 ## Zooplankton Models
 
@@ -161,7 +167,9 @@ par(mfrow = c(1, 1))
 ```
 
 ### Zooplankton Interaction Effects Analysis
+
 Construct separate GAM models for Nearshore and Offshore data to assess interaction effects between pH, CO3, and OmegaAR for different regions
+
 ```{r}
 zooplankton_clean <- zooplankton %>%
   select(Longitude, Latitude, Year_UTC, Month_UTC, total_plankton, small_plankton, pHout, OmegaARout, CO3out, CTDTEMP_ITS90, Salinity_PSS78) %>%
@@ -196,9 +204,11 @@ plot(gam_interaction_offshore, select = 1, shade = TRUE, main = "Offshore: pHout
 plot(gam_interaction_offshore, select = 2, shade = TRUE, main = "Offshore: pHout and OmegaARout")
 par(mfrow = c(1, 1))
 ```
+
 ### Zooplankton Quarterly Analysis
-Construct GAM models to assess the effect of OmegaARout across different quarters.
-Iterate through Nearshore and Offshore datasets
+
+Construct GAM models to assess the effect of OmegaARout across different quarters. Iterate through Nearshore and Offshore datasets
+
 ```{r}
 for (region in c("Nearshore", "Offshore")) {
   region_data <- filter(zooplankton_clean, region == region)
@@ -217,11 +227,9 @@ for (region in c("Nearshore", "Offshore")) {
 }
 ```
 
-
-
 ## Krill Models
 
-### PRPOOS data
+### PRPOOS GAM models
 
 ```{r}
 library(lubridate)
@@ -233,7 +241,6 @@ library(stringr)
 # read in data
 prpoos_summary <- read_csv("../data/PRPOOS/prpoos_summary_namecleaned.csv")
 ```
-
 
 ```{r}
 abundance_vars <- names(prpoos_summary)[str_detect(names(prpoos_summary), "Abundance$")]
@@ -500,9 +507,9 @@ plot(gam_model_bl)
 ```
 
 ### PRPOOS Calcifying vs Non-calcifying
-Calculate the calcifying_ratio as the ratio of calcifying to non-calcifying species.
-Classify observations as High or Low based on the median calcifying_ratio.
-Build a logistic regression model to assess the impact of pH_mean, OmegaAR_mean, and CO3_mean.
+
+Calculate the calcifying_ratio as the ratio of calcifying to non-calcifying species. Classify observations as High or Low based on the median calcifying_ratio. Build a logistic regression model to assess the impact of pH_mean, OmegaAR_mean, and CO3_mean.
+
 ```{r}
 calcifying_species <- c("bryozoan_larvaeAbundance", "pteropoda_heteropodaAbundance", "ostracodsAbundance", "rhizariaAbundance")
 non_calcifying_species <- c("appendiculariaAbundance", "chaetognathaAbundance", "copepoda_calanoida_minus_eucalanidsAbundance")
@@ -529,10 +536,11 @@ if (length(unique(prpoos$calcifying_class)) > 1) {
 
 logistic_model
 ```
+
 ### PRPOOS Clustering Analysis with PCA
-Identify clusters of species based on their abundance profiles
-Standardize the species abundance matrix
-Apply PCA to reduce dimensionality and visualize the dataset
+
+Identify clusters of species based on their abundance profiles Standardize the species abundance matrix Apply PCA to reduce dimensionality and visualize the dataset
+
 ```{r}
 abundance_cols <- grep("Abundance$", names(prpoos_summary), value = TRUE)
 
@@ -563,9 +571,6 @@ fviz_pca_ind(pca_result, label = "none", habillage = prpoos_summary$cluster, add
 
 # Summary of Findings
 
-
 # Future Work
 
-
 # References
-
