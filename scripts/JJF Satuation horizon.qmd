@@ -339,57 +339,66 @@ library(readr)
 library(dplyr)
 library(mgcv)
 library(ggplot2)
+library(cluster)
+library(factoextra)
 
-
-# Data preprocessing
+# ================================
+# 1. Data Preprocessing
+# ================================
 zooplankton_clean <- zooplankton %>%
   select(Longitude, Latitude, Year_UTC, Month_UTC, total_plankton, small_plankton, pHout, OmegaARout, CO3out, CTDTEMP_ITS90, Salinity_PSS78) %>%
   drop_na() %>%
   mutate(
     log_total_plankton = log1p(total_plankton),
-    log_small_plankton = log1p(small_plankton)
+    log_small_plankton = log1p(small_plankton),
+    region = factor(ifelse(Longitude > -119, "Nearshore", "Offshore"))
   )
 
-# Segment data into two time periods
-zooplankton_1 <- zooplankton_clean %>% filter(Year_UTC >= 2010 & Year_UTC <= 2015)
-zooplankton_2 <- zooplankton_clean %>% filter(Year_UTC >= 2016 & Year_UTC <= 2021)
+zooplankton_clean$quarter <- cut(zooplankton_clean$Month_UTC, breaks = c(0, 3, 6, 9, 12), labels = c("Q1", "Q2", "Q3", "Q4"))
 
-# GAM for 2010-2015
-gam_2010_2015 <- gam(
-  log_total_plankton ~ te(Longitude, Latitude) + s(OmegaARout),
-  data = zooplankton_1
+# ================================
+# 2. Interaction Effects Analysis
+# ================================
+gam_interaction_nearshore <- gam(
+  log_total_plankton ~ s(pHout, CO3out) + s(pHout, OmegaARout),
+  data = filter(zooplankton_clean, region == "Nearshore")
 )
 
-# GAM for 2016-2021
-gam_2016_2021 <- gam(
-  log_total_plankton ~ te(Longitude, Latitude) + s(OmegaARout),
-  data = zooplankton_2
+gam_interaction_offshore <- gam(
+  log_total_plankton ~ s(pHout, CO3out) + s(pHout, OmegaARout),
+  data = filter(zooplankton_clean, region == "Offshore")
 )
 
-# Compare models
-summary(gam_2010_2015)
-summary(gam_2016_2021)
-
-# Plot comparison
-par(mfrow = c(2, 1))
-plot(gam_2010_2015, select = 2, shade = TRUE, main = "2010-2015")
-plot(gam_2016_2021, select = 2, shade = TRUE, main = "2016-2021")
+par(mfrow = c(2, 2))
+plot(gam_interaction_nearshore, select = 1, shade = TRUE, main = "Nearshore: pHout and CO3out")
+plot(gam_interaction_nearshore, select = 2, shade = TRUE, main = "Nearshore: pHout and OmegaARout")
+plot(gam_interaction_offshore, select = 1, shade = TRUE, main = "Offshore: pHout and CO3out")
+plot(gam_interaction_offshore, select = 2, shade = TRUE, main = "Offshore: pHout and OmegaARout")
 par(mfrow = c(1, 1))
+#ggsave("interaction_region_comparison.png")
 
-# Save the plot
-ggsave("time_segment_comparison.png")
+# ================================
+# 3. Quarterly Analysis
+# ================================
+gam_quarter_nearshore <- gam(
+  log_total_plankton ~ s(OmegaARout) + s(quarter, bs = "re"),
+  data = filter(zooplankton_clean, region == "Nearshore")
+)
 
-```
-```{r}
-library(readr)
-library(dplyr)
-library(mgcv)
-library(ggplot2)
+gam_quarter_offshore <- gam(
+  log_total_plankton ~ s(OmegaARout) + s(quarter, bs = "re"),
+  data = filter(zooplankton_clean, region == "Offshore")
+)
 
+par(mfrow = c(2, 1))
+plot(gam_quarter_nearshore, select = 1, shade = TRUE, main = "Nearshore: Quarterly Effect on OmegaARout")
+plot(gam_quarter_offshore, select = 1, shade = TRUE, main = "Offshore: Quarterly Effect on OmegaARout")
+par(mfrow = c(1, 1))
+#ggsave("quarterly_region_comparison.png")
 
-
-
-# Data preprocessing for PRPOOS
+# ================================
+# 4. Calcifying vs Non-calcifying Analysis
+# ================================
 calcifying_species <- c("bryozoan_larvaeAbundance", "pteropoda_heteropodaAbundance", "ostracodsAbundance", "rhizariaAbundance")
 non_calcifying_species <- c("appendiculariaAbundance", "chaetognathaAbundance", "copepoda_calanoida_minus_eucalanidsAbundance")
 
@@ -398,62 +407,43 @@ prpoos <- prpoos %>%
   mutate(
     calcifying_abundance = rowSums(select(., all_of(calcifying_species))),
     non_calcifying_abundance = rowSums(select(., all_of(non_calcifying_species))),
-    calcifying_ratio = calcifying_abundance / (non_calcifying_abundance + 1),  # Adding 1 to avoid division by zero
-    log_calcifying_ratio = log1p(calcifying_ratio)
+    calcifying_ratio = calcifying_abundance / (calcifying_abundance + non_calcifying_abundance),
+    calcifying_class = factor(ifelse(calcifying_ratio > median(calcifying_ratio, na.rm = TRUE), 'High', 'Low'))
   )
 
-# GAM model for calcifying ratio
-gam_calc_ratio <- gam(
-  log_calcifying_ratio ~ s(pH_mean) + s(OmegaAR_mean) + s(CO3_mean),
-  data = prpoos
+logistic_model <- glm(
+  calcifying_class ~ pH_mean + OmegaAR_mean + CO3_mean,
+  data = prpoos,
+  family = binomial
 )
 
-# Model summary
-summary(gam_calc_ratio)
+logistic_model
+#write.csv(coef(summary(logistic_model)), "logistic_model_summary.csv", row.names = TRUE)
 
-# Plot
-par(mfrow = c(2, 2))
-plot(gam_calc_ratio, shade = TRUE)
-par(mfrow = c(1, 1))
-
-ggsave("calcifying_ratio_gam.png")
-
-```
-
-```{r}
-library(readr)
-library(dplyr)
-library(ggplot2)
-library(cluster)
-library(factoextra)
-
-
-
-# Select abundance columns
+# ================================
+# 5. Clustering Analysis
+# ================================
 abundance_cols <- grep("Abundance$", names(prpoos), value = TRUE)
-
-# Create species abundance matrix
 species_matrix <- prpoos %>%
   select(all_of(abundance_cols)) %>%
-  drop_na()
+  drop_na() %>%
+  scale()
 
-# Calculate distance matrix
-dist_matrix <- dist(species_matrix)
-
-# Hierarchical clustering
-hclust_model <- hclust(dist_matrix, method = "ward.D2")
-
-# Plot dendrogram
-plot(hclust_model, main = "Hierarchical Clustering of Species Abundance")
-
-# K-means clustering
 set.seed(123)
-kmeans_model <- kmeans(species_matrix, centers = 3)
+kmeans_model <- kmeans(species_matrix, centers = 4)
+prpoos$cluster <- kmeans_model$cluster
 
-# Visualize clusters
-fviz_cluster(list(data = species_matrix, cluster = kmeans_model$cluster))
-
-ggsave("species_clustering.png")
+cluster_means <- prpoos %>%
+  group_by(cluster) %>%
+  summarize(
+    pH_mean = mean(pH_mean, na.rm = TRUE),
+    OmegaAR_mean = mean(OmegaAR_mean, na.rm = TRUE),
+    CO3_mean = mean(CO3_mean, na.rm = TRUE),
+    calcifying_ratio = mean(calcifying_ratio, na.rm = TRUE)
+  )
+cluster_means
+#write.csv(cluster_means, "cluster_means_detailed.csv", row.names = FALSE)
+#ggsave("species_clustering_updated.png")
 
 ```
 
