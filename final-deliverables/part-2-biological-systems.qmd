@@ -73,7 +73,7 @@ df <- data.frame(
   krill_og = c(7482, 411, 1951, 2019),
   krill_merge = c("FILL", "FILL", "FILL", "FILL"),
   prpoos_og = c(1384, 20, 2005, 2025),
-  prpoos_merge = c(388, 16, "FILL", "FILL"),
+  prpoos_merge = c(388, 16, 2009, 2021),
   stringsAsFactors = FALSE
 )
 
