@@ -1,0 +1,501 @@
+---
+title: "Carbonate Chemistry Trend Analysis"
+format: html
+---
+
+# Overview
+
+This project is sponsored by California Cooperative Oceanic Fisheries Investigations (CalCOFI), an organization founded in 1949 to study the ecological aspects of the Pacific sardine collapse off of the coast of California. CalCOFI is committed to studying California’s coastal marine environment and collecting relevant oceanographic data in order to provide insight on important climate change related topics such as renewable energy, integrated ocean management, and marine spatial planning.
+
+We aim to extend the research done in “A 37 year record of ocean acidification in the Southern California current” by Wolfe et al. on the yearly rate of change of certain carbonate chemistry variables by examining all available carbonate chemistry data collected across CalCOFI observation stations rather than only surface data collected at station 90.90.
+
+In particular, it is of interest to examine how the measurements of important ocean carbon chemistry and oceanographic variables have changed over time, namely total alkalinity (TA), total dissolved inorganic carbon (DIC), the Revelle Factor, pH, pCO2, Omega aragonite ($\Omega_{aragonite}$), Omega calcite ($\Omega_{calcite}$), temperature, salinity, and CO2-. Additionally, we aim to examine whether there is a difference in carbon uptake between coastal and non coastal stations due to coastal upwelling. Finally, we wish to assess the performance of Empirical Seawater Property Estimation Routines (ESPER) in predicting carbonate chemistry variables across different depths with easy to collect oceanographic variables such as temperature and salinity as inputs. 
+
+# Data
+
+CalCOFI samples from a predetermined sampling grid off the coast of California on a quarterly basis. Typical stations are set 40 nautical miles apart. At each sampling point, identified by a station and line number, CalCOFI lowers a carousel of 24 bottles into the water, which collect seawater samples from around 20 different depths (typically ranging from 20 to 515 meters). Researchers on the ship then measure oceanographic values such as the temperature, salinity, macronutrient concentration and other properties of these samples. This results in the oceanographic dataset used in this study. 
+
+While oceanographic data is measured on every CalCOFI cruise, carbonate chemistry values such as TA and DIC are only occasionally measured from the collected water samples and are stored in their own dataset. 
+
+The oceanographic dataset can be found here https://calcofi.org/data/oceanographic-data/bottle-database/, while the carbonate chemistry dataset can be found here https://calcofi.org/data/oceanographic-data/dic/
+
+The above datasets must be downloaded manually and put in the data folder in order for this qmd to run. They are unfortunately too large to upload to Github.
+
+In order to proceed, we need to merge these two datasets into one, the process of which can be seen below. 
+
+```{r}
+library(tidyverse)
+
+# Read in oceanographic bottle data
+hydro_bottle <- read_csv(
+  "data/194903-202105_Bottle.csv",
+   # change encoding
+   locale=locale(encoding="latin1"),
+   # increase guess_max to correctly guess column types
+   guess_max = Inf
+)
+
+# Read in cast data
+cast_bottle <- read_csv("data/194903-202105_Cast.csv")
+
+# Read in carbonate chemistry bottle data
+cc_bottle <- read_csv("data/carbonate_chem_bottle.csv")
+
+# Drop first row (containing units) of carbonate chemistry bottle data
+cc_bottle <- cc_bottle[2:nrow(cc_bottle),]
+
+# Merge oceanographic and cast data based on Cst_Cnt (Cast Count) and Sta_ID (Station ID)
+hydro_bottle <- hydro_bottle %>%
+  left_join(
+    cast_bottle,
+    by = join_by(Cst_Cnt, Sta_ID)
+  )
+
+# Prepare hydro bottle data for merging
+depth_tol <- 0.9
+hydro_bottle <- hydro_bottle %>%
+  mutate(
+    Date = as.Date(Date, format = c("%m/%d/%Y"))
+  ) %>%
+  mutate(
+    Year = year(Date),
+    Month = month(Date)
+  ) %>%
+  mutate(
+    Depthm_Upper = Depthm + depth_tol,
+    Depthm_Lower = Depthm - depth_tol
+  )
+
+# Prepare carbonate chemistry data for merging
+cc_bottle <- cc_bottle %>%
+  # Create new date column for merging
+  mutate(
+    Date = as.Date(
+      paste(Month_UTC, Day_UTC, Year_UTC, sep = "/"),
+      tryFormats = c("%m/%d/%Y")
+    ),
+    .before = Year_UTC
+  ) %>%
+  # Change column types for merging
+  mutate(
+    Depth = as.double(Depth),
+    Latitude = as.double(Latitude),
+    Longitude = as.double(Longitude)
+  )
+
+# Merge carbonate chemistry and oceanographic bottle data based on date, location, and depth
+merged_bottle_data <- inner_join(
+  cc_bottle, 
+  hydro_bottle,
+  by = join_by(Month_UTC == Month,
+               Year_UTC == Year,
+               Station_ID == Sta_ID,
+               between(Depth, Depthm_Lower, Depthm_Upper)),
+  suffix = c(".cc", ".hydro")
+)
+
+# Save merged data
+write_csv(merged_bottle_data, "data/merged_bottle_data.csv")
+```
+
+## EDA
+
+Next we'll take a closer look at some of the variables of interest in our new merged dataset. 
+
+Firstly, we'll examine how the 
+
+```{r}
+
+```
+
+
+## CO2SYS
+
+In the merged dataset above, the only carbonate chemistry variables that have been recorded are TA and DIC. To remedy this, we can use CO2SYS, a program that uses a mechanistic model to calculate all other carbonate chemistry variables given at least two carbonate chemistry variables as well as envirornmental variables such as
+temperature and salinity. The CO2SYS routines are written and contained in MATLAB files, so we unfortunately cannot run them in this document. However, the folder titled CO2SYS contains both the CO2SYS routines as well as a script called CO2SYS_calc.m where we apply CO2SYS to our data in order to get the other carbonate variables of interest. 
+
+The resulting dataset of CO2SYS calculated varaibles is named CO2SYS_out.csv in the data folder.
+
+
+# ESPER Model Validation
+
+
+
+# Carbon Trend Analysis
+
+As mentioned prior, we are interested in examining how carbonate chemistry variables have been changing over time, and whether this temporal trend differs among coastal versus non coastal stations. 
+
+As pointed out in  “Advancing best practices for assessing trends of ocean acidification time series” by Sutton et al, oceanographic carbonate time series data is likely to have a seasonal trend. Below we create a function we can apply to our data to deal with this by following the procedure that Sutton outlined in the above article.
+
+```{r}
+sea_dtd_data <- function(qty, df, date_col) {
+  # Seasonally detrend in a dataframe based on Sutton, A. J. et al. (2022)
+  #   qty: vector of column names of variables to be detrended
+  #   df: dataframe with observations to be detrended
+  #   date_col: date column to be used for fitting
+  # Outputs original dataframe with appended columns of detrended data with name format qty_dtd
+  
+  # Check if date_col is in decimal format and convert if not
+  if (!is.double(date_col)) {
+    df <- df %>%
+      mutate(
+        Date_Dec = decimal_date(get(date_col))
+      )
+  }
+  
+  # Detrend data for each desired quantity
+  for (i in qty) {
+    # Extract overall linear trend
+    lin_trend <- lm(get(i) ~ Date_Dec, data = df, na.action = na.exclude)
+    
+    # Remove overall linear trend
+    df <- df %>%
+      mutate(
+        lin_dtd_obs = as.vector(residuals(lin_trend))
+      )
+    
+    # Bin observations into a three month sliding scale
+    df_minus <- df %>% 
+      mutate(
+        bin_month = ifelse((Month_UTC - 1) == 0, 12, Month_UTC - 1)
+      )
+    df_0 <- df %>%
+      mutate(
+        bin_month = Month_UTC
+      )
+    df_plus <- df %>%
+      mutate(
+        bin_month = ifelse((Month_UTC + 1) == 13, 1, Month_UTC + 1)
+      )
+    df_binned <- bind_rows(df_minus, df_0, df_plus)
+    
+    # Compute monthly means of each 3-month bin
+    monthly_means_df <- df_binned %>%
+      group_by(
+        bin_month
+      ) %>%
+      summarize(
+        monthly_mean = mean(lin_dtd_obs, na.rm = TRUE),
+        .groups = "drop"
+      )
+    
+    # Compute anomaly for each bin
+    monthly_means_df <- monthly_means_df %>%
+      mutate(
+        anomaly = monthly_mean - mean(monthly_mean, na.rm = TRUE)
+      )
+    
+    # Subtract anomalies from observations
+    df <- df %>% 
+      left_join(
+        monthly_means_df,
+        by = join_by(Month_UTC == bin_month)
+      ) %>%
+      mutate(
+        i_dtd = get(i) - anomaly
+      ) %>%
+      rename_with(
+        .cols = i_dtd,
+        ~ paste0(i, "_dtd")
+      )
+    
+    # Remove extra columns that are no longer needed
+    df <- df %>% 
+      select(
+        -c(lin_dtd_obs,monthly_mean,anomaly)
+      )
+  }
+  
+  # Return dataframe as output
+  return(df)
+}
+```
+
+
+We take two approaches in achieving this, namely modeling each of the variables of interest at each station individually, and creating a hierarchical model that looks at all of the data at once. 
+
+Since the relationship between depth and different carbonate chemistry variables is hard to model, especially since each variable has a different relationship with depth, we have decided to limit our study to only observations with depths of less than 20 m. 
+
+## Station by Station Models
+
+Our first approach involves fitting linear regression models for each station and carbonate chemistry variable regressed against time. The code for which can be seen below. 
+
+```{r}
+library(gt)
+library(sf)
+library(rnaturalearth)
+library(scales)
+library(latex2exp)
+library(FDRestimation)
+library(stringr)
+library(ggrepel)
+
+# READ AND PROCESS DATA ---------------------------------------------------
+
+# Load merged bottle data and CO2SYS output
+merged_bottle_data <- read_csv("data/merged_bottle_data.csv")
+co2sys_out <- read_csv("data/CO2SYS_out.csv")
+
+# Combine merged bottle data and CO2SYS output and filter out anomalies
+bottle_co2sys <- bind_cols(merged_bottle_data, co2sys_out) %>%
+  filter(
+    Salnty > 30,
+    Depth < 1000
+  )
+
+# Create vector of variables to be detrended
+qty <- c("T_degC","Salnty","TA","DIC","pCO2in","RFin","pHin","CO3in","OmegaCAin","OmegaARin")
+
+# Detrend variables of interest
+bottle_co2sys <- sea_dtd_data(qty, bottle_co2sys, "Date.cc")
+
+# Get the names of all CalCOFI stations in the data and their locations
+stations <- bottle_co2sys %>%
+  group_by(
+    Station_ID
+  ) %>%
+  summarize(
+    lat = mean(Latitude),
+    lon = mean(Longitude),
+  )
+
+# FIT LINEAR MODELS -------------------------------------------------------
+
+# create fits and results objects for surface (<20m)
+surf_fits <- NULL
+surf_results <- NULL
+
+# iterate through stations and fit linear models for each quantity
+for (i in 1:nrow(stations)) {
+  # extract data for station i
+  data <- bottle_co2sys %>% filter((Station_ID == stations$Station_ID[i]) & (Depth <= 20))
+  for (j in 1:length(qty)) {
+    # check if all values are NA
+    if (data %>% select(paste0(qty[j],"_dtd")) %>% is.na() %>% `!`() %>% sum() == 0) {
+      # if so, add NA to list of fits
+      surf_fits[[(i-1)*length(qty)+j]] <- NA
+      # and add row of NA values to surf_results for the corresponding quantity and station
+      surf_results <- bind_rows(surf_results, c(
+        station = stations$Station_ID[i],
+        lat = stations$lat[i],
+        lon = stations$lon[i],
+        qty = qty[j], 
+        c(Estimate = NA, `Std. Error` = NA, `t value` = NA, `Pr(>|t|)` = NA), 
+        n = NA, 
+        r2 = NA))
+    }
+    else { # fit the linear model
+      fit <- lm(as.formula(paste(paste0(qty[j],"_dtd"),"~","Date_Dec")), data = data, na.action = na.exclude)
+      # add fit to list of fits
+      surf_fits[[(i-1)*length(qty)+j]] <- fit
+      # add coefficient estimate and regression statistics in a new row to surf_results
+      surf_results <- bind_rows(surf_results, c(
+        station = stations$Station_ID[i],
+        lat = stations$lat[i],
+        lon = stations$lon[i], 
+        qty = qty[j], 
+        if(nrow(coef(summary(fit))) == 1) c(Estimate = NA, `Std. Error` = NA, `t value` = NA, `Pr(>|t|)` = NA) else coef(summary(fit))[2,], 
+        n = summary(fit)$df[2] + 2, 
+        r2 = summary(fit)$r.squared))
+    }
+  }
+}
+```
+
+Note that we have stored the results in a new dataframe called surf_results. For easier analysis, we are going to add a column stating whether the model had a statistically significant temporal trend, as well as a new dataframe that contains the proportion of significant models at each station. We use the proportion rather than the exact number since the presence of missing observations causes some stations to not have sufficient observations to properly fit all of the models.
+
+```{r}
+surf_results <- surf_results %>%
+  # convert numeric columns to numeric vectors
+  mutate(
+    across(-c(station, qty), as.numeric)
+  ) |> 
+  filter(!is.na(`Pr(>|t|)`))
+
+surf_results <- surf_results |> 
+  mutate(adj_p_value = (p.fdr(pvalues = surf_results$`Pr(>|t|)`))$fdrs) |> 
+  mutate(sigp = factor(ifelse(adj_p_value < 0.05, 1, 0), levels = c(1,0), labels = c("Yes", "No")),
+         sigp_ind = ifelse(adj_p_value < 0.05, 1, 0),
+         sig_label = ifelse(adj_p_value < 0.05, paste("(",station,",",signif(Estimate, digits = 4), ")"), "")) |> 
+  filter(n >= 10)
+
+
+sign_stations <- surf_results |> group_by(station) |> 
+  summarize(min_n = min(n),
+            max_n = max(n),
+            mean_n = mean(n),
+            lat = mean(lat),
+            lon = mean(lon),
+            num_sig = sum(sigp_ind),
+            prop_sig = mean(sigp_ind)) |> 
+  ungroup()
+```
+
+
+While it's harder to get a more general view of trends through station by station modeling, it does have one major advantage: maps! Below we will create maps for each variable of interest.
+
+```{r}
+# import map for plotting
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+# create vector of (full) names for each quantity
+qty_names <- c("Temperature", "Salinity", "TA", "DIC", "pCO2", "Revelle Factor", "pH", "CO3$^{2-}$", "$\\Omega_{calcite}$", "$\\Omega_{aragonite}$")
+
+# create vector of units for each quantity
+units <- c("$^\\circ$C yr$^{-1}$", "yr$^{-1}$", "µmol kg$^{-1}$ yr$^{-1}$", 
+           "µmol kg$^{-1}$ yr$^{-1}$", "µatm yr$^{-1}$","yr$^{-1}$", 
+           "yr$^{-1}$", "µmol kg$^{-1}$ yr$^{-1}$", "yr$^{-1}$", "yr$^{-1}$")
+
+# generate plots for surface fits
+for (i in 1:10) {
+  # extract data for quantity i
+  data <- surf_results %>%
+    filter(
+      qty == qty[i]
+    ) %>%
+    # filter out stations with n<=15 observations used in the fit
+    filter(
+      (!is.na(Estimate)) & (n > 15)
+    )
+  
+  # create plot of slope by station
+  ggplot(
+    data = world
+  ) +
+    geom_sf(fill = "antiquewhite1") +
+    geom_point(
+      data = data,
+      aes(
+        x = lon,
+        y = lat,
+        fill = Estimate, # estimated slope
+        size = n, # number of observations
+        shape = sigp # if estimate is statistically significant
+      ),
+      color = "black",
+      show.legend=TRUE # force shape to always show in legend
+    ) + 
+    geom_text_repel(data = data, aes(x = lon, y = lat, label=sig_label), max.overlaps = 30, box.padding = 1) +
+    # manually adjust coordinates
+    coord_sf(
+      xlim = c(surf_results$lon %>% min() - 2, surf_results$lon %>% max() + 2),
+      ylim = c(surf_results$lat %>% min(), surf_results$lat %>% max())
+    ) +
+    # create color scale for slope estimates
+    scale_fill_gradient2(
+      low = "#d7191c",
+      high = "#2c7bb6",
+      mid = "#ffffbf"
+    ) +
+    # create custom shape scale
+    scale_shape_manual(
+      values = c("Yes" = 24, "No" = 21),
+      drop = FALSE # force both shapes to always show in legend
+    ) +
+    theme(
+      panel.grid.major = element_line(
+        color = gray(0.5), 
+        linetype = "solid", 
+        linewidth = 0.5
+      ), 
+      panel.background = element_rect(fill = "aliceblue")
+    ) +
+    # fix the order of the legends
+    guides(
+      fill = guide_colorbar(order = 1),
+      size = guide_legend(order = 50),
+      shape = guide_legend(order = 98)
+    ) +
+    labs(
+      x = NULL,
+      y = NULL,
+      title = TeX(paste("Estimated Slope for", qty_names[i], "by Station at Surface (Depth<=20m, N>15)", paste0("[",units[i],"]"))),
+      color = "Estimate",
+      size = "N",
+      shape = "adjusted p<0.05",
+      # caption = TeX(paste("Mean Slope (weighted by $N$):", format(round(weighted.mean(data$Estimate, data$n), 4), nsmall = 4), units[i]))
+    )
+  
+  # save plots
+  ggsave(paste0("images/surf_", qty[i], "_by_station.png"), bg = "white", units = "in", width = 8, height = 8)
+}
+```
+
+All of the plots can be found in the images folder, below we can see an example plot of DIC. Note that the stations with a statistically significant temporal trends are shaped as triangles and are labeled with the station number and point estimator.
+
+
+```{r, echo=FALSE}
+knitr::include_graphics("images/surf_DIC_by_station.png")
+```
+
+We can also use the `sign_stations` dataframe we made earlier to create a map that shows the proportion of models with a significant temporal trend for each station. 
+```{r}
+ggplot(
+  data = world
+) +
+  geom_sf(fill = "antiquewhite1") +
+  geom_point(
+    data = sign_stations,
+    aes(
+      x = lon,
+      y = lat,
+      fill = mean_n, # mean number of observations used for models
+      size = prop_sig, # number of significany predictors
+    ),
+    color = "black",
+    pch = 21,
+    show.legend=TRUE # force shape to always show in legend
+  ) +
+#  geom_text(data = sign_stations, nudge_y = -.07 , size = 2, aes(x = lon, y = lat, label = station)) + 
+  # manually adjust coordinates
+  coord_sf(
+    xlim = c(sign_stations$lon %>% min() - 2, sign_stations$lon %>% max() + 2),
+    ylim = c(sign_stations$lat %>% min(), sign_stations$lat %>% max())
+  ) +
+  # create color scale for slope estimates
+  scale_fill_gradient2(
+    low = "#d7191c",
+    high = "#2c7bb6",
+    mid = "#ffffbf"
+  ) +
+  # create custom shape scale
+  scale_shape_manual(
+    values = c("Yes" = 24, "No" = 21),
+    drop = FALSE # force both shapes to always show in legend
+  ) +
+  theme(
+    panel.grid.major = element_line(
+      color = gray(0.5), 
+      linetype = "solid", 
+      linewidth = 0.5
+    ), 
+    panel.background = element_rect(fill = "aliceblue")
+  ) +
+  # fix the order of the legends
+  guides(
+    fill = guide_colorbar(order = 1),
+    size = guide_legend(order = 50),
+    shape = guide_legend(order = 98)
+  ) +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = "Number of Time Significant Variables by Station at Surface (Depth<=20m)",
+    fill = "Mean Observations per Model",
+    size = str_wrap("Proportion of Variables of Interest with Significant Temporal Trend", 40)
+  )
+```
+
+
+## Hierarchical Model
+
+
+# Conclusion
+
+
+
+# ALSO NEEDED
+- Note of Gap in data
+- graph showing observations over time
+- EDA?
+- Either examining columns in data or pointing to a website that does it
