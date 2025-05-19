@@ -23,6 +23,8 @@ library(ggplot2)
 library(tidyr)
 library(gam)
 library(mgcv)
+library(geometry)
+library(maps)
 ```
 
 # Introduction
@@ -64,15 +66,15 @@ df <- data.frame(
   zoop_og = c(45310, 3172, 1951, 2023),
   zoop_merge = c(434, 28, 1987, 2021),
   krill_og = c(7482, 411, 1951, 2019),
-  krill_merge = c("FILL", "FILL", "FILL", "FILL"),
-  prpoos_og = c(1384, 20, 2005, 2025),
+  krill_merge = c(70, 21, 1984, 2019),
+  prpoos_og = c(1394, 20, 2005, 2025),
   prpoos_merge = c("FILL", "FILL", "FILL", "FILL"),
   stringsAsFactors = FALSE
 )
 
 df %>%
   gt(rowname_col = "Rows") %>%
-  tab_header(title = "Merged Data") %>%
+  tab_header(title = "Datasets") %>%
   cols_label(
     Bottle = "Bottle*",
     zoop_og = "Original", zoop_merge = "Merged",
@@ -87,7 +89,7 @@ df %>%
 ```
 
 
-## Zooplankton Models
+## NOAA Zooplankton Models
 
 ### Total Plankton
 
@@ -108,19 +110,75 @@ gam_model4 <- gam(
                   s(TA) + s(DIC) +
                   s(Salinity_PSS78) +
                   s(CTDTEMP_ITS90) +
-                  s(Year_UTC) + s(Month_UTC) + s(Station_ID, bs = "re"),
+                  s(Year_UTC) + s(Month_UTC),
   data = total_zooplankton,
 )
+
 summary(gam_model4)
 AIC(gam_model4)
-plot(gam_model4)
+#plot(gam_model4)
 
-plot(gam_model4, select = 1, shade = TRUE, seWithMean = TRUE, scheme = 2)
+#plot(gam_model4, select = 1, shade = TRUE, seWithMean = TRUE, scheme = 2)
 
 par(mfrow = c(4, 2), mar = c(4, 4, 2, 1)) 
 for (i in 2:9) {
   plot(gam_model4, select = i, shade = TRUE)
 }
+```
+
+
+```{r}
+# grid res
+lon_seq <- seq(min(total_zooplankton$Longitude), max(total_zooplankton$Longitude), length.out = 100)
+lat_seq <- seq(min(total_zooplankton$Latitude), max(total_zooplankton$Latitude), length.out = 100)
+
+# pred grid
+grid <- expand.grid(Longitude = lon_seq, Latitude = lat_seq)
+
+grid <- grid %>%
+  mutate(
+    pHout = mean(total_zooplankton$pHout, na.rm = TRUE),
+    TA = mean(total_zooplankton$TA, na.rm = TRUE),
+    DIC = mean(total_zooplankton$DIC, na.rm = TRUE),
+    Salinity_PSS78 = mean(total_zooplankton$Salinity_PSS78, na.rm = TRUE),
+    CTDTEMP_ITS90 = mean(total_zooplankton$CTDTEMP_ITS90, na.rm = TRUE),
+    Year_UTC = median(total_zooplankton$Year_UTC),
+    Month_UTC = median(total_zooplankton$Month_UTC)
+  )
+
+# predict without station-specific random effect
+grid$fit <- predict(gam_model4, newdata = grid, type = "response")
+
+# define coastlines
+coast <- map_data("world")
+
+# identify inside points
+in_hull <- function(grid, data) {
+  hull <- convhulln(data[, c("Longitude", "Latitude")])
+  inhulln(hull, as.matrix(grid[, c("Longitude", "Latitude")]))
+}
+
+grid$inside <- in_hull(grid, total_zooplankton)
+
+# get unique station coordinates (optional, cleaner)
+stations <- total_zooplankton %>%
+  distinct(Station_ID, Longitude, Latitude)
+
+# plot
+spatial_gam_total_zoop <- ggplot() +
+  geom_tile(data = grid %>% filter(inside), aes(x = Longitude, y = Latitude, fill = fit)) +
+  geom_path(data = coast, aes(x = long, y = lat, group = group), color = "black", size = 0.3) +
+  geom_point(data = stations, aes(x = Longitude, y = Latitude), 
+             color = "black", size = 1.5, alpha = 0.8) +
+  coord_fixed(xlim = range(grid$Longitude), ylim = range(grid$Latitude)) +
+  scale_fill_viridis_c(name = "Predicted\nlog Abundance") +
+  labs(
+    title = "GAM Spatial Effect for Total Plankton",
+    x = "Longitude", y = "Latitude"
+  ) +
+  theme_minimal()
+
+ggsave(here::here("final-deliverables/part-2-img/spatial_gam_total_zoop.png"), bg = "white")
 ```
 
 ### Small Plankton
@@ -140,14 +198,14 @@ small_gam_mod2 <- gam(
                   s(TA) + s(DIC) +
                   s(Salinity_PSS78) +
                   s(CTDTEMP_ITS90) +
-                  s(Year_UTC) + s(Month_UTC) + s(Station_ID, bs = "re"),
+                  s(Year_UTC) + s(Month_UTC),
   data = small_zooplankton,
 )
 
 summary(small_gam_mod2)
-AIC(small_gam_mod2)
-plot(small_gam_mod2)
-plot(small_gam_mod2, select = 1, shade = TRUE, seWithMean = TRUE, scheme = 2)
+#AIC(small_gam_mod2)
+#plot(small_gam_mod2)
+#plot(small_gam_mod2, select = 1, shade = TRUE, seWithMean = TRUE, scheme = 2)
 #plot(small_gam_mod2, page = 1, shade = TRUE, seWithMean = TRUE)
 
 par(mfrow = c(4, 2), mar = c(4, 4, 2, 1)) 
@@ -160,9 +218,64 @@ par(mfrow = c(1, 1))
 
 ```
 
-## Krill Models
+```{r}
+# grid res
+lon_seq <- seq(min(small_zooplankton$Longitude), max(small_zooplankton$Longitude), length.out = 100)
+lat_seq <- seq(min(small_zooplankton$Latitude), max(small_zooplankton$Latitude), length.out = 100)
 
-### PRPOOS data
+# pred grid
+grid <- expand.grid(Longitude = lon_seq, Latitude = lat_seq)
+
+grid <- grid %>%
+  mutate(
+    pHout = mean(small_zooplankton$pHout, na.rm = TRUE),
+    TA = mean(small_zooplankton$TA, na.rm = TRUE),
+    DIC = mean(small_zooplankton$DIC, na.rm = TRUE),
+    Salinity_PSS78 = mean(small_zooplankton$Salinity_PSS78, na.rm = TRUE),
+    CTDTEMP_ITS90 = mean(small_zooplankton$CTDTEMP_ITS90, na.rm = TRUE),
+    Year_UTC = median(small_zooplankton$Year_UTC),
+    Month_UTC = median(small_zooplankton$Month_UTC)
+  )
+
+# predict without station-specific random effect
+grid$fit <- predict(small_gam_mod2, newdata = grid, type = "response")
+
+# define coastlines
+coast <- map_data("world")
+
+# identify inside points
+in_hull <- function(grid, data) {
+  hull <- convhulln(data[, c("Longitude", "Latitude")])
+  inhulln(hull, as.matrix(grid[, c("Longitude", "Latitude")]))
+}
+
+grid$inside <- in_hull(grid, total_zooplankton)
+
+# get unique station coordinates (optional, cleaner)
+stations <- small_zooplankton %>%
+  distinct(Station_ID, Longitude, Latitude)
+
+# plot
+spatial_gam_small_zoop <- ggplot() +
+  geom_tile(data = grid %>% filter(inside), aes(x = Longitude, y = Latitude, fill = fit)) +
+  geom_path(data = coast, aes(x = long, y = lat, group = group), color = "black", size = 0.3) +
+  geom_point(data = stations, aes(x = Longitude, y = Latitude), 
+             color = "black", size = 1.5, alpha = 0.8) +
+  coord_fixed(xlim = range(grid$Longitude), ylim = range(grid$Latitude)) +
+  scale_fill_viridis_c(name = "Predicted\nlog Abundance") +
+  labs(
+    title = "GAM Spatial Effect for Small Plankton",
+    x = "Longitude", y = "Latitude"
+  ) +
+  theme_minimal()
+
+ggsave(here::here("final-deliverables/part-2-img/spatial_gam_small_zoop.png"), bg = "white")
+
+```
+
+## BTEDB Krill Models
+
+## PRPOOS Calcifying/Non-Calcifying Zooplankton Models
 
 ```{r}
 library(lubridate)
@@ -440,11 +553,18 @@ plot(gam_model_bl)
 
 ```
 
+
+
+
 # Summary of Findings
 
 
 # Future Work
 
 
-# References
+
+# Acknowledgements
+
+A special thank you to our mentors, Erin Satterthwaite and Erika McPhillips, for their guidance and support. 
+
 
