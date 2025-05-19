@@ -67,9 +67,8 @@ df <- data.frame(
   zoop_merge = c(434, 28, 1987, 2021),
   krill_og = c(7482, 411, 1951, 2019),
   krill_merge = c(70, 21, 1984, 2019),
-  prpoos_og = c(1394, 20, 2005, 2025),
-  prpoos_merge = c("FILL", "FILL", "FILL", "FILL"),
-  stringsAsFactors = FALSE
+  prpoos_og = c(1384, 20, 2005, 2025),
+  prpoos_merge = c(388, 16, 2009, 2021),  stringsAsFactors = FALSE
 )
 
 df %>%
