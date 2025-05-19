@@ -1,0 +1,328 @@
+Add depth of saturation horizon and interpolated pH values to bottle data.
+
+```{r}
+library(readr)
+library(dplyr)
+library(mgcv)
+library(tidyr)
+library(purrr)
+library(tibble)
+```
+
+```{r}
+# Load in data
+bottle_data <- read_csv(here::here("data/merged_bottle_co2sys.csv"))
+```
+
+```{r}
+# Make sure your depth and OmegaAR values are numeric
+bottle_data$Depthm <- as.numeric(bottle_data$Depthm)
+bottle_data$OmegaARout <- as.numeric(bottle_data$OmegaARout)
+
+# Filter out rows with missing data
+filtered_data <- bottle_data %>%
+  filter(!is.na(Depthm), !is.na(OmegaARout))
+
+# Group by Station and Year
+saturation_depths <- filtered_data %>%
+  group_by(Station_ID, Year_UTC) %>%
+  group_modify(~{
+    df_group <- .x
+    n_unique <- df_group %>% pull(OmegaARout) %>% unique() %>% length()
+
+    # Only fit GAM if enough data and variation
+    if (nrow(df_group) > 1 && n_unique > 2) {
+      gam_fit <- tryCatch({
+        gam(Depthm ~ s(OmegaARout, bs = "cs", k = min(4, n_unique - 1)), data = df_group)
+      }, error = function(e) NULL)
+
+      if (!is.null(gam_fit)) {
+        predicted_depth <- predict(gam_fit, newdata = tibble(OmegaARout = 1))
+        return(tibble(Depth_Saturation_Horizon = predicted_depth))
+      }
+    }
+    return(tibble(Depth_Saturation_Horizon = NA_real_))
+  }) %>%
+  ungroup()
+
+# Merge back into original dataset
+bottle_data <- bottle_data %>%
+  left_join(saturation_depths, by = c("Station_ID", "Year_UTC"))
+
+```
+
+```{r}
+# bottle_data %>% filter(Station_ID == "081.8 046.9") %>% dplyr::select(Station_ID, Year_UTC, Month_UTC, Depth_Saturation_Horizon, pH_at_saturation_depth, Season)
+```
+
+```{r}
+library(dplyr)
+library(purrr)
+library(tidyr)
+library(mgcv)
+library(tibble)
+
+# Define seasons based on month
+bottle_data <- bottle_data %>%
+  mutate(Season = case_when(
+    Month_UTC %in% c(12, 1, 2) ~ "Winter",
+    Month_UTC %in% c(3, 4, 5)  ~ "Spring",
+    Month_UTC %in% c(6, 7, 8)  ~ "Summer",
+    Month_UTC %in% c(9, 10, 11) ~ "Fall",
+    TRUE ~ NA_character_
+  )) %>%
+  relocate(Season, .after = Date_cc)
+
+# Make sure relevant columns are numeric
+bottle_data$Depthm <- as.numeric(bottle_data$Depthm)
+bottle_data$pHout <- as.numeric(bottle_data$pHout)
+
+# Extract saturation horizon depths per group
+saturation_depths <- bottle_data %>%
+  select(Station_ID, Year_UTC, Depth_Saturation_Horizon) %>%
+  distinct()
+
+# Join season-based pH interpolation with saturation depths
+pH_at_saturation <- bottle_data %>%
+  filter(!is.na(Depthm), !is.na(pHout), !is.na(Depth_Saturation_Horizon)) %>%
+  group_by(Station_ID, Year_UTC, Season) %>%
+  group_modify(~ {
+    df_group <- .x
+    horizon <- unique(df_group$Depth_Saturation_Horizon)
+
+    if (length(horizon) == 1 && !is.na(horizon) && nrow(df_group) > 1) {
+      n_unique <- df_group %>% pull(pHout) %>% unique() %>% length()
+
+      if (n_unique > 2) {
+        gam_fit <- tryCatch({
+          gam(pHout ~ s(Depthm, bs = "cs", k = min(4, n_unique - 1)), data = df_group)
+        }, error = function(e) NULL)
+
+        if (!is.null(gam_fit)) {
+          predicted_pH <- predict(gam_fit, newdata = tibble(Depthm = horizon))
+          return(tibble(pH_at_saturation_depth = predicted_pH))
+        }
+      }
+    }
+
+    return(tibble(pH_at_saturation_depth = NA_real_))
+  }) %>%
+  ungroup()
+
+# Merge interpolated pH values back into bottle_data
+bottle_data <- bottle_data %>%
+  left_join(pH_at_saturation, by = c("Station_ID", "Year_UTC", "Season"))
+
+# bottle_data[, c(222, 223)] <- lapply(bottle_data[, c(222, 223)], as.vector)
+
+#write_csv(bottle_data, here::here("data/CV_bottle_data.csv"))
+```
+
+```{r}
+zoop_data <- read_csv(here::here("data/zoop_data/Zooplankton-new.csv"))
+dim(zoop_data)
+```
+
+```{r}
+## Create `Station_ID` variable in zooplankton dataset by merging `Line` and `Station`
+zoop_data$Station_ID <- paste(
+  sprintf('%05.1f', zoop_data$line),
+  sprintf('%05.1f', as.numeric(zoop_data$station)),
+  sep = ' '
+)
+
+zoop_data <- zoop_data %>%
+  relocate(Station_ID, .before = line)
+
+## Create `Month` and `Year` variable
+zoop_data <- zoop_data %>%
+  mutate(
+    time = ymd_hms(time),
+    Year_UTC = year(time),
+    Month_UTC = month(time),
+    .after = time
+  )
+
+#write_csv(zoop_data, here::here("data/zoop_data/CV_zoop_data.csv"))
+```
+
+```{r}
+zoop_merge <- bottle_data %>%
+  inner_join(zoop_data, by = c("Station_ID", "Year_UTC", "Month_UTC"))
+
+zoop_merge %>% dplyr::select(Station_ID, Year_UTC, Month_UTC, Depth_Saturation_Horizon, pH_at_saturation_depth, Season, small_plankton, total_plankton)
+```
+
+```{r}
+zoop_merge <- zoop_merge %>%
+  filter(Depth_Saturation_Horizon >= 0 | is.na(Depth_Saturation_Horizon))
+```
+
+
+
+```{r}
+ggplot(zoop_merge, aes(x=log1p(total_plankton), y=pH_at_saturation_depth)) + 
+    geom_point()
+```
+
+```{r}
+zoop_merge <- zoop_merge %>%
+  mutate(Station_ID = as.factor(Station_ID),
+         Month_UTC = as.factor(Month_UTC))
+
+zoop_gam_1 <- gam(
+  total_plankton ~ 
+    te(Longitude, Latitude) +
+                  s(pH_at_saturation_depth) + s(Depth_Saturation_Horizon) +
+                 s(Year_UTC) + s(Month_UTC, bs = "re") + s(Station_ID, bs = "re"),
+  data = zoop_merge,
+)
+summary(zoop_gam_1)
+
+#plot(zoop_gam_1, pages = 1, shade = TRUE, seWithMean = TRUE)
+
+plot(zoop_gam_1, select = 1, shade = TRUE, seWithMean = TRUE, scheme = 2)
+
+par(mfrow = c(4, 2), mar = c(4, 4, 2, 1)) 
+for (i in 2:9) {
+  plot(zoop_gam_1, select = i, shade = TRUE)
+}
+
+
+par(mfrow = c(1, 1))
+
+
+
+```
+# PRPOOS
+
+```{r}
+prpoos <- read_csv(here::here("data/PRPOOS/PRPOOS_all.csv"), skip = 2)
+
+prpoos$Station_ID <- paste(
+  sprintf('%05.1f', prpoos$Station),
+  sprintf('%05.1f', prpoos$Line),
+  sep = ' '
+)
+prpoos <- prpoos %>%
+  relocate(Station_ID, .after = Line)
+prpoos <- prpoos %>%
+  mutate(
+    Year_UTC = year(`Station date`),
+    Month_UTC = month(`Station date`),
+    Day_UTC = day(`Station date`),
+    .after = `Station date`
+  ) %>%
+  rename (`appendicularia Abundance (No. per m2)` = `Day or Night`)
+```
+
+```{r}
+prpoos_clean <- prpoos %>%
+  dplyr::select(-contains("Estimated C Biomass (mgC m-2)"))
+
+names(prpoos_clean) <- str_replace(names(prpoos_clean), " \\(No\\. per m2\\)", "")
+
+# Add seasonal component
+prpoos_clean <- prpoos_clean %>%
+  mutate(
+    Season = case_when(
+    Month_UTC %in% c(12, 1, 2) ~ "Winter",
+      Month_UTC %in% c(3, 4, 5) ~ "Spring",
+      Month_UTC %in% c(6, 7, 8) ~ "Summer",
+      Month_UTC %in% c(9, 10, 11) ~ "Fall"
+    )
+  ) %>%
+  relocate(Season, .after = Year_UTC)
+```
+
+
+```{r}
+calcifiers <- c("bryozoan_larvae Abundance",
+                "pteropoda_heteropoda Abundance",
+                "ostracods Abundance",
+                "rhizaria Abundance")
+abund_cols <- prpoos_clean %>% dplyr::select(contains("Abundance")) %>% names()
+non_calcifiers <- setdiff(abund_cols, calcifiers)
+```
+
+```{r}
+prpoos_clean <- prpoos_clean %>%
+  dplyr::mutate(
+    calcifier_total = rowSums(dplyr::select(., all_of(calcifiers)), na.rm = TRUE),
+    non_calcifier_total = rowSums(dplyr::select(., all_of(non_calcifiers)), na.rm = TRUE)
+  )
+```
+
+```{r}
+prpoos_merge <- bottle_data %>%
+  inner_join(prpoos_clean, by = c("Station_ID", "Year_UTC", "Month_UTC"))
+
+prpoos_merge %>% dplyr::select(Station_ID, Year_UTC, Month_UTC, Depth_Saturation_Horizon, pH_at_saturation_depth, calcifier_total, non_calcifier_total)
+
+prpoos_merge <- prpoos_merge %>% distinct()
+```
+
+```{r}
+prpoos_merge <- prpoos_merge %>%
+  filter(Depth_Saturation_Horizon >= 0 | is.na(Depth_Saturation_Horizon))
+```
+
+```{r}
+prpoos_merge %>%
+  summarise(
+    total_observations = n(),
+    unique_stations = n_distinct(Station_ID),
+    start_year = min(Year_UTC, na.rm = TRUE),
+    end_year = max(Year_UTC, na.rm = TRUE)
+  )
+```
+
+```{r}
+ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(calcifier_total), color = Season.x)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~Season.x) +
+  labs(
+    title = "Calcifier Abundance vs. pH by Season",
+    x = "pH at Saturation Depth",
+    y = "Log Total Abundance (no. per m2)",
+    color = "Season"
+  ) +
+  theme_minimal()
+
+ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(non_calcifier_total), color = Season.x)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~Season.x) +
+  labs(
+    title = "Non-Calcifier Abundance vs. pH by Season",
+    x = "pH at Saturation Depth",
+    y = "Log Total Abundance (no. per m2)",
+    color = "Season"
+  ) +
+  theme_minimal()
+
+ggplot(prpoos_merge, aes(x = Depth_Saturation_Horizon, y = log1p(calcifier_total), color = Season.x)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~Season.x) +
+  labs(
+    title = "Calcifier Abundance vs. Depth of Saturation Horizon by Season",
+    x = "Depth of Saturation Horizon",
+    y = "Log Total Abundance (no. per m2)",
+    color = "Season"
+  ) +
+  theme_minimal()
+
+ggplot(prpoos_merge, aes(x = Depth_Saturation_Horizon, y = log1p(non_calcifier_total), color = Season.x)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~Season.x) +
+  labs(
+    title = "Non-Calcifier Abundance vs. Depth of Saturation Horizon by Season",
+    x = "Depth of Saturation Horizon",
+    y = "Log Total Abundance (no. per m2)",
+    color = "Season"
+  ) +
+  theme_minimal()
+```

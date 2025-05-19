@@ -48,7 +48,7 @@ head(krill_data)
 ```{r}
 num_cc<- bottle_data[,c("Date_cc", "Year_UTC", "Month_UTC", "Day_UTC", "Station_ID", 
                       "Latitude", "Longitude", "TA", "DIC", "Depth", 
-                      "CTDTEMP_ITS90", "Salinity_PSS78", "pHin", "pHout")]
+                      "CTDTEMP_ITS90", "Salinity_PSS78", "pHin", "pHout", "pCO2in","RFin", "CO3in","OmegaCAin","OmegaARin")]
 
 monthly_bottle_data <- num_cc %>% group_by(Year_UTC, Month_UTC, Station_ID) %>% 
   summarise(across(everything(), mean),
@@ -66,7 +66,8 @@ nrow(merged_krill) #104
 #write_csv(CV_merged_krill, here::here("data/CV_merged_krill.csv"))
 
 ## Remove NaN values for pH (in and out)
-merged_krill <- merged_krill %>% filter(is.na(pHin) == F | is.na(pHout) == F)
+# merged_krill <- merged_krill %>% filter(is.na(pHin) == F | is.na(pHout) == F)
+merged_krill <- merged_krill %>% drop_na()
 head(merged_krill)
 nrow(merged_krill) #70
 
@@ -771,7 +772,7 @@ total_zooplankton <- zooplankton %>%
   dplyr::select(-total_plankton)
 
 library(corrplot)
-corrplot::corrplot(cor(total_zooplankton), method = "number", type = "lower")
+corrplot(cor(total_zooplankton), method = "number", type = "lower")
 ```
 
 ```{r}
@@ -796,7 +797,7 @@ summary(gam_mod1)
 
 ```{r}
 total_zooplankton <- zooplankton %>% 
-  dplyr::select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, total_plankton, pHout, Latitude, Longitude, Year_UTC, Month_UTC, Station_ID) %>%
+  dplyr::select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, total_plankton, pHout, Latitude, Longitude, Year_UTC, Month_UTC, Station_ID, pCO2in, RFin, CO3in, OmegaCAin, OmegaARin) %>%
   drop_na() %>%
   mutate(log_total_plankton = log1p(total_plankton)) %>%
   dplyr::select(-total_plankton) %>%
@@ -859,10 +860,13 @@ gam_model4 <- gam(
                   s(TA) + s(DIC) +
                   s(Salinity_PSS78) +
                   s(CTDTEMP_ITS90) +
-                  s(Year_UTC) + s(Month_UTC) + s(Station_ID, bs = "re"),
+                  s(Year_UTC) + s(Month_UTC) + s(Station_ID, bs = "re") +
+    s(pCO2in) + s(RFin) + s(CO3in) + s(OmegaCAin) + s(OmegaARin),
   data = total_zooplankton,
 )
 summary(gam_model4)
+
+AIC(gam_model4)
 #plot(gam_model4, pages = 1, shade = TRUE, seWithMean = TRUE)
 
 plot(gam_model4, select = 1, shade = TRUE, seWithMean = TRUE, scheme = 2)
@@ -880,7 +884,7 @@ par(mfrow = c(1, 1))
 
 ```{r}
 small_zooplankton <- zooplankton %>% 
-  dplyr::select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, small_plankton, pHout, Latitude, Longitude, Year_UTC, Month_UTC, Station_ID) %>%
+  dplyr::select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, small_plankton, pHout, Latitude, Longitude, Year_UTC, Month_UTC, Station_ID, pCO2in, RFin, CO3in, OmegaCAin, OmegaARin) %>%
   drop_na() %>%
   mutate(log_small_plankton = log1p(small_plankton)) %>%
   dplyr::select(-small_plankton) %>%
@@ -903,11 +907,12 @@ small_gam_mod2 <- gam(
                   s(TA) + s(DIC) +
                   s(Salinity_PSS78) +
                   s(CTDTEMP_ITS90) +
-                  s(Year_UTC) + s(Month_UTC) + s(Station_ID, bs = "re"),
+                  s(Year_UTC) + s(Month_UTC) + s(Station_ID, bs = "re") +
+    s(pCO2in) + s(RFin) + s(CO3in) + s(OmegaCAin) + s(OmegaARin),
   data = small_zooplankton,
 )
 summary(small_gam_mod2)
-#aic(small_gam_mod2)
+AIC(small_gam_mod2)
 
 plot(small_gam_mod2, select = 1, shade = TRUE, seWithMean = TRUE, scheme = 2)
 #plot(small_gam_mod2, page = 1, shade = TRUE, seWithMean = TRUE)
@@ -960,19 +965,22 @@ ggplot() +
 ### total krill
 ```{r}
 total_krill <- merged_krill %>% 
-  dplyr::select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, Total_Abundance, pHout, Latitude.x, Longitude.x, Year_UTC, Month_UTC, Station_ID) %>%
+  dplyr::select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, Total_Abundance, pHout, Latitude.x, Longitude.x, Year_UTC, Month_UTC, Station_ID, pCO2in, RFin, CO3in, OmegaCAin, OmegaARin) %>%
   drop_na() %>%
   mutate(log_total_krill = log1p(Total_Abundance)) %>%
   dplyr::select(-Total_Abundance) %>%
   mutate(Station_ID = as.factor(Station_ID))
 
-krill_gam_mod <- gam(log_total_krill ~ te(Latitude.x, Longitude.x) +
-                         s(pHout) +
-                        pHout:DIC + CTDTEMP_ITS90:DIC + Salinity_PSS78:DIC +
-                         s(Year_UTC) + s(Month_UTC) + s(Station_ID, bs = "re"),
+krill_gam_mod <- gam(log_total_krill ~ te(Longitude, Latitude) +
+                  s(pHout) +
+                  s(TA) + s(DIC) +
+                  s(Salinity_PSS78) +
+                  s(CTDTEMP_ITS90) +
+                  s(Year_UTC) + s(Month_UTC) + s(Station_ID, bs = "re") +
+    s(pCO2in) + s(RFin) + s(CO3in) + s(OmegaCAin) + s(OmegaARin),
     data = total_krill)
 summary(krill_gam_mod)
-aic(krill_gam_mod)
+AIC(krill_gam_mod)
 ```
 
 
