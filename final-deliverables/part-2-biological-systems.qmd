@@ -507,7 +507,7 @@ Build a logistic regression model to assess the impact of pH_mean, OmegaAR_mean,
 calcifying_species <- c("bryozoan_larvaeAbundance", "pteropoda_heteropodaAbundance", "ostracodsAbundance", "rhizariaAbundance")
 non_calcifying_species <- c("appendiculariaAbundance", "chaetognathaAbundance", "copepoda_calanoida_minus_eucalanidsAbundance")
 
-prpoos <- prpoos %>%
+prpoos_summary <- prpoos_summary %>%
   drop_na() %>%
   mutate(
     calcifying_abundance = rowSums(select(., all_of(calcifying_species))),
@@ -528,6 +528,37 @@ if (length(unique(prpoos$calcifying_class)) > 1) {
 }
 
 logistic_model
+```
+### PRPOOS Clustering Analysis with PCA
+Identify clusters of species based on their abundance profiles
+Standardize the species abundance matrix
+Apply PCA to reduce dimensionality and visualize the dataset
+```{r}
+abundance_cols <- grep("Abundance$", names(prpoos_summary), value = TRUE)
+
+species_matrix <- prpoos_summary %>%
+  select(all_of(abundance_cols)) %>%
+  drop_na() %>%
+  scale()
+
+pca_result <- prcomp(species_matrix, center = TRUE, scale. = TRUE)
+
+set.seed(123)
+kmeans_model <- kmeans(species_matrix, centers = 4)
+prpoos_summary$cluster <- kmeans_model$cluster
+
+cluster_means <- prpoos_summary %>%
+  group_by(cluster) %>%
+  summarize(
+    pH_mean = mean(pH_mean, na.rm = TRUE),
+    OmegaAR_mean = mean(OmegaAR_mean, na.rm = TRUE),
+    CO3_mean = mean(CO3_mean, na.rm = TRUE),
+    calcifying_ratio = mean(calcifying_ratio, na.rm = TRUE)
+  )
+#write.csv(cluster_means, "cluster_means_detailed.csv")
+
+fviz_pca_ind(pca_result, label = "none", habillage = prpoos_summary$cluster, addEllipses = TRUE, ellipse.level = 0.95) +
+  labs(title = "PCA Plot with Clusters")
 ```
 
 # Summary of Findings
