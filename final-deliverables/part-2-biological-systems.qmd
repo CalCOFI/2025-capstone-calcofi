@@ -499,6 +499,37 @@ plot(gam_model_bl)
 
 ```
 
+### PRPOOS Calcifying vs Non-calcifying
+Calculate the calcifying_ratio as the ratio of calcifying to non-calcifying species.
+Classify observations as High or Low based on the median calcifying_ratio.
+Build a logistic regression model to assess the impact of pH_mean, OmegaAR_mean, and CO3_mean.
+```{r}
+calcifying_species <- c("bryozoan_larvaeAbundance", "pteropoda_heteropodaAbundance", "ostracodsAbundance", "rhizariaAbundance")
+non_calcifying_species <- c("appendiculariaAbundance", "chaetognathaAbundance", "copepoda_calanoida_minus_eucalanidsAbundance")
+
+prpoos <- prpoos %>%
+  drop_na() %>%
+  mutate(
+    calcifying_abundance = rowSums(select(., all_of(calcifying_species))),
+    non_calcifying_abundance = rowSums(select(., all_of(non_calcifying_species))),
+    calcifying_ratio = calcifying_abundance / (calcifying_abundance + non_calcifying_abundance),
+    calcifying_class = factor(ifelse(calcifying_ratio > median(calcifying_ratio, na.rm = TRUE), 'High', 'Low'))
+  )
+
+if (length(unique(prpoos$calcifying_class)) > 1) {
+  logistic_model <- glm(
+    calcifying_class ~ pH_mean * OmegaAR_mean + CO3_mean,
+    data = prpoos,
+    family = binomial
+  )
+  #write.csv(coef(summary(logistic_model)), "logistic_model_summary.csv")
+} else {
+  cat("Warning: calcifying_class has only one level. Skipping logistic regression.\n")
+}
+
+logistic_model
+```
+
 # Summary of Findings
 
 
