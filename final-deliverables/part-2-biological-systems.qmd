@@ -196,6 +196,26 @@ plot(gam_interaction_offshore, select = 1, shade = TRUE, main = "Offshore: pHout
 plot(gam_interaction_offshore, select = 2, shade = TRUE, main = "Offshore: pHout and OmegaARout")
 par(mfrow = c(1, 1))
 ```
+### Zooplankton Quarterly Analysis
+Construct GAM models to assess the effect of OmegaARout across different quarters.
+Iterate through Nearshore and Offshore datasets
+```{r}
+for (region in c("Nearshore", "Offshore")) {
+  region_data <- filter(zooplankton_clean, region == region)
+  unique_quarters <- unique(region_data$quarter)
+  cat(region, "unique quarters: ", unique_quarters, "\n")
+
+  if (length(unique_quarters) > 1) {
+    model <- gam(
+      log_total_plankton ~ s(OmegaARout) + s(quarter, bs = "re") + s(region, bs = "re"),
+      data = region_data
+    )
+    plot(model, select = 1, shade = TRUE, main = paste(region, ": Quarterly Effect on OmegaARout"))
+  } else {
+    cat("Warning: Insufficient quarters in", region, "data. Skipping quarter effect.\n")
+  }
+}
+```
 
 
 
