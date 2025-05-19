@@ -7,7 +7,7 @@
 co2sys <- read_csv(here::here("data/merged_bottle_co2sys.csv"))
 # Filter depth
 co2sys <- co2sys %>%
-  dplyr::select(Year_UTC, Month_UTC, Station_ID, Depth, pHin, OmegaCAin, CO3in) %>%
+  dplyr::select(Year_UTC, Month_UTC, Station_ID, Depth, pHin, OmegaCAin, CO3in, TA, DIC, pCO2in, RFin, OmegaARin) %>%
   filter(Depth <= 212)
 ```
 
@@ -260,15 +260,17 @@ taxa_cols <- taxa_cols[-c(1:7)]
 prpoos_summary <- prpoos_merge %>%
   group_by(across(all_of(c(id_cols, taxa_cols)))) %>%
   summarise(
+    # pH
     pH_min = min(pHin, na.rm = TRUE),
     pH_max = max(pHin, na.rm = TRUE),
     pH_mean = mean(pHin, na.rm = TRUE),
     pH_median = median(pHin, na.rm = TRUE),
-    pH_var = var(pHin),
+    pH_var = var(pHin, na.rm = TRUE),
     pH_range = max(pHin, na.rm = TRUE) - min(pHin, na.rm = TRUE),
     depth_at_pH_min = Depth[which.min(pHin)],
     depth_at_pH_max = Depth[which.max(pHin)],
-    
+
+    # OmegaCA
     OmegaCA_min = min(OmegaCAin, na.rm = TRUE),
     OmegaCA_max = max(OmegaCAin, na.rm = TRUE),
     OmegaCA_mean = mean(OmegaCAin, na.rm = TRUE),
@@ -277,7 +279,8 @@ prpoos_summary <- prpoos_merge %>%
     OmegaCA_range = max(OmegaCAin, na.rm = TRUE) - min(OmegaCAin, na.rm = TRUE),
     depth_at_OmegaCA_min = Depth[which.min(OmegaCAin)],
     depth_at_OmegaCA_max = Depth[which.max(OmegaCAin)],
-    
+
+    # CO3
     CO3_min = min(CO3in, na.rm = TRUE),
     CO3_max = max(CO3in, na.rm = TRUE),
     CO3_mean = mean(CO3in, na.rm = TRUE),
@@ -286,8 +289,60 @@ prpoos_summary <- prpoos_merge %>%
     CO3_range = max(CO3in, na.rm = TRUE) - min(CO3in, na.rm = TRUE),
     depth_at_CO3_min = Depth[which.min(CO3in)],
     depth_at_CO3_max = Depth[which.max(CO3in)],
+
+    # TA
+    TA_min = min(TA, na.rm = TRUE),
+    TA_max = max(TA, na.rm = TRUE),
+    TA_mean = mean(TA, na.rm = TRUE),
+    TA_median = median(TA, na.rm = TRUE),
+    TA_var = var(TA, na.rm = TRUE),
+    TA_range = max(TA, na.rm = TRUE) - min(TA, na.rm = TRUE),
+    depth_at_TA_min = Depth[which.min(TA)],
+    depth_at_TA_max = Depth[which.max(TA)],
+
+    # DIC
+    DIC_min = min(DIC, na.rm = TRUE),
+    DIC_max = max(DIC, na.rm = TRUE),
+    DIC_mean = mean(DIC, na.rm = TRUE),
+    DIC_median = median(DIC, na.rm = TRUE),
+    DIC_var = var(DIC, na.rm = TRUE),
+    DIC_range = max(DIC, na.rm = TRUE) - min(DIC, na.rm = TRUE),
+    depth_at_DIC_min = Depth[which.min(DIC)],
+    depth_at_DIC_max = Depth[which.max(DIC)],
+
+    # pCO2
+    pCO2_min = min(pCO2in, na.rm = TRUE),
+    pCO2_max = max(pCO2in, na.rm = TRUE),
+    pCO2_mean = mean(pCO2in, na.rm = TRUE),
+    pCO2_median = median(pCO2in, na.rm = TRUE),
+    pCO2_var = var(pCO2in, na.rm = TRUE),
+    pCO2_range = max(pCO2in, na.rm = TRUE) - min(pCO2in, na.rm = TRUE),
+    depth_at_pCO2_min = Depth[which.min(pCO2in)],
+    depth_at_pCO2_max = Depth[which.max(pCO2in)],
+
+    # RF
+    RF_min = min(RFin, na.rm = TRUE),
+    RF_max = max(RFin, na.rm = TRUE),
+    RF_mean = mean(RFin, na.rm = TRUE),
+    RF_median = median(RFin, na.rm = TRUE),
+    RF_var = var(RFin, na.rm = TRUE),
+    RF_range = max(RFin, na.rm = TRUE) - min(RFin, na.rm = TRUE),
+    depth_at_RF_min = Depth[which.min(RFin)],
+    depth_at_RF_max = Depth[which.max(RFin)],
+
+    # OmegaAR
+    OmegaAR_min = min(OmegaARin, na.rm = TRUE),
+    OmegaAR_max = max(OmegaARin, na.rm = TRUE),
+    OmegaAR_mean = mean(OmegaARin, na.rm = TRUE),
+    OmegaAR_median = median(OmegaARin, na.rm = TRUE),
+    OmegaAR_var = var(OmegaARin, na.rm = TRUE),
+    OmegaAR_range = max(OmegaARin, na.rm = TRUE) - min(OmegaARin, na.rm = TRUE),
+    depth_at_OmegaAR_min = Depth[which.min(OmegaARin)],
+    depth_at_OmegaAR_max = Depth[which.max(OmegaARin)],
+
     .groups = "drop"
   )
+
 write_csv(prpoos_summary, here::here("data/PRPOOS/prpoos_summary.csv"))
 ```
 
