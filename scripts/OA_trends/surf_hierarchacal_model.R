@@ -212,3 +212,89 @@ lapply(
   gtsave(
     "images/OA_trends/dsurf_mixed_effects.png"
   )
+
+
+lapply(
+  1:10,
+  function(i) {
+    c(qty = qty[i], coef(summary(models[[i]]))[2,], n = nobs(models[[i]]), AIC = AIC(models[[i]]), r2 = r.squaredGLMM(models[[i]])[2],
+      CI = paste0("(", format(round(confint(models[[i]])[4,1], 5), nsmall = 5), ", ", format(round(confint(models[[i]])[4,2], 5), nsmall = 5), ")"))
+  }
+) %>%
+  # combine results into a dataframe
+  bind_rows() %>%
+  # convert appropriate columns to numeric
+  mutate(
+    across(-c(qty, CI), as.numeric)
+  ) %>%
+  # rename quantities vector for tidier appearance in table
+  mutate(
+    qty = c("Temperature", "Salinity", "A~T~", "C~T~", "*p*CO2", "Revelle Factor", "pH", "CO~3~<sup>2-</sup>", "Ω~calcite~", "Ω~aragonite~"),
+    # add column of units for each quantity
+    units = c("degC yr^-1", "yr^-1", ":mu:mol kg^-1 yr^-1", ":mu:mol kg^-1 yr^-1", ":mu:atm yr^-1",
+              "yr^-1", "yr^-1", ":mu:mol kg^-1 yr^-1", "yr^-1", "yr^-1")
+  ) %>%
+  select(
+    -c("t value")
+  ) %>%
+  gt(
+    rowname_col = "qty"
+  ) %>%
+  tab_header(
+    title = "Surface Level Mixed Effect Regression Statistics for CalCOFI Stations"
+  ) %>%
+  tab_row_group(
+    label = "Seawater carbonate chemistry",
+    rows = c("C~T~", "A~T~", "*p*CO2", "Revelle Factor")
+  ) %>%
+  tab_row_group(
+    label = "Ocean acidification indicators",
+    rows = c("pH", "CO~3~<sup>2-</sup>", "Ω~calcite~", "Ω~aragonite~")
+  ) %>%
+  tab_row_group(
+    label = "Hydrography",
+    rows = c("Temperature", "Salinity")
+  ) %>%
+  # add label to row names
+  tab_stubhead(
+    label = "Parameter"
+  ) %>%
+  # rename columns
+  cols_label(
+    Estimate = "Slope",
+    `Pr(>|t|)` = "p-value",
+    `Std. Error` = "Std. Error",
+    units = "Units",
+    r2 = md("r<sup>2</sup>"),
+    AIC = "AIC",
+    CI = "95% CI"
+  ) %>%
+  # move units to be next to estimate and standard error columns
+  cols_move(
+    CI,
+    after = `Std. Error`
+  ) %>%
+  cols_move(
+    units,
+    after = CI
+  ) |> 
+  fmt_markdown(
+    columns = c(qty, CI)
+  ) %>%
+  fmt_units(
+    columns = units
+  ) %>%
+  fmt_number(
+    columns = c("Estimate", "Std. Error", "Pr(>|t|)", "r2", "AIC"),
+    decimals = 4
+  ) %>%
+  sub_small_vals(
+    columns = `Pr(>|t|)`,
+    threshold = 0.0001
+  ) %>%
+  opt_stylize(
+    style = 3
+  ) %>%
+  gtsave(
+    "images/OA_trends/dsurf_mixed_effects.png"
+  )
