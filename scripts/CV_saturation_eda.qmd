@@ -2,6 +2,7 @@
 bottle_data <- read_csv(here::here("data/merged_bottle_co2sys.csv"))
 library(ggplot2)
 library(dplyr)
+library(lubridate)
 ```
 
 ```{r}
@@ -51,7 +52,7 @@ years <- 2008:2021
 for (species in years) {
   filtered_data <- bottle_data %>%
     filter(!is.na(Depthm) & !is.na(OmegaARout)) %>% 
-    filter(Station_ID == "081.8 046.9") %>% 
+    filter(Station_ID == "080.0 090.0") %>% 
     filter(Year_UTC == species)
 
   p <- ggplot(filtered_data, aes(x = OmegaARout, y = Depthm)) +
@@ -242,7 +243,7 @@ plot_saturation_horizon <- function(station_id, data) {
 }
 
 
-
+plot_saturation_horizon("081.8 046.9", bottle_data)
 
 
 ```
@@ -312,7 +313,7 @@ plot_saturation_horizon("081.8 046.9", bottle_data)
 
 
 ```{r}
-# function with season-year component
+
 
 ```
 

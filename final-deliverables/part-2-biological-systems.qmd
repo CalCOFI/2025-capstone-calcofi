@@ -1,0 +1,593 @@
+---
+title: "Investigating the Impacts of Ocean Acidfication on Zooplankton and Krill Biovolumes"
+subtitle: "Part II"
+format:
+  html:
+    toc: true
+fig-pos: H
+---
+
+```{r setup, echo = F}
+knitr::opts_chunk$set(echo = F)
+knitr::opts_chunk$set(message = F)
+knitr::opts_chunk$set(warning = F)
+```
+
+```{r}
+# Libraries
+library(readr)
+library(here)
+library(gt)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(gam)
+library(mgcv)
+library(geometry)
+library(maps)
+```
+
+# Introduction
+
+
+# Problems of Interest
+
+Our goal is to study the impact of ocean acidification on zooplankton and krill biovolumes off of the California coast. First, we want to conduct a cross-comparison of bottle data and biological data to assess the amount of spatial and temporal overlap present. Using co-located measurements, we wish to model the effects of ocean acidification, using carbonate chemistry and oceanographic variables, on zooplankton and krill abundance. In addition, we are interested in exploring how pH and related environmental factors affect the abundance of calcifying versus non-calcifying species. 
+
+# Data
+
+## Bottle Data^[Bottle Database: <https://calcofi.org/data/oceanographic-data/bottle-database/>]
+
+CalCOFI has collected environmental and hydrographic data for over 70 years during their quarterly cruises to their CalCOFI stations. We used the merged data from Part I which contains oceanographic and carbonate chemistry data as well as computed CO2SYS values for variables such as $pH$, $CO_3$, and $\Omega_{aragonite}$. This merged dataset we are working with is called merged_bottle_co2sys.csv. One important thing to note is that there is a large temporal gap between the years 2002-2007.
+
+There are three datasets that we are focusing on for our biological data: (1) CalCOFI NOAA Zooplankton Volume, (2) BTEDB (Krill) Abundances, and (3) PRPOOS Data (for Zooplankton Calcifiers/Non-Calcifiers Abundance). The zooplankton and krill biovolume data are obtained using net tows (Bongo and/or Pairovet) at each standard CalCOFI station. The PRPOOS data is also obtained using a net tow but rather than sampling at station, it is conducted during transits between stations. These three datasets have each been merged with the bottle data to create zoop_data/zooplankton_pH.csv, krill_data/CV_merged_krill.csv, and PRPOOS/prpoos_summary.csv, respectively. 
+
+## CalCOFI NOAA Zooplankton Volume^[CalCOFI Zooplankton Volume Database: <https://oceanview.pfeg.noaa.gov/erddap/tabledap/erdCalCOFIzoovol.html>]:
+The zooplankton biovolume data measures the amount of “plankton” (the small and microscopic organisms floating in the sea, consisting chiefly of diatoms, protozoans, small crustaceans, and the eggs and larval stages of larger animals) in the volume of sea water sampled. In particular, we are interested in the variables `total_plankton` and `small_plankton`.
+
+## BTEDB (Krill) Abundances^[BTEDB (Krill Volume) Data: <https://portal.edirepository.org/nis/mapbrowse?packageid=knb-lter-cce.313.1>]:
+
+The krill dataset provides information on krill abundance from the Brinton and Townsend Euphausiid Database (BTEDB). The samples collected include species such as *Euphausia pacifica*, *Nematoscelis difficilis*, and *Thysanoessa spinifera*, with individuals categorized by size and developmental phase (e.g., calyptopis, furcilia, juvenile, adult).
+
+## PRPOOS (Calcifiers/Non-Calcifiers)^[PRPOOS (Zooplankton Calcifiers/Non-Calcifiers Volume) Zooscan Database: <https://oceaninformatics.ucsd.edu/zooscandb/>]:
+The PRPOOS (Planktonic Rate Processes in Oligotrophic Ocean Systems) dataset contains abundance and estimated biomass values for various zooplankton taxa, which can be categorized into calcifying and non-calcifying groups. The calcifying taxa are defined as *byrozoan larvae*, *pteropoda heteropoda*, *ostracods*, and *rhizaria*; the remaining taxa are considered non-calcifying. 
+
+
+# Methods 
+
+
+# Results
+
+```{r}
+
+df <- data.frame(
+  Rows = c("# of Observations", "# of Stations", "Start Year", "End Year"),
+  Bottle = c(4125, 51, 1983, 2021),
+  zoop_og = c(45310, 3172, 1951, 2023),
+  zoop_merge = c(434, 28, 1987, 2021),
+  krill_og = c(7482, 411, 1951, 2019),
+  krill_merge = c(70, 21, 1984, 2019),
+  prpoos_og = c(1384, 20, 2005, 2025),
+  prpoos_merge = c(388, 16, 2009, 2021),  stringsAsFactors = FALSE
+)
+
+df %>%
+  gt(rowname_col = "Rows") %>%
+  tab_header(title = "Datasets") %>%
+  cols_label(
+    Bottle = "Bottle*",
+    zoop_og = "Original", zoop_merge = "Merged",
+    krill_og = "Original", krill_merge = "Merged",
+    prpoos_og = "Original", prpoos_merge = "Merged"
+  ) %>%
+  tab_spanner(label = "NOAA Zooplankton", columns = c(zoop_og, zoop_merge)) %>%
+  tab_spanner(label = "BTEDB Krill", columns = c(krill_og, krill_merge)) %>%
+  tab_spanner(label = "PRPOOS Calcifiers", columns = c(prpoos_og, prpoos_merge)) %>%
+  tab_source_note(source_note = "*Note temporal gap from 2002-2007.")
+
+```
+
+
+## NOAA Zooplankton Models
+
+### Total Plankton
+
+```{r}
+zooplankton <- read_csv("../data/zoop_data/zooplankton_pH.csv")
+
+total_zooplankton <- zooplankton %>% 
+  dplyr::select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, total_plankton, pHout, Latitude, Longitude, Year_UTC, Month_UTC, Station_ID, pCO2in, RFin, CO3in, OmegaCAin, OmegaARin) %>%
+  drop_na() %>%
+  mutate(log_total_plankton = log1p(total_plankton)) %>%
+  dplyr::select(-total_plankton) %>%
+  mutate(Station_ID = as.factor(Station_ID))
+
+gam_model4 <- gam(
+  log_total_plankton ~ 
+    te(Longitude, Latitude) +
+                  s(pHout) +
+                  s(TA) + s(DIC) +
+                  s(Salinity_PSS78) +
+                  s(CTDTEMP_ITS90) +
+                  s(Year_UTC) + s(Month_UTC),
+  data = total_zooplankton,
+)
+
+summary(gam_model4)
+AIC(gam_model4)
+#plot(gam_model4)
+
+#plot(gam_model4, select = 1, shade = TRUE, seWithMean = TRUE, scheme = 2)
+
+par(mfrow = c(4, 2), mar = c(4, 4, 2, 1)) 
+for (i in 2:9) {
+  plot(gam_model4, select = i, shade = TRUE)
+}
+```
+
+
+```{r}
+# grid res
+lon_seq <- seq(min(total_zooplankton$Longitude), max(total_zooplankton$Longitude), length.out = 100)
+lat_seq <- seq(min(total_zooplankton$Latitude), max(total_zooplankton$Latitude), length.out = 100)
+
+# pred grid
+grid <- expand.grid(Longitude = lon_seq, Latitude = lat_seq)
+
+grid <- grid %>%
+  mutate(
+    pHout = mean(total_zooplankton$pHout, na.rm = TRUE),
+    TA = mean(total_zooplankton$TA, na.rm = TRUE),
+    DIC = mean(total_zooplankton$DIC, na.rm = TRUE),
+    Salinity_PSS78 = mean(total_zooplankton$Salinity_PSS78, na.rm = TRUE),
+    CTDTEMP_ITS90 = mean(total_zooplankton$CTDTEMP_ITS90, na.rm = TRUE),
+    Year_UTC = median(total_zooplankton$Year_UTC),
+    Month_UTC = median(total_zooplankton$Month_UTC)
+  )
+
+# predict without station-specific random effect
+grid$fit <- predict(gam_model4, newdata = grid, type = "response")
+
+# define coastlines
+coast <- map_data("world")
+
+# identify inside points
+in_hull <- function(grid, data) {
+  hull <- convhulln(data[, c("Longitude", "Latitude")])
+  inhulln(hull, as.matrix(grid[, c("Longitude", "Latitude")]))
+}
+
+grid$inside <- in_hull(grid, total_zooplankton)
+
+# get unique station coordinates (optional, cleaner)
+stations <- total_zooplankton %>%
+  distinct(Station_ID, Longitude, Latitude)
+
+# plot
+spatial_gam_total_zoop <- ggplot() +
+  geom_tile(data = grid %>% filter(inside), aes(x = Longitude, y = Latitude, fill = fit)) +
+  geom_path(data = coast, aes(x = long, y = lat, group = group), color = "black", size = 0.3) +
+  geom_point(data = stations, aes(x = Longitude, y = Latitude), 
+             color = "black", size = 1.5, alpha = 0.8) +
+  coord_fixed(xlim = range(grid$Longitude), ylim = range(grid$Latitude)) +
+  scale_fill_viridis_c(name = "Predicted\nlog Abundance") +
+  labs(
+    title = "GAM Spatial Effect for Total Plankton",
+    x = "Longitude", y = "Latitude"
+  ) +
+  theme_minimal()
+
+ggsave(here::here("final-deliverables/part-2-img/spatial_gam_total_zoop.png"), bg = "white")
+```
+
+### Small Plankton
+
+```{r}
+small_zooplankton <- zooplankton %>% 
+  dplyr::select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, small_plankton, pHout, Latitude, Longitude, Year_UTC, Month_UTC, Station_ID, pCO2in, RFin, CO3in, OmegaCAin, OmegaARin) %>%
+  drop_na() %>%
+  mutate(log_small_plankton = log1p(small_plankton)) %>%
+  dplyr::select(-small_plankton) %>%
+  mutate(Station_ID = as.factor(Station_ID))
+
+small_gam_mod2 <- gam(
+  log_small_plankton ~ 
+    te(Longitude, Latitude) +
+                  s(pHout) +
+                  s(TA) + s(DIC) +
+                  s(Salinity_PSS78) +
+                  s(CTDTEMP_ITS90) +
+                  s(Year_UTC) + s(Month_UTC),
+  data = small_zooplankton,
+)
+
+summary(small_gam_mod2)
+#AIC(small_gam_mod2)
+#plot(small_gam_mod2)
+#plot(small_gam_mod2, select = 1, shade = TRUE, seWithMean = TRUE, scheme = 2)
+#plot(small_gam_mod2, page = 1, shade = TRUE, seWithMean = TRUE)
+
+par(mfrow = c(4, 2), mar = c(4, 4, 2, 1)) 
+for (i in 2:9) {
+  plot(small_gam_mod2, select = i, shade = TRUE)
+}
+
+
+par(mfrow = c(1, 1))
+
+```
+
+```{r}
+# grid res
+lon_seq <- seq(min(small_zooplankton$Longitude), max(small_zooplankton$Longitude), length.out = 100)
+lat_seq <- seq(min(small_zooplankton$Latitude), max(small_zooplankton$Latitude), length.out = 100)
+
+# pred grid
+grid <- expand.grid(Longitude = lon_seq, Latitude = lat_seq)
+
+grid <- grid %>%
+  mutate(
+    pHout = mean(small_zooplankton$pHout, na.rm = TRUE),
+    TA = mean(small_zooplankton$TA, na.rm = TRUE),
+    DIC = mean(small_zooplankton$DIC, na.rm = TRUE),
+    Salinity_PSS78 = mean(small_zooplankton$Salinity_PSS78, na.rm = TRUE),
+    CTDTEMP_ITS90 = mean(small_zooplankton$CTDTEMP_ITS90, na.rm = TRUE),
+    Year_UTC = median(small_zooplankton$Year_UTC),
+    Month_UTC = median(small_zooplankton$Month_UTC)
+  )
+
+# predict without station-specific random effect
+grid$fit <- predict(small_gam_mod2, newdata = grid, type = "response")
+
+# define coastlines
+coast <- map_data("world")
+
+# identify inside points
+in_hull <- function(grid, data) {
+  hull <- convhulln(data[, c("Longitude", "Latitude")])
+  inhulln(hull, as.matrix(grid[, c("Longitude", "Latitude")]))
+}
+
+grid$inside <- in_hull(grid, total_zooplankton)
+
+# get unique station coordinates (optional, cleaner)
+stations <- small_zooplankton %>%
+  distinct(Station_ID, Longitude, Latitude)
+
+# plot
+spatial_gam_small_zoop <- ggplot() +
+  geom_tile(data = grid %>% filter(inside), aes(x = Longitude, y = Latitude, fill = fit)) +
+  geom_path(data = coast, aes(x = long, y = lat, group = group), color = "black", size = 0.3) +
+  geom_point(data = stations, aes(x = Longitude, y = Latitude), 
+             color = "black", size = 1.5, alpha = 0.8) +
+  coord_fixed(xlim = range(grid$Longitude), ylim = range(grid$Latitude)) +
+  scale_fill_viridis_c(name = "Predicted\nlog Abundance") +
+  labs(
+    title = "GAM Spatial Effect for Small Plankton",
+    x = "Longitude", y = "Latitude"
+  ) +
+  theme_minimal()
+
+ggsave(here::here("final-deliverables/part-2-img/spatial_gam_small_zoop.png"), bg = "white")
+
+```
+
+
+## PRPOOS Calcifying/Non-Calcifying Zooplankton Models
+
+```{r}
+library(lubridate)
+library(mgcv)
+library(ggplot2)
+library(dplyr)
+library(maps)
+library(stringr)
+# read in data
+prpoos_summary <- read_csv("../data/PRPOOS/prpoos_summary_namecleaned.csv")
+```
+
+
+```{r}
+library(geometry)
+abundance_vars <- names(prpoos_summary)[str_detect(names(prpoos_summary), "Abundance$")]
+
+# Example for one species, you can wrap in loop later
+species <- "bryozoan_larvaeAbundance"
+
+# Fit the GAM
+formula_text <- as.formula(paste("log1p(", species, ") ~ s(Longitude, Latitude, k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean) + s(TA_mean) + s(DIC_mean) + s(RF_mean) + s(OmegaAR_mean)"))
+gam_model_bl <- gam(formula_text, data = prpoos_summary)
+
+# Make a prediction grid over your spatial extent
+lon_seq <- seq(min(prpoos_summary$Longitude) - 2,
+               max(prpoos_summary$Longitude) + 2,
+               length.out = 200)
+lat_seq <- seq(min(prpoos_summary$Latitude) - 2,
+               max(prpoos_summary$Latitude) + 2,
+               length.out = 200)
+grid <- expand.grid(Longitude = lon_seq, Latitude = lat_seq)
+
+# Use mean values for non-spatial covariates
+grid$pH_mean <- mean(prpoos_summary$pH_mean, na.rm = TRUE)
+grid$OmegaCA_mean <- mean(prpoos_summary$OmegaCA_mean, na.rm = TRUE)
+grid$CO3_mean <- mean(prpoos_summary$CO3_mean, na.rm = TRUE)
+grid$TA_mean <- mean(prpoos_summary$TA_mean, na.rm = TRUE)
+grid$DIC_mean <- mean(prpoos_summary$DIC_mean, na.rm = TRUE)
+grid$RF_mean <- mean(prpoos_summary$RF_mean, na.rm = TRUE)
+grid$OmegaAR_mean <- mean(prpoos_summary$OmegaAR_mean, na.rm = TRUE)
+
+
+# predict without station-specific random effect
+grid$fit <- predict(gam_model_bl, newdata = grid, type = "response")
+
+# define coastlines
+coast <- map_data("world")
+
+# identify inside points
+in_hull <- function(grid, data) {
+  hull <- convhulln(data[, c("Longitude", "Latitude")])
+  inhulln(hull, as.matrix(grid[, c("Longitude", "Latitude")]))
+}
+
+grid$inside <- in_hull(grid, prpoos_summary)
+
+# get unique station coordinates (optional, cleaner)
+stations <- prpoos_summary %>%
+  distinct(Station_ID, Longitude, Latitude)
+
+# plot
+ggplot() +
+  geom_tile(data = grid %>% filter(inside), aes(x = Longitude, y = Latitude, fill = fit)) +
+  geom_path(data = coast, aes(x = long, y = lat, group = group), color = "black", size = 0.3) +
+  geom_point(data = stations, aes(x = Longitude, y = Latitude), 
+             color = "black", size = 1.5, alpha = 0.8) +
+  coord_fixed(xlim = range(grid$Longitude), ylim = range(grid$Latitude)) +
+  scale_fill_viridis_c(name = "Predicted\nlog Abundance") +
+  labs(
+    title = "GAM Spatial Effect for Bryozoan Larvae",
+    x = "Longitude", y = "Latitude"
+  ) +
+  theme(
+    plot.title = element_text(size = 16, face = "bold", hjust = 0.5),      # Title
+    legend.title = element_text(size = 14, face = "bold"),                 # Legend title
+    legend.text = element_text(size = 12) ,
+    legend.key.size = unit(2.0, "lines") # Legend labels
+  )
+
+ggsave(
+  here::here("final-deliverables/part-2-img/spatial_gam_small_zoop.png"),
+  plot = last_plot(),   # or your specific plot object
+  bg = "white",
+  width = 8, height = 6, units = "in",  # control physical size
+  dpi = 1200                             # higher DPI = higher resolution
+)
+
+
+```
+
+```{r}
+abundance_vars <- names(prpoos_summary)[str_detect(names(prpoos_summary), "Abundance$")]
+
+# Example for one species, you can wrap in loop later
+species <- "cnidaria_ctenophoresAbundance"
+
+# Fit the GAM
+formula_text <- as.formula(paste("log1p(", species, ") ~ s(Longitude, Latitude, k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean) + s(TA_mean) + s(DIC_mean) + s(RF_mean) + s(OmegaAR_mean)"))
+gam_model_bl <- gam(formula_text, data = prpoos_summary)
+
+# Make a prediction grid over your spatial extent
+lon_seq <- seq(min(prpoos_summary$Longitude) - 3,
+               max(prpoos_summary$Longitude) + 3,
+               length.out = 200)
+lat_seq <- seq(min(prpoos_summary$Latitude) - 3,
+               max(prpoos_summary$Latitude) + 3,
+               length.out = 200)
+grid <- expand.grid(Longitude = lon_seq, Latitude = lat_seq)
+
+# Use mean values for non-spatial covariates
+grid$pH_mean <- mean(prpoos_summary$pH_mean, na.rm = TRUE)
+grid$OmegaCA_mean <- mean(prpoos_summary$OmegaCA_mean, na.rm = TRUE)
+grid$CO3_mean <- mean(prpoos_summary$CO3_mean, na.rm = TRUE)
+grid$TA_mean <- mean(prpoos_summary$TA_mean, na.rm = TRUE)
+grid$DIC_mean <- mean(prpoos_summary$DIC_mean, na.rm = TRUE)
+grid$RF_mean <- mean(prpoos_summary$RF_mean, na.rm = TRUE)
+grid$OmegaAR_mean <- mean(prpoos_summary$OmegaAR_mean, na.rm = TRUE)
+
+# Predict from GAM
+grid$fit <- predict(gam_model_bl, newdata = grid)
+
+# World map data
+world <- map_data("world")
+
+# Plot with ggplot2
+ggplot() +
+  geom_raster(data = grid, aes(x = Longitude, y = Latitude, fill = fit), alpha = 0.8) +  # transparency
+  borders("world", colour = "black") +
+  coord_quickmap(xlim = range(prpoos_summary$Longitude) + c(-2, 2),
+                 ylim = range(prpoos_summary$Latitude) + c(-2, 2)) +
+  scale_fill_viridis_c(name = paste("log1p(", species, ")", sep = "")) +
+  labs(title = paste("GAM Spatial Smooth for", gsub("Abundance$", "", species)),
+       x = "Longitude", y = "Latitude") +
+  geom_point(data = prpoos_summary, aes(x = Longitude, y = Latitude), 
+             shape = 21, fill = "white", color = "black", size = 2, stroke = 0.3) + 
+
+  theme_minimal()
+summary(gam_model_bl)
+AIC(gam_model_bl)
+plot(gam_model_bl)
+```
+
+```{r}
+abundance_vars <- names(prpoos_summary)[str_detect(names(prpoos_summary), "Abundance$")]
+
+# Example for one species, you can wrap in loop later
+species <- "copepoda_calanoida_minus_eucalanidsAbundance"
+
+# Fit the GAM
+formula_text <- as.formula(paste("log1p(", species, ") ~ s(Longitude, Latitude, k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean) + s(TA_mean) + s(DIC_mean) + s(RF_mean) + s(OmegaAR_mean)"))
+gam_model_bl <- gam(formula_text, data = prpoos_summary)
+
+# Make a prediction grid over your spatial extent
+lon_seq <- seq(min(prpoos_summary$Longitude) - 3,
+               max(prpoos_summary$Longitude) + 3,
+               length.out = 200)
+lat_seq <- seq(min(prpoos_summary$Latitude) - 3,
+               max(prpoos_summary$Latitude) + 3,
+               length.out = 200)
+grid <- expand.grid(Longitude = lon_seq, Latitude = lat_seq)
+
+# Use mean values for non-spatial covariates
+grid$pH_mean <- mean(prpoos_summary$pH_mean, na.rm = TRUE)
+grid$OmegaCA_mean <- mean(prpoos_summary$OmegaCA_mean, na.rm = TRUE)
+grid$CO3_mean <- mean(prpoos_summary$CO3_mean, na.rm = TRUE)
+grid$TA_mean <- mean(prpoos_summary$TA_mean, na.rm = TRUE)
+grid$DIC_mean <- mean(prpoos_summary$DIC_mean, na.rm = TRUE)
+grid$RF_mean <- mean(prpoos_summary$RF_mean, na.rm = TRUE)
+grid$OmegaAR_mean <- mean(prpoos_summary$OmegaAR_mean, na.rm = TRUE)
+
+# Predict from GAM
+grid$fit <- predict(gam_model_bl, newdata = grid)
+
+# World map data
+world <- map_data("world")
+
+# Plot with ggplot2
+ggplot() +
+  geom_raster(data = grid, aes(x = Longitude, y = Latitude, fill = fit), alpha = 0.8) +  # transparency
+  borders("world", colour = "black") +
+  coord_quickmap(xlim = range(prpoos_summary$Longitude) + c(-2, 2),
+                 ylim = range(prpoos_summary$Latitude) + c(-2, 2)) +
+  scale_fill_viridis_c(name = paste("log1p(", species, ")", sep = "")) +
+  labs(title = paste("GAM Spatial Smooth for", gsub("Abundance$", "", species)),
+       x = "Longitude", y = "Latitude") +
+  geom_point(data = prpoos_summary, aes(x = Longitude, y = Latitude), 
+             shape = 21, fill = "white", color = "black", size = 2, stroke = 0.3) + 
+
+  theme_minimal()
+summary(gam_model_bl)
+AIC(gam_model_bl)
+plot(gam_model_bl)
+
+```
+
+```{r}
+abundance_vars <- names(prpoos_summary)[str_detect(names(prpoos_summary), "Abundance$")]
+
+# Example for one species, you can wrap in loop later
+species <- "copepoda_oithona_likeAbundance"
+
+# Fit the GAM
+formula_text <- as.formula(paste("log1p(", species, ") ~ s(Longitude, Latitude, k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean) + s(TA_mean) + s(DIC_mean) + s(RF_mean) + s(OmegaAR_mean)"))
+gam_model_bl <- gam(formula_text, data = prpoos_summary)
+
+# Make a prediction grid over your spatial extent
+lon_seq <- seq(min(prpoos_summary$Longitude) - 3,
+               max(prpoos_summary$Longitude) + 3,
+               length.out = 200)
+lat_seq <- seq(min(prpoos_summary$Latitude) - 3,
+               max(prpoos_summary$Latitude) + 3,
+               length.out = 200)
+grid <- expand.grid(Longitude = lon_seq, Latitude = lat_seq)
+
+# Use mean values for non-spatial covariates
+grid$pH_mean <- mean(prpoos_summary$pH_mean, na.rm = TRUE)
+grid$OmegaCA_mean <- mean(prpoos_summary$OmegaCA_mean, na.rm = TRUE)
+grid$CO3_mean <- mean(prpoos_summary$CO3_mean, na.rm = TRUE)
+grid$TA_mean <- mean(prpoos_summary$TA_mean, na.rm = TRUE)
+grid$DIC_mean <- mean(prpoos_summary$DIC_mean, na.rm = TRUE)
+grid$RF_mean <- mean(prpoos_summary$RF_mean, na.rm = TRUE)
+grid$OmegaAR_mean <- mean(prpoos_summary$OmegaAR_mean, na.rm = TRUE)
+
+# Predict from GAM
+grid$fit <- predict(gam_model_bl, newdata = grid)
+
+# World map data
+world <- map_data("world")
+
+# Plot with ggplot2
+ggplot() +
+  geom_raster(data = grid, aes(x = Longitude, y = Latitude, fill = fit), alpha = 0.8) +  # transparency
+  borders("world", colour = "black") +
+  coord_quickmap(xlim = range(prpoos_summary$Longitude) + c(-2, 2),
+                 ylim = range(prpoos_summary$Latitude) + c(-2, 2)) +
+  scale_fill_viridis_c(name = paste("log1p(", species, ")", sep = "")) +
+  labs(title = paste("GAM Spatial Smooth for", gsub("Abundance$", "", species)),
+       x = "Longitude", y = "Latitude") +
+  geom_point(data = prpoos_summary, aes(x = Longitude, y = Latitude), 
+             shape = 21, fill = "white", color = "black", size = 2, stroke = 0.3) + 
+
+  theme_minimal()
+summary(gam_model_bl)
+AIC(gam_model_bl)
+plot(gam_model_bl)
+
+```
+
+```{r}
+abundance_vars <- names(prpoos_summary)[str_detect(names(prpoos_summary), "Abundance$")]
+
+# Example for one species, you can wrap in loop later
+species <- "ostracodsAbundance"
+
+# Fit the GAM
+formula_text <- as.formula(paste("log1p(", species, ") ~ s(Longitude, Latitude, k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean) + s(TA_mean) + s(DIC_mean) + s(RF_mean) + s(OmegaAR_mean)"))
+gam_model_bl <- gam(formula_text, data = prpoos_summary)
+
+# Make a prediction grid over your spatial extent
+lon_seq <- seq(min(prpoos_summary$Longitude) - 3,
+               max(prpoos_summary$Longitude) + 3,
+               length.out = 200)
+lat_seq <- seq(min(prpoos_summary$Latitude) - 3,
+               max(prpoos_summary$Latitude) + 3,
+               length.out = 200)
+grid <- expand.grid(Longitude = lon_seq, Latitude = lat_seq)
+
+# Use mean values for non-spatial covariates
+grid$pH_mean <- mean(prpoos_summary$pH_mean, na.rm = TRUE)
+grid$OmegaCA_mean <- mean(prpoos_summary$OmegaCA_mean, na.rm = TRUE)
+grid$CO3_mean <- mean(prpoos_summary$CO3_mean, na.rm = TRUE)
+grid$TA_mean <- mean(prpoos_summary$TA_mean, na.rm = TRUE)
+grid$DIC_mean <- mean(prpoos_summary$DIC_mean, na.rm = TRUE)
+grid$RF_mean <- mean(prpoos_summary$RF_mean, na.rm = TRUE)
+grid$OmegaAR_mean <- mean(prpoos_summary$OmegaAR_mean, na.rm = TRUE)
+
+# Predict from GAM
+grid$fit <- predict(gam_model_bl, newdata = grid)
+
+# World map data
+world <- map_data("world")
+
+# Plot with ggplot2
+ggplot() +
+  geom_raster(data = grid, aes(x = Longitude, y = Latitude, fill = fit), alpha = 0.8) +  # transparency
+  borders("world", colour = "black") +
+  coord_quickmap(xlim = range(prpoos_summary$Longitude) + c(-2, 2),
+                 ylim = range(prpoos_summary$Latitude) + c(-2, 2)) +
+  scale_fill_viridis_c(name = paste("log1p(", species, ")", sep = "")) +
+  labs(title = paste("GAM Spatial Smooth for", gsub("Abundance$", "", species)),
+       x = "Longitude", y = "Latitude") +
+  geom_point(data = prpoos_summary, aes(x = Longitude, y = Latitude), 
+             shape = 21, fill = "white", color = "black", size = 2, stroke = 0.3) + 
+
+  theme_minimal()
+summary(gam_model_bl)
+AIC(gam_model_bl)
+plot(gam_model_bl)
+
+```
+
+
+
+
+# Summary of Findings
+
+
+# Future Work
+
+
+
+# Acknowledgements
+
+A special thank you to our mentors, Erin Satterthwaite and Erika McPhillips, for their guidance and support. 
+
+
