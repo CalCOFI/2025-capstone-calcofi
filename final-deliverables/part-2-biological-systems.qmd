@@ -345,7 +345,7 @@ ggplot() +
   geom_point(data = stations, aes(x = Longitude, y = Latitude), 
              color = "black", size = 1.5, alpha = 0.8) +
   coord_fixed(xlim = range(grid$Longitude), ylim = range(grid$Latitude)) +
-  scale_fill_viridis_c(name = "Predicted\nlog Abundance") +
+  scale_fill_viridis_c(name = "Estimated\nSpatial\nEffect") +
   labs(
     title = "GAM Spatial Effect for Bryozoan Larvae",
     x = "Longitude", y = "Latitude"
@@ -358,7 +358,7 @@ ggplot() +
   )
 
 ggsave(
-  here::here("final-deliverables/part-2-img/spatial_gam_small_zoop.png"),
+  here::here("final-deliverables/part-2-img/spatial_gam_bl.png"),
   plot = last_plot(),   # or your specific plot object
   bg = "white",
   width = 8, height = 6, units = "in",  # control physical size
