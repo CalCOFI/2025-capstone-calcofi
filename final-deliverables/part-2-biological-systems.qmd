@@ -317,8 +317,11 @@ grid$RF_mean <- mean(prpoos_summary$RF_mean, na.rm = TRUE)
 grid$OmegaAR_mean <- mean(prpoos_summary$OmegaAR_mean, na.rm = TRUE)
 
 
-# predict without station-specific random effect
-grid$fit <- predict(gam_model_bl, newdata = grid, type = "response")
+# Get partial effects (terms) for all smooths
+terms_matrix <- predict(gam_model_bl, newdata = grid, type = "terms")
+
+# Extract just the spatial smooth term (name may vary slightly)
+grid$spatial_effect <- terms_matrix[, "s(Longitude,Latitude)"]
 
 # define coastlines
 coast <- map_data("world")
@@ -337,12 +340,12 @@ stations <- prpoos_summary %>%
 
 # plot
 ggplot() +
-  geom_tile(data = grid %>% filter(inside), aes(x = Longitude, y = Latitude, fill = fit)) +
+  geom_tile(data = grid %>% filter(inside), aes(x = Longitude, y = Latitude, fill = spatial_effect)) +
   geom_path(data = coast, aes(x = long, y = lat, group = group), color = "black", size = 0.3) +
   geom_point(data = stations, aes(x = Longitude, y = Latitude), 
              color = "black", size = 1.5, alpha = 0.8) +
   coord_fixed(xlim = range(grid$Longitude), ylim = range(grid$Latitude)) +
-  scale_fill_viridis_c(name = "Predicted\nlog Abundance") +
+  scale_fill_viridis_c(name = "Estimated\nSpatial\nEffect") +
   labs(
     title = "GAM Spatial Effect for Bryozoan Larvae",
     x = "Longitude", y = "Latitude"
@@ -355,7 +358,7 @@ ggplot() +
   )
 
 ggsave(
-  here::here("final-deliverables/part-2-img/spatial_gam_small_zoop.png"),
+  here::here("final-deliverables/part-2-img/spatial_gam_bl.png"),
   plot = last_plot(),   # or your specific plot object
   bg = "white",
   width = 8, height = 6, units = "in",  # control physical size

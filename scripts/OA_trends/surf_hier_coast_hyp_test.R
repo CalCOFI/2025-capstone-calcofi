@@ -307,5 +307,83 @@ lapply(
   ) |> 
 gtsave("images/OA_trends/hier_surf_coastal_int.png")
 
-surf_bottle_co2sys |> group_by(coastal) |> 
-  summarize(n = n())
+
+# format results into table
+lapply(
+  1:10,
+  function(i) {
+    c(qty = qty[i], int_est = coef(summary(models[[i]]))[nrow(coef(summary(models[[i]]))),1], t_est = coef(summary(models[[i]]))[2,1], n = nobs(models[[i]]), r2 = r.squaredGLMM(models[[i]])[2],
+      int_CI = paste0("(", format(round(confint(models[[i]])[nrow(confint(models[[i]])),1], 5), nsmall = 5), ", ", format(round(confint(models[[i]])[nrow(confint(models[[i]])),2], 5), nsmall = 5), ")"),
+      t_CI = paste0("(", format(round(confint(models[[i]])[4,1], 5), nsmall = 5), ", ", format(round(confint(models[[i]])[4,2], 5), nsmall = 5), ")"),
+      t_p = coef(summary(models[[i]]))[2,5], int_p= coef(summary(models[[i]]))[nrow(coef(summary(models[[i]]))),5])
+  }
+) %>%
+  # combine results into a dataframe
+  bind_rows() %>%
+  # convert appropriate columns to numeric
+  mutate(
+    across(-c(qty, t_CI, int_CI), as.numeric)
+  ) %>%
+  # rename quantities vector for tidier appearance in table
+  mutate(
+    qty = c("Temperature", "Salinity", "A~T~", "C~T~", "*p*CO2", "Revelle Factor", "pH", "CO~3~<sup>2-</sup>", "Ω~calcite~", "Ω~aragonite~")
+  ) %>%
+  gt(
+    rowname_col = "qty"
+  ) %>%
+  tab_spanner(
+    label = "Temporal Effect",
+    columns = c(t_est, t_CI, t_p)
+  ) |> 
+  tab_spanner(
+    label = "Temporal-Coastal Interaction Effect",
+    columns = c(int_est, int_CI, int_p)
+  ) |> 
+  tab_header(
+    title = "Carbonate Chemistry Mixed Effect Regression Statistics for CalCOFI Stations"
+  ) %>%
+  tab_row_group(
+    label = "Seawater carbonate chemistry",
+    rows = c("C~T~", "A~T~", "*p*CO2", "Revelle Factor")
+  ) %>%
+  tab_row_group(
+    label = "Ocean acidification indicators",
+    rows = c("pH", "CO~3~<sup>2-</sup>", "Ω~calcite~", "Ω~aragonite~")
+  ) %>%
+  tab_row_group(
+    label = "Hydrography",
+    rows = c("Temperature", "Salinity")
+  ) %>%
+  # add label to row names
+  tab_stubhead(
+    label = "Parameter"
+  ) %>%
+  # rename columns
+  cols_label(
+    t_est = "Estimate",
+    int_est = "Estimate",
+    t_p = "p-value",
+    int_p = "p-value",
+    r2 = md("r<sup>2</sup>"),
+    t_CI = "95% CI",
+    int_CI = "95% CI"
+    
+  ) %>%
+  fmt_markdown(
+    columns = c(qty, t_CI, int_CI)
+  ) %>%
+  fmt_number(
+    columns = c("t_est", "int_est", "t_p", "int_p", "r2"),
+    decimals = 4
+  ) %>%
+  sub_small_vals(
+    columns = c(t_p, int_p),
+    threshold = 0.0001
+  ) %>%
+  opt_stylize(
+    style = 3
+  ) |> 
+  tab_options(
+    heading.title.font.size = 25
+  ) |> 
+  gtsave("images/OA_trends/hier_surf_coastal_full.png")
