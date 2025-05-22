@@ -579,7 +579,75 @@ plot(gam_model_bl)
 
 ```
 
+### PRPOOS Clustering Analysis with PCA
+Identify clusters of species based on their abundance profiles
+Standardize the species abundance matrix
+Apply PCA to reduce dimensionality and visualize the dataset
 
+
+PCA was applied to reduce dimensionality, focusing on the two principal components PC1 and PC2 that explain the highest variance:
+PC1 (28.6% variance): Captures the most substantial variation, primarily influenced by the highly variable species in Cluster 3.
+PC2 (9.9% variance): Captures less variance but provides vertical separation, assisting in visualizing overlapping clusters.
+
+
+```{r}
+zooplankton_clean <- zooplankton %>%
+  select(Longitude, Latitude, Year_UTC, Month_UTC, total_plankton, small_plankton, pHout, OmegaARout, CO3out, CTDTEMP_ITS90, Salinity_PSS78) %>%
+  drop_na() %>%
+  mutate(
+    log_total_plankton = log1p(total_plankton),
+    log_small_plankton = log1p(small_plankton),
+    region = factor(ifelse(Longitude > -119, "Nearshore", "Offshore"))
+  )
+
+zooplankton_clean$quarter <- cut(zooplankton_clean$Month_UTC, breaks = c(0, 3, 6, 9, 12), labels = c("Q1", "Q2", "Q3", "Q4"))
+
+library(factoextra)
+library(ggplot2)
+
+abundance_cols <- grep("Abundance$", names(prpoos_summary), value = TRUE)
+species_matrix <- prpoos_summary %>%
+  select(all_of(abundance_cols)) %>%
+  drop_na() %>%
+  scale()
+
+pca_result <- prcomp(species_matrix, center = TRUE, scale. = TRUE)
+
+set.seed(123)
+kmeans_model <- kmeans(species_matrix, centers = 4)
+prpoos_summary$cluster <- as.factor(kmeans_model$cluster)
+
+# Define custom color palette
+custom_colors <- c("#FF6347", "#4682B4", "#32CD32", "#9370DB")
+
+# Enhanced PCA Plot
+p <- fviz_pca_ind(
+  pca_result, 
+  label = "none", 
+  habillage = prpoos_summary$cluster, 
+  addEllipses = TRUE, 
+  ellipse.level = 0.95, 
+  geom = "point",
+  palette = custom_colors,
+  pointsize = 3,
+  pointshape = 21
+) +
+  labs(
+    title = "Enhanced PCA Plot with Clusters", 
+    x = paste0("Dim1 (", round(pca_result$sdev[1]^2 / sum(pca_result$sdev^2) * 100, 1), "% Variance)"),
+    y = paste0("Dim2 (", round(pca_result$sdev[2]^2 / sum(pca_result$sdev^2) * 100, 1), "% Variance)")
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    panel.grid.major = element_line(color = "grey80"),
+    panel.grid.minor = element_blank()
+  ) +
+  geom_point(aes(color = prpoos_summary$cluster), size = 3, shape = 21) +
+  scale_color_manual(values = custom_colors)
+
+print(p)
+```
 
 
 # Summary of Findings
