@@ -315,10 +315,10 @@ ggplot(
     col = "Coastal"
   ) + 
   theme(
-    plot.title = element_text(size = 24, face = "bold", hjust = 0.5),      # Title
-    legend.title = element_text(size = 16),                 # Legend title
-    legend.text = element_text(size = 14),                                  # Legend labels
-    axis.title = element_text(size = 16)
+    plot.title = element_text(size = 28, hjust = 0.5),      # Title
+    legend.title = element_text(size = 20),                 # Legend title
+    legend.text = element_text(size = 18),                                  # Legend labels
+    axis.title = element_text(size = 20)
   )
 
 ggsave("images/OA_trends/coastal_stations.png", bg = "white", units = "in", width = 8, height = 8)

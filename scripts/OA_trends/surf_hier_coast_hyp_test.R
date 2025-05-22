@@ -136,7 +136,7 @@ omegaCAin_mod <- lmer(
   REML = FALSE
 )
 
-models <- list(T_degC_mod, Salnty_mod, TA_mod, DIC_mod, pCO2in_mod, RFin_mod, pHin_mod, CO3in_mod, omegaCAin_mod, omegaARin_mod)
+models <- list(TA_mod, DIC_mod, pCO2in_mod, pHin_mod, CO3in_mod, omegaCAin_mod, omegaARin_mod)
 
 
 # format results into table
@@ -310,7 +310,7 @@ gtsave("images/OA_trends/hier_surf_coastal_int.png")
 
 # format results into table
 lapply(
-  1:10,
+  1:7,
   function(i) {
     c(qty = qty[i], int_est = coef(summary(models[[i]]))[nrow(coef(summary(models[[i]]))),1], t_est = coef(summary(models[[i]]))[2,1], n = nobs(models[[i]]), r2 = r.squaredGLMM(models[[i]])[2],
       int_CI = paste0("(", format(round(confint(models[[i]])[nrow(confint(models[[i]])),1], 5), nsmall = 5), ", ", format(round(confint(models[[i]])[nrow(confint(models[[i]])),2], 5), nsmall = 5), ")"),
@@ -326,7 +326,7 @@ lapply(
   ) %>%
   # rename quantities vector for tidier appearance in table
   mutate(
-    qty = c("Temperature", "Salinity", "A~T~", "C~T~", "*p*CO2", "Revelle Factor", "pH", "CO~3~<sup>2-</sup>", "Ω~calcite~", "Ω~aragonite~")
+    qty = c("TA", "DIC", "*p*CO2", "pH", "CO~3~<sup>2-</sup>", "Ω~calcite~", "Ω~aragonite~")
   ) %>%
   gt(
     rowname_col = "qty"
@@ -344,16 +344,12 @@ lapply(
   ) %>%
   tab_row_group(
     label = "Seawater carbonate chemistry",
-    rows = c("C~T~", "A~T~", "*p*CO2", "Revelle Factor")
+    rows = c("DIC", "TA", "*p*CO2")
   ) %>%
   tab_row_group(
     label = "Ocean acidification indicators",
     rows = c("pH", "CO~3~<sup>2-</sup>", "Ω~calcite~", "Ω~aragonite~")
-  ) %>%
-  tab_row_group(
-    label = "Hydrography",
-    rows = c("Temperature", "Salinity")
-  ) %>%
+  ) |> 
   # add label to row names
   tab_stubhead(
     label = "Parameter"
