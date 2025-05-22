@@ -272,6 +272,65 @@ ggsave(here::here("final-deliverables/part-2-img/spatial_gam_small_zoop.png"), b
 
 ```
 
+### Zooplankton Interaction Effects Analysis
+Construct separate GAM models for Nearshore and Offshore data to assess interaction effects between pH, CO3, and OmegaAR for different regions
+```{r}
+zooplankton_clean <- zooplankton %>%
+  select(Longitude, Latitude, Year_UTC, Month_UTC, total_plankton, small_plankton, pHout, OmegaARout, CO3out, CTDTEMP_ITS90, Salinity_PSS78) %>%
+  drop_na() %>%
+  mutate(
+    log_total_plankton = log1p(total_plankton),
+    log_small_plankton = log1p(small_plankton),
+    region = factor(ifelse(Longitude > -119, "Nearshore", "Offshore")),
+    quarter = cut(Month_UTC, breaks = c(0, 3, 6, 9, 12), labels = c("Q1", "Q2", "Q3", "Q4"))
+  )
+
+
+cat("Unique quarters in data: ", unique(zooplankton_clean$quarter), "
+")
+
+# Interaction Effects Analysis
+
+gam_interaction_nearshore <- gam(
+  log_total_plankton ~ s(pHout, CO3out, bs = "tp") + s(pHout, OmegaARout, bs = "tp"),
+  data = filter(zooplankton_clean, region == "Nearshore")
+)
+
+gam_interaction_offshore <- gam(
+  log_total_plankton ~ s(pHout, CO3out, bs = "tp") + s(pHout, OmegaARout, bs = "tp"),
+  data = filter(zooplankton_clean, region == "Offshore")
+)
+
+par(mfrow = c(2, 2))
+plot(gam_interaction_nearshore, select = 1, shade = TRUE, main = "Nearshore: pHout and CO3out")
+plot(gam_interaction_nearshore, select = 2, shade = TRUE, main = "Nearshore: pHout and OmegaARout")
+plot(gam_interaction_offshore, select = 1, shade = TRUE, main = "Offshore: pHout and CO3out")
+plot(gam_interaction_offshore,select = 2, shade = TRUE, main = "Offshore: pHout and OmegaARout")
+par(mfrow = c(1, 1))
+
+summary(gam_interaction_offshore)
+```
+
+### Zooplankton Quarterly Analysis
+Construct GAM models to assess the effect of OmegaARout across different quarters.
+Iterate through Nearshore and Offshore datasets
+```{r}
+for (region in c("Nearshore", "Offshore")) {
+  region_data <- filter(zooplankton_clean, region == region)
+  unique_quarters <- unique(region_data$quarter)
+  cat(region, "unique quarters: ", unique_quarters, "\n")
+
+  if (length(unique_quarters) > 1) {
+    model <- gam(
+      log_total_plankton ~ s(OmegaARout) + s(quarter, bs = "re") + s(region, bs = "re"),
+      data = region_data
+    )
+    plot(model, select = 1, shade = TRUE, main = paste(region, ": Quarterly Effect on OmegaARout"))
+  } else {
+    cat("Warning: Insufficient quarters in", region, "data. Skipping quarter effect.\n")
+  }
+}
+```
 
 ## PRPOOS Calcifying/Non-Calcifying Zooplankton Models
 
