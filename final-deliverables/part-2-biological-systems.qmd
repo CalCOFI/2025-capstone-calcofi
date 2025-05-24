@@ -966,10 +966,12 @@ plot(gam_model_bl)
 
 # Future Work
 
+A potential extension of this project could to be to create an interactive spatio-temporal mapping tool where users can specify the taxa, time, and depth range to generate dynamic heatmaps of variables such as abundance, saturation horizon depths, and pH levels. 
+
 
 
 # Acknowledgements
 
-A special thank you to our mentors, Erin Satterthwaite and Erika McPhillips, for their guidance and support. 
+A special thank you to our mentors, Erin Satterthwaite, Todd Martz, Brice Semmens, and Erika McPhillips, for their guidance and support. 
 
 
