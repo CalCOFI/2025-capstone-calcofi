@@ -1,6 +1,6 @@
 ---
 title: "Investigating the Impacts of Ocean Acidfication on Zooplankton and Krill Biovolumes"
-subtitle: "Part II"
+subtitle: "Part II: Biological Systems"
 format:
   html:
     toc: true
@@ -25,22 +25,31 @@ library(gam)
 library(mgcv)
 library(geometry)
 library(maps)
+library(webshot2)
+library(lubridate)
+library(mgcv)
+library(maps)
+library(stringr)
+library(patchwork)
 ```
 
 # Introduction
 
+Since the start of the Industrial Revolution, atmospheric carbon dioxide levels have spiked upward due to practices like deforestation and the burning of fossil fuels, causing an ever increasing amount of carbon dioxide to dissolve into the ocean. Once dissolved, carbon dioxide undergoes a series of chemical equilibrium reactions that ultimately lowers the pH of the water in a process known as ocean acidification. This process has numerous ramifications on marine ecosystems, including but not limited to the impairment of specific pH dependent biological processes and the leaching of calcium carbonate required to build the shells and skeletons of many marine species.^[Ocean acidification: <https://www.nature.com/scitable/knowledge/library/ocean-acidification-25822734/>] 
+
+This project is sponsored by California Cooperative Oceanic Fisheries Investigations (CalCOFI), an organization founded in 1949 to study the ecological aspects of the Pacific sardine collapse off of the coast of California. CalCOFI is committed to studying California’s coastal marine environment and collecting relevant oceanographic data in order to provide insight on important climate change related topics such as renewable energy, integrated ocean management, and marine spatial planning.^[CalCOFI report: <https://calcofi.org/downloads/publications/CalCOFI3YrReports/CalCOFI_Review_2017_2021.pdf>]
 
 # Problems of Interest
 
-Our goal is to study the impact of ocean acidification on zooplankton and krill biovolumes off of the California coast. First, we want to conduct a cross-comparison of bottle data and biological data to assess the amount of spatial and temporal overlap present. Using co-located measurements, we wish to model the effects of ocean acidification, using carbonate chemistry and oceanographic variables, on zooplankton and krill abundance. In addition, we are interested in exploring how pH and related environmental factors affect the abundance of calcifying versus non-calcifying species. 
+Our goal is to study the impact of ocean acidification on zooplankton and krill biovolumes off of the California coast. First, we want to conduct a cross-comparison of bottle data and biological data to assess the amount of spatial and temporal overlap present. Using co-located measurements, we wish to model the effects of ocean acidification, using carbonate chemistry and oceanographic variables, on zooplankton and krill abundance. Specifically, In addition, we are interested in exploring how pH and related environmental factors affect the abundance of calcifying versus non-calcifying species. 
 
 # Data
 
 ## Bottle Data^[Bottle Database: <https://calcofi.org/data/oceanographic-data/bottle-database/>]
 
-CalCOFI has collected environmental and hydrographic data for over 70 years during their quarterly cruises to their CalCOFI stations. We used the merged data from Part I which contains oceanographic and carbonate chemistry data as well as computed CO2SYS values for variables such as $pH$, $CO_3$, and $\Omega_{aragonite}$. This merged dataset we are working with is called merged_bottle_co2sys.csv. One important thing to note is that there is a large temporal gap between the years 2002-2007.
+CalCOFI has collected environmental and hydrographic data for over 70 years during their quarterly cruises to their CalCOFI stations. We used the merged data from Part I which contains oceanographic and carbonate chemistry data as well as computed CO2SYS values for variables such as $pH$, $CO_3$, and $\Omega_{aragonite}$.
 
-There are three datasets that we are focusing on for our biological data: (1) CalCOFI NOAA Zooplankton Volume, (2) BTEDB (Krill) Abundances, and (3) PRPOOS Data (for Zooplankton Calcifiers/Non-Calcifiers Abundance). The zooplankton and krill biovolume data are obtained using net tows (Bongo and/or Pairovet) at each standard CalCOFI station. The PRPOOS data is also obtained using a net tow but rather than sampling at station, it is conducted during transits between stations. These three datasets have each been merged with the bottle data to create zoop_data/zooplankton_pH.csv, krill_data/CV_merged_krill.csv, and PRPOOS/prpoos_summary.csv, respectively. 
+There are three datasets that we are focusing on for our biological data: (1) CalCOFI NOAA Zooplankton Volume, (2) BTEDB (Krill) Abundances, and (3) PRPOOS Data (for Zooplankton Calcifiers/Non-Calcifiers Abundance). The zooplankton and krill biovolume data are obtained using net tows (Bongo and/or Pairovet) at each standard CalCOFI station. The PRPOOS data is also obtained using a net tow but rather than sampling at station, it is conducted during transits between stations. These three datasets have each been merged with the bottle data to create zoop_data/zooplankton_pH.csv, krill_data/CV_merged_krill.csv, and PRPOOS/prpoos_summary.csv, respectively. Refer to Methods section for the merging process. 
 
 ## CalCOFI NOAA Zooplankton Volume^[CalCOFI Zooplankton Volume Database: <https://oceanview.pfeg.noaa.gov/erddap/tabledap/erdCalCOFIzoovol.html>]:
 The zooplankton biovolume data measures the amount of “plankton” (the small and microscopic organisms floating in the sea, consisting chiefly of diatoms, protozoans, small crustaceans, and the eggs and larval stages of larger animals) in the volume of sea water sampled. In particular, we are interested in the variables `total_plankton` and `small_plankton`.
@@ -52,15 +61,64 @@ The krill dataset provides information on krill abundance from the Brinton and T
 ## PRPOOS (Calcifiers/Non-Calcifiers)^[PRPOOS (Zooplankton Calcifiers/Non-Calcifiers Volume) Zooscan Database: <https://oceaninformatics.ucsd.edu/zooscandb/>]:
 The PRPOOS (Planktonic Rate Processes in Oligotrophic Ocean Systems) dataset contains abundance and estimated biomass values for various zooplankton taxa, which can be categorized into calcifying and non-calcifying groups. The calcifying taxa are defined as *byrozoan larvae*, *pteropoda heteropoda*, *ostracods*, and *rhizaria*; the remaining taxa are considered non-calcifying. 
 
+# Key Definitions
+
+```{r}
+library(gt)
+
+# Define your data
+def_table <- tibble::tibble(
+  Variable = c(
+    "Total Alkalinity (TA)",
+    "Total Dissolved Inorganic Carbon (DIC)",
+    "pCO[2]",
+    "CO^3",
+    "Nitrate, Silicate, and Phosphate",
+    "Ω[calcite] and Ω[aragonite]",
+    "Revelle Factor (RF)"
+  ),
+  Description = c(
+    "A measure of how much alkaline (basic) material is in the water, or essentially the buffering capacity or ability to resist acidification.",
+    "The sum of all dissolved inorganic carbon species in the water (carbon dioxide CO[2], bicarbonate ions [HCO[3]^–], and carbonate ions [CO[3]^2–]).",
+    "The partial pressure of carbon dioxide, a measure of CO[2] concentration.",
+    "Carbonate ion concentration",
+    "Key macronutrients in marine ecosystems that are vital to phytoplankton growth.",
+    "Carbonate saturation states, a measurement of how likely calcium carbonate (CaCO[3]) is to dissolve or form in the ocean.",
+    "A measure of the buffering capacity of seawater, it is a measurement of how easily the ocean absorbs carbon dioxide from the atmosphere."
+  )
+)
+
+# Create gt table
+def_table %>%
+  gt() %>%
+  cols_label(
+    Variable = "",
+    Description = ""
+  ) %>%
+  fmt_markdown(columns = everything()) %>%
+  tab_options(
+    table.font.size = px(14),
+    table.width = pct(100),
+    heading.align = "left",
+    row.striping.background_color = "white",
+    column_labels.hidden = TRUE,
+    table.border.top.width = px(2),
+    table.border.bottom.width = px(2),
+    table.border.top.color = "#004F84",
+    table.border.bottom.color = "#004F84"
+  )
+
+
+```
+
 
 # Methods 
 
+## Summary of Merged Datasets
 
-# Results
+```{r, fig.cap = "Table 2: Summary of the size, spatial coverage, and temporal range of the merged datasets used in this analysis."}
 
-```{r}
-
-df <- data.frame(
+datasets_summary_table <- data.frame(
   Rows = c("# of Observations", "# of Stations", "Start Year", "End Year"),
   Bottle = c(4125, 51, 1983, 2021),
   zoop_og = c(45310, 3172, 1951, 2023),
@@ -71,9 +129,9 @@ df <- data.frame(
   prpoos_merge = c(388, 16, 2009, 2021),  stringsAsFactors = FALSE
 )
 
-df %>%
+datasets_summary_table %>%
   gt(rowname_col = "Rows") %>%
-  tab_header(title = "Datasets") %>%
+  tab_header(title = "Merged Biological Datasets") %>%
   cols_label(
     Bottle = "Bottle*",
     zoop_og = "Original", zoop_merge = "Merged",
@@ -87,42 +145,61 @@ df %>%
 
 ```
 
+To merge the NOAA Zooplankton data (zoop_data/Zooplankton-new.csv) with the bottle data (merged_bottle_co2sys.csv), we performed an inner join on Station ID, month, year, and average monthly DIC to create zoop_data/zooplankton_pH.csv. The same merge process was used for the BTEDB Krill data (krill_data/BTEDB_Abundances.csv) to create krill_data/CV_merged_krill.csv).
 
-## NOAA Zooplankton Models
+To merge the PRPOOS data (PRPOOS/PRPOOS_all.csv) with the bottle data (merged_bottle_co2sys.csv), we performed a left join on Station ID, month, and year. Then, we collapsed the overlapping observations by calculating summary statistics for pH, $\Omega_{aragonite}$, $\Omega_{calcium}$, and other relevant carbonate chemistry variables.
 
-### Total Plankton
+## Generalized Additive Models (GAMs)
+
+To model the response variables `total_plankton` and `small_plankton` in the NOAA dataset, we used GAMs with smoothing terms and spatial splines. We applied a log(x+1) transformation to both response variables. The following variables were used as predictors: spatial coordinates (longitude and latitude), oceanographic variables (salinity and temperature), temporal variables (month and year), carbonate chemistry variables (TA, DIC, pH, pCO2, RF, CO3, OmegaCA, and OmegaAR), and key macronutrients (nitrate, silicate, and phosphate). 
+
+## Interpolating Depth of Saturation Horizon and pH
+
+To visualize the effects of pH on plankton abundance, we first had to find the depth of the saturation horizon for aragonite, which is the boundary between supersaturated conditions above and undersaturated conditions below. We are specifically looking at aragonite because it is a mineral form of calcium carbonate. To compute the saturation depth, we interpolate across depths to find where $\Omega_{aragonite}$ = 1. Then, to compute the pH value we interpolate again to find the pH at that threshold depth. We use the dataset merged_bottle_co2sys.csv. Yearly data was used to estimate the saturation horizon because it provides more stable estimates and then seasonal data was used to estimate the pH. 
+
+
+# Results
+
+## NOAA Zooplankton
+
+### GAM for Total Plankton
+
 
 ```{r}
 zooplankton <- read_csv("../data/zoop_data/zooplankton_pH.csv")
 
 total_zooplankton <- zooplankton %>% 
-  dplyr::select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, total_plankton, pHout, Latitude, Longitude, Year_UTC, Month_UTC, Station_ID, pCO2in, RFin, CO3in, OmegaCAin, OmegaARin) %>%
+  dplyr::select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, total_plankton, pHout, Latitude, Longitude, Year_UTC, Month_UTC, Station_ID, pCO2in, RFin, CO3in, OmegaCAin, OmegaARin, NO3uM, SiO3uM, PO4uM) %>%
   drop_na() %>%
   mutate(log_total_plankton = log1p(total_plankton)) %>%
   dplyr::select(-total_plankton) %>%
   mutate(Station_ID = as.factor(Station_ID))
 
-gam_model4 <- gam(
+total_plankton_gam <- gam(
   log_total_plankton ~ 
     te(Longitude, Latitude) +
                   s(pHout) +
                   s(TA) + s(DIC) +
                   s(Salinity_PSS78) +
                   s(CTDTEMP_ITS90) +
-                  s(Year_UTC) + s(Month_UTC),
+                  s(Year_UTC) + s(Month_UTC) +
+                  s(pCO2in) + s(RFin) + s(CO3in) +s(OmegaCAin) + s(OmegaARin) +
+                  s(NO3uM) + s(SiO3uM) + s(PO4uM),
   data = total_zooplankton,
 )
 
-summary(gam_model4)
-AIC(gam_model4)
-#plot(gam_model4)
+summary(total_plankton_gam)
+AIC(total_plankton_gam)
 
-#plot(gam_model4, select = 1, shade = TRUE, seWithMean = TRUE, scheme = 2)
 
-par(mfrow = c(4, 2), mar = c(4, 4, 2, 1)) 
-for (i in 2:9) {
-  plot(gam_model4, select = i, shade = TRUE)
+significant_terms <- c(3, 4, 6, 8, 11, 12, 15, 16)
+
+par(mfrow = c(3, 3))  # 3 rows, 3 columns
+
+for (i in significant_terms) {
+  plot(total_plankton_gam, select = i, se = TRUE, shade = TRUE)
 }
+
 ```
 
 
@@ -142,16 +219,29 @@ grid <- grid %>%
     Salinity_PSS78 = mean(total_zooplankton$Salinity_PSS78, na.rm = TRUE),
     CTDTEMP_ITS90 = mean(total_zooplankton$CTDTEMP_ITS90, na.rm = TRUE),
     Year_UTC = median(total_zooplankton$Year_UTC),
-    Month_UTC = median(total_zooplankton$Month_UTC)
+    Month_UTC = median(total_zooplankton$Month_UTC),
+    pCO2in = mean(total_zooplankton$pCO2in, na.rm = TRUE),
+    RFin = mean(total_zooplankton$RFin, na.rm = TRUE),
+    CO3in = mean(total_zooplankton$CO3in, na.rm = TRUE),
+    OmegaCAin = mean(total_zooplankton$OmegaCAin, na.rm = TRUE),
+    OmegaARin = mean(total_zooplankton$OmegaARin, na.rm = TRUE),
+    NO3uM = mean(total_zooplankton$NO3uM, na.rm = TRUE),
+    SiO3uM = mean(total_zooplankton$SiO3uM, na.rm = TRUE),
+    PO4uM = mean(total_zooplankton$PO4uM, na.rm = TRUE)
   )
 
 # predict without station-specific random effect
-grid$fit <- predict(gam_model4, newdata = grid, type = "response")
+grid$fit <- predict(total_plankton_gam, newdata = grid, type = "response")
 
-# define coastlines
+terms_matrix <- predict(total_plankton_gam, newdata = grid, type = "terms")
+
+
+grid$spatial_effect <- terms_matrix[, "te(Longitude,Latitude)"]
+
+
 coast <- map_data("world")
 
-# identify inside points
+
 in_hull <- function(grid, data) {
   hull <- convhulln(data[, c("Longitude", "Latitude")])
   inhulln(hull, as.matrix(grid[, c("Longitude", "Latitude")]))
@@ -159,63 +249,66 @@ in_hull <- function(grid, data) {
 
 grid$inside <- in_hull(grid, total_zooplankton)
 
-# get unique station coordinates (optional, cleaner)
+
 stations <- total_zooplankton %>%
   distinct(Station_ID, Longitude, Latitude)
 
 # plot
-spatial_gam_total_zoop <- ggplot() +
-  geom_tile(data = grid %>% filter(inside), aes(x = Longitude, y = Latitude, fill = fit)) +
+ggplot() +
+  geom_tile(data = grid %>% filter(inside), aes(x = Longitude, y = Latitude, fill = spatial_effect)) +
   geom_path(data = coast, aes(x = long, y = lat, group = group), color = "black", size = 0.3) +
   geom_point(data = stations, aes(x = Longitude, y = Latitude), 
              color = "black", size = 1.5, alpha = 0.8) +
   coord_fixed(xlim = range(grid$Longitude), ylim = range(grid$Latitude)) +
-  scale_fill_viridis_c(name = "Predicted\nlog Abundance") +
+  scale_fill_viridis_c(name = "Predicted log Abundance") +
   labs(
     title = "GAM Spatial Effect for Total Plankton",
     x = "Longitude", y = "Latitude"
   ) +
   theme_minimal()
 
-ggsave(here::here("final-deliverables/part-2-img/spatial_gam_total_zoop.png"), bg = "white")
 ```
 
-### Small Plankton
+
+
+### GAM for Small Plankton
 
 ```{r}
 small_zooplankton <- zooplankton %>% 
-  dplyr::select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, small_plankton, pHout, Latitude, Longitude, Year_UTC, Month_UTC, Station_ID, pCO2in, RFin, CO3in, OmegaCAin, OmegaARin) %>%
+  dplyr::select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, small_plankton, pHout, Latitude, Longitude, Year_UTC, Month_UTC, Station_ID, pCO2in, RFin, CO3in, OmegaCAin, OmegaARin, NO3uM, SiO3uM, PO4uM) %>%
   drop_na() %>%
   mutate(log_small_plankton = log1p(small_plankton)) %>%
   dplyr::select(-small_plankton) %>%
   mutate(Station_ID = as.factor(Station_ID))
 
-small_gam_mod2 <- gam(
+small_plankton_gam <- gam(
   log_small_plankton ~ 
     te(Longitude, Latitude) +
                   s(pHout) +
                   s(TA) + s(DIC) +
                   s(Salinity_PSS78) +
                   s(CTDTEMP_ITS90) +
-                  s(Year_UTC) + s(Month_UTC),
+                  s(Year_UTC) + s(Month_UTC) +
+                  s(pCO2in) + s(RFin) + s(CO3in) +s(OmegaCAin) + s(OmegaARin) +
+                  s(NO3uM) + s(SiO3uM) + s(PO4uM),
   data = small_zooplankton,
 )
 
-summary(small_gam_mod2)
-#AIC(small_gam_mod2)
-#plot(small_gam_mod2)
-#plot(small_gam_mod2, select = 1, shade = TRUE, seWithMean = TRUE, scheme = 2)
-#plot(small_gam_mod2, page = 1, shade = TRUE, seWithMean = TRUE)
+summary(small_plankton_gam)
+AIC(small_plankton_gam)
 
-par(mfrow = c(4, 2), mar = c(4, 4, 2, 1)) 
-for (i in 2:9) {
-  plot(small_gam_mod2, select = i, shade = TRUE)
+
+significant_terms <- c(2, 6, 8, 10, 15, 16)
+
+par(mfrow = c(2, 3))  
+
+for (i in significant_terms) {
+  plot(total_plankton_gam, select = i, se = TRUE, shade = TRUE)
 }
 
-
-par(mfrow = c(1, 1))
-
 ```
+
+
 
 ```{r}
 # grid res
@@ -233,16 +326,25 @@ grid <- grid %>%
     Salinity_PSS78 = mean(small_zooplankton$Salinity_PSS78, na.rm = TRUE),
     CTDTEMP_ITS90 = mean(small_zooplankton$CTDTEMP_ITS90, na.rm = TRUE),
     Year_UTC = median(small_zooplankton$Year_UTC),
-    Month_UTC = median(small_zooplankton$Month_UTC)
+    Month_UTC = median(small_zooplankton$Month_UTC),
+    pCO2in = mean(small_zooplankton$pCO2in, na.rm = TRUE),
+    RFin = mean(small_zooplankton$RFin, na.rm = TRUE),
+    CO3in = mean(small_zooplankton$CO3in, na.rm = TRUE),
+    OmegaCAin = mean(small_zooplankton$OmegaCAin, na.rm = TRUE),
+    OmegaARin = mean(small_zooplankton$OmegaARin, na.rm = TRUE),
+    NO3uM = mean(small_zooplankton$NO3uM, na.rm = TRUE),
+    SiO3uM = mean(small_zooplankton$SiO3uM, na.rm = TRUE),
+    PO4uM = mean(small_zooplankton$PO4uM, na.rm = TRUE)
   )
 
 # predict without station-specific random effect
-grid$fit <- predict(small_gam_mod2, newdata = grid, type = "response")
+grid$fit <- predict(small_plankton_gam, newdata = grid, type = "response")
 
-# define coastlines
+grid$spatial_effect <- terms_matrix[, "te(Longitude,Latitude)"]
+
 coast <- map_data("world")
 
-# identify inside points
+
 in_hull <- function(grid, data) {
   hull <- convhulln(data[, c("Longitude", "Latitude")])
   inhulln(hull, as.matrix(grid[, c("Longitude", "Latitude")]))
@@ -250,39 +352,343 @@ in_hull <- function(grid, data) {
 
 grid$inside <- in_hull(grid, total_zooplankton)
 
-# get unique station coordinates (optional, cleaner)
+# get unique station coordinates
 stations <- small_zooplankton %>%
   distinct(Station_ID, Longitude, Latitude)
 
 # plot
-spatial_gam_small_zoop <- ggplot() +
-  geom_tile(data = grid %>% filter(inside), aes(x = Longitude, y = Latitude, fill = fit)) +
+ggplot() +
+  geom_tile(data = grid %>% filter(inside), aes(x = Longitude, y = Latitude, fill = spatial_effect)) +
   geom_path(data = coast, aes(x = long, y = lat, group = group), color = "black", size = 0.3) +
   geom_point(data = stations, aes(x = Longitude, y = Latitude), 
              color = "black", size = 1.5, alpha = 0.8) +
   coord_fixed(xlim = range(grid$Longitude), ylim = range(grid$Latitude)) +
-  scale_fill_viridis_c(name = "Predicted\nlog Abundance") +
+  scale_fill_viridis_c(name = "Predicted\nLog\nAbundance") +
   labs(
     title = "GAM Spatial Effect for Small Plankton",
     x = "Longitude", y = "Latitude"
-  ) +
-  theme_minimal()
-
-ggsave(here::here("final-deliverables/part-2-img/spatial_gam_small_zoop.png"), bg = "white")
+  ) 
 
 ```
 
-## BTEDB Krill Models
+## BTEDB Krill
 
-## PRPOOS Calcifying/Non-Calcifying Zooplankton Models
+## PRPOOS Calcifying/Non-Calcifying Zooplankton
+
+### Effects of pH at Saturation Depth on Abundance by Season
+
+#### Calcifier/Non-Calcifier Abundance vs. pH
 
 ```{r}
-library(lubridate)
-library(mgcv)
-library(ggplot2)
-library(dplyr)
-library(maps)
-library(stringr)
+# Merging bottle + PRPOOS data with interpolated depth of saturation horizon and pH
+bottle_data <- read_csv(here::here("data/merged_bottle_co2sys.csv"))
+
+# Make sure your depth and OmegaAR values are numeric
+bottle_data$Depthm <- as.numeric(bottle_data$Depthm)
+bottle_data$OmegaARout <- as.numeric(bottle_data$OmegaARout)
+
+# Filter out rows with missing data
+filtered_data <- bottle_data %>%
+  filter(!is.na(Depthm), !is.na(OmegaARout))
+
+# Group by Station and Year
+saturation_depths <- filtered_data %>%
+  group_by(Station_ID, Year_UTC) %>%
+  group_modify(~{
+    df_group <- .x
+    n_unique <- df_group %>% pull(OmegaARout) %>% unique() %>% length()
+
+    # Only fit GAM if enough data and variation
+    if (nrow(df_group) > 1 && n_unique > 2) {
+      gam_fit <- tryCatch({
+        gam(Depthm ~ s(OmegaARout, bs = "cs", k = min(4, n_unique - 1)), data = df_group)
+      }, error = function(e) NULL)
+
+      if (!is.null(gam_fit)) {
+        predicted_depth <- predict(gam_fit, newdata = tibble(OmegaARout = 1))
+        return(tibble(Depth_Saturation_Horizon = predicted_depth))
+      }
+    }
+    return(tibble(Depth_Saturation_Horizon = NA_real_))
+  }) %>%
+  ungroup()
+
+# Merge back into original dataset
+bottle_data <- bottle_data %>%
+  left_join(saturation_depths, by = c("Station_ID", "Year_UTC"))
+
+# Define seasons based on month
+bottle_data <- bottle_data %>%
+  mutate(Season = case_when(
+    Month_UTC %in% c(12, 1, 2) ~ "Winter",
+    Month_UTC %in% c(3, 4, 5)  ~ "Spring",
+    Month_UTC %in% c(6, 7, 8)  ~ "Summer",
+    Month_UTC %in% c(9, 10, 11) ~ "Fall",
+    TRUE ~ NA_character_
+  )) %>%
+  relocate(Season, .after = Date_cc)
+
+# Make sure relevant columns are numeric
+bottle_data$Depthm <- as.numeric(bottle_data$Depthm)
+bottle_data$pHout <- as.numeric(bottle_data$pHout)
+
+# Extract saturation horizon depths per group
+saturation_depths <- bottle_data %>%
+  select(Station_ID, Year_UTC, Depth_Saturation_Horizon) %>%
+  distinct()
+
+# Join season-based pH interpolation with saturation depths
+pH_at_saturation <- bottle_data %>%
+  filter(!is.na(Depthm), !is.na(pHout), !is.na(Depth_Saturation_Horizon)) %>%
+  group_by(Station_ID, Year_UTC, Season) %>%
+  group_modify(~ {
+    df_group <- .x
+    horizon <- unique(df_group$Depth_Saturation_Horizon)
+
+    if (length(horizon) == 1 && !is.na(horizon) && nrow(df_group) > 1) {
+      n_unique <- df_group %>% pull(pHout) %>% unique() %>% length()
+
+      if (n_unique > 2) {
+        gam_fit <- tryCatch({
+          gam(pHout ~ s(Depthm, bs = "cs", k = min(4, n_unique - 1)), data = df_group)
+        }, error = function(e) NULL)
+
+        if (!is.null(gam_fit)) {
+          predicted_pH <- predict(gam_fit, newdata = tibble(Depthm = horizon))
+          return(tibble(pH_at_saturation_depth = predicted_pH))
+        }
+      }
+    }
+
+    return(tibble(pH_at_saturation_depth = NA_real_))
+  }) %>%
+  ungroup()
+
+# Merge interpolated pH values back into bottle_data
+bottle_data <- bottle_data %>%
+  left_join(pH_at_saturation, by = c("Station_ID", "Year_UTC", "Season"))
+
+prpoos <- read_csv(here::here("data/PRPOOS/PRPOOS_all.csv"), skip = 2)
+
+prpoos$Station_ID <- paste(
+  sprintf('%05.1f', prpoos$Station),
+  sprintf('%05.1f', prpoos$Line),
+  sep = ' '
+)
+prpoos <- prpoos %>%
+  relocate(Station_ID, .after = Line)
+prpoos <- prpoos %>%
+  mutate(
+    Year_UTC = year(`Station date`),
+    Month_UTC = month(`Station date`),
+    Day_UTC = day(`Station date`),
+    .after = `Station date`
+  ) %>%
+  rename (`appendicularia Abundance (No. per m2)` = `Day or Night`)
+
+prpoos_clean <- prpoos %>%
+  dplyr::select(-contains("Estimated C Biomass (mgC m-2)"))
+
+names(prpoos_clean) <- str_replace(names(prpoos_clean), " \\(No\\. per m2\\)", "")
+
+# Add seasonal component
+prpoos_clean <- prpoos_clean %>%
+  mutate(
+    Season = case_when(
+    Month_UTC %in% c(12, 1, 2) ~ "Winter",
+      Month_UTC %in% c(3, 4, 5) ~ "Spring",
+      Month_UTC %in% c(6, 7, 8) ~ "Summer",
+      Month_UTC %in% c(9, 10, 11) ~ "Fall"
+    )
+  ) %>%
+  relocate(Season, .after = Year_UTC)
+
+calcifiers <- c("bryozoan_larvae Abundance",
+                "pteropoda_heteropoda Abundance",
+                "ostracods Abundance",
+                "rhizaria Abundance")
+abund_cols <- prpoos_clean %>% dplyr::select(contains("Abundance")) %>% names()
+non_calcifiers <- setdiff(abund_cols, calcifiers)
+
+prpoos_clean <- prpoos_clean %>%
+  dplyr::mutate(
+    calcifier_total = rowSums(dplyr::select(., all_of(calcifiers)), na.rm = TRUE),
+    non_calcifier_total = rowSums(dplyr::select(., all_of(non_calcifiers)), na.rm = TRUE)
+  )
+
+prpoos_merge <- bottle_data %>%
+  inner_join(prpoos_clean, by = c("Station_ID", "Year_UTC", "Month_UTC"))
+
+prpoos_merge <- prpoos_merge %>%
+  filter(Depth_Saturation_Horizon >= 0 | is.na(Depth_Saturation_Horizon))
+```
+
+
+```{r}
+ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(calcifier_total), color = Season.x)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~Season.x) +
+  labs(
+    title = "Calcifier Abundance vs. pH by Season",
+    x = "pH at Saturation Depth",
+    y = "Log Total Abundance (no. per m2)",
+    color = "Season"
+  ) +
+  theme_minimal()
+
+ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(non_calcifier_total), color = Season.x)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~Season.x) +
+  labs(
+    title = "Non-Calcifier Abundance vs. pH by Season",
+    x = "pH at Saturation Depth",
+    y = "Log Total Abundance (no. per m2)",
+    color = "Season"
+  ) +
+  theme_minimal()
+
+# prpoos_merge %>%
+#   mutate(log_calcifier_total = log1p(calcifier_total)) %>%
+#   group_by(Season.x) %>%
+#   summarize(
+#     correlation = cor(pH_at_saturation_depth, log_calcifier_total, use = "complete.obs", method = "pearson")
+#   )
+```
+
+
+#### Individual Calcifying Taxa vs. pH
+
+```{r}
+ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(`bryozoan_larvae Abundance`), color = Season.x)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~Season.x) +
+  labs(
+    title = "Bryozoan Larvae Abundance vs. pH by Season",
+    x = "pH at Saturation Depth",
+    y = "Log Total Abundance (no. per m2)",
+    color = "Season"
+  ) +
+  theme_minimal()
+
+ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(`pteropoda_heteropoda Abundance`), color = Season.x)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~Season.x) +
+  labs(
+    title = "Pteropoda Heteropoda Abundance vs. pH by Season",
+    x = "pH at Saturation Depth",
+    y = "Log Total Abundance (no. per m2)",
+    color = "Season"
+  ) +
+  theme_minimal()
+
+ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(`ostracods Abundance`), color = Season.x)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~Season.x) +
+  labs(
+    title = "Ostracoda Abundance vs. pH by Season",
+    x = "pH at Saturation Depth",
+    y = "Log Total Abundance (no. per m2)",
+    color = "Season"
+  ) +
+  theme_minimal()
+
+
+
+ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(`rhizaria Abundance`), color = Season.x)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~Season.x) +
+  labs(
+    title = "Rhizaria Abundance vs. pH by Season",
+    x = "pH at Saturation Depth",
+    y = "Log Total Abundance (no. per m2)",
+    color = "Season"
+  ) +
+  theme_minimal()
+```
+
+#### Visualizing Saturation Depth Over Time by Station
+
+```{r}
+plot_saturation_horizon <- function(station_id, data) {
+  
+  saturation_depths <- tibble(
+    Station_ID = character(),
+    Year_UTC = integer(),
+    Depth_Saturation_Horizon = numeric()
+  )
+  
+  years <- 2008:2021
+  
+  for (species in years) {
+    filtered_data <- data %>%
+      filter(!is.na(Depthm) & !is.na(OmegaARout)) %>%
+      filter(Station_ID == station_id) %>%
+      filter(Year_UTC == species)
+
+    n_unique <- filtered_data %>% pull(OmegaARout) %>% unique() %>% length()
+
+    if (nrow(filtered_data) > 1 && n_unique > 2) {  
+      safe_k <- min(4, n_unique - 1)  
+      gam_fit <- gam(Depthm ~ s(OmegaARout, bs = "cs", k = safe_k), data = filtered_data)
+      
+      predicted_depth <- predict(gam_fit, newdata = tibble(OmegaARout = 1))
+      
+      saturation_depths <- saturation_depths %>%
+        add_row(Station_ID = station_id, Year_UTC = species, Depth_Saturation_Horizon = predicted_depth)
+      
+    } else {
+      saturation_depths <- saturation_depths %>%
+        add_row(Station_ID = station_id, Year_UTC = species, Depth_Saturation_Horizon = NA_real_)
+    }
+  }
+
+  year_counts <- data %>%
+    filter(Station_ID == station_id) %>%
+    count(Year_UTC, name = "n_obs")
+  
+  saturation_summary <- saturation_depths %>%
+    left_join(year_counts, by = "Year_UTC") %>%
+    mutate(
+      data_quality = case_when(
+        is.na(Depth_Saturation_Horizon) ~ "NA",
+        n_obs < 10 ~ "Few Observations",
+        TRUE ~ "Sufficient Observations"
+      ),
+      # Dummy depth value for plotting NA points (will NOT affect the line)
+      plot_depth = if_else(is.na(Depth_Saturation_Horizon), 0, Depth_Saturation_Horizon)
+    )
+  
+  ggplot(saturation_summary, aes(x = Year_UTC)) +
+    geom_line(aes(y = plot_depth, group = 1), color = "grey50", alpha = 0.5) +
+    geom_point(aes(y = plot_depth, color = data_quality), size = 3) +
+    scale_color_manual(
+      values = c("Few Observations" = "red", "Sufficient Observations" = "blue", "NA" = "gray")
+    ) +
+    scale_y_reverse() +
+    labs(
+      title = paste("Depth of Saturation Horizon by Year for Station", station_id),
+      x = "Year",
+      y = "Depth of Saturation Horizon (m)",
+      color = "Data Quality"
+    ) +
+    theme_minimal() +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+}
+```
+
+```{r}
+plot_saturation_horizon("081.8 046.9", bottle_data)
+```
+
+### GAMs for Individual Calcifying Taxa
+
+```{r}
 # read in data
 prpoos_summary <- read_csv("../data/PRPOOS/prpoos_summary_namecleaned.csv")
 ```

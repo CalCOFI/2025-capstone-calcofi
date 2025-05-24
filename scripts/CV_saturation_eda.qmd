@@ -1,8 +1,10 @@
 ```{r}
+library(readr)
 bottle_data <- read_csv(here::here("data/merged_bottle_co2sys.csv"))
 library(ggplot2)
 library(dplyr)
 library(lubridate)
+library(gam)
 ```
 
 ```{r}
@@ -120,6 +122,50 @@ bottle_data <- bottle_data %>%
 
 ```{r}
 bottle_data %>% filter(Station_ID == "081.8 046.9") %>% dplyr::select(Station_ID, Year_UTC, Month_UTC, Depth_Saturation_Horizon)
+
+bottle_data[[221]] <- as.vector(bottle_data[[221]])
+
+
+
+write_csv(bottle_data, here::here("data/CV_bottle_test.csv"))
+
+
+
+```
+
+```{r}
+library(tidyverse)
+library(maps)
+library(ggplot2)
+
+# Filter out rows with missing coordinates or depth
+map_data <- bottle_data %>%
+  drop_na(Latitude, Longitude, Depth_Saturation_Horizon)
+
+# Get map outline for the USA (we’ll zoom in on California)
+usa_map <- map_data("state")
+
+# Plot
+ggplot() +
+  geom_polygon(
+    data = usa_map %>% filter(region == "california"),
+    aes(x = long, y = lat, group = group),
+    fill = "gray90", color = "gray60"
+  ) +
+  geom_point(
+    data = map_data,
+    aes(x = Longitude, y = Latitude, color = Depth_Saturation_Horizon),
+    size = 3, alpha = 0.8
+  ) +
+  scale_color_viridis_c(option = "plasma", name = "Saturation\nHorizon (m)", direction = -1) +
+  coord_fixed(xlim = c(-125, -117), ylim = c(30, 36)) +
+  theme_minimal() +
+  labs(
+    title = "Spatial Variation in Depth of Saturation Horizon",
+    x = "Longitude",
+    y = "Latitude"
+  )
+
 ```
 
 ```{r}
@@ -309,12 +355,79 @@ plot_saturation_horizon <- function(station_id, data) {
 }
 
 plot_saturation_horizon("081.8 046.9", bottle_data)
+plot_saturation_horizon("090.0 090.0", bottle_data)
 ```
 
 
 ```{r}
+plot_saturation_horizon <- function(station_id, data) {
+  
+  saturation_depths <- tibble(
+    Station_ID = character(),
+    Year_UTC = integer(),
+    Depth_Saturation_Horizon = numeric()
+  )
+  
+  years <- 2008:2021
+  
+  for (species in years) {
+    filtered_data <- data %>%
+      filter(!is.na(Depthm) & !is.na(OmegaARout)) %>%
+      filter(Station_ID == station_id) %>%
+      filter(Year_UTC == species)
+
+    n_unique <- filtered_data %>% pull(OmegaARout) %>% unique() %>% length()
+
+    if (nrow(filtered_data) > 1 && n_unique > 2) {  
+      safe_k <- min(4, n_unique - 1)  
+      gam_fit <- gam(Depthm ~ s(OmegaARout, bs = "cs", k = safe_k), data = filtered_data)
+      
+      predicted_depth <- predict(gam_fit, newdata = tibble(OmegaARout = 1))
+      
+      saturation_depths <- saturation_depths %>%
+        add_row(Station_ID = station_id, Year_UTC = species, Depth_Saturation_Horizon = predicted_depth)
+      
+    } else {
+      saturation_depths <- saturation_depths %>%
+        add_row(Station_ID = station_id, Year_UTC = species, Depth_Saturation_Horizon = NA_real_)
+    }
+  }
+
+  year_counts <- data %>%
+    filter(Station_ID == station_id) %>%
+    count(Year_UTC, name = "n_obs")
+  
+  saturation_summary <- saturation_depths %>%
+    left_join(year_counts, by = "Year_UTC") %>%
+    mutate(
+      data_quality = case_when(
+        is.na(Depth_Saturation_Horizon) ~ "NA",
+        n_obs < 10 ~ "Few Observations",
+        TRUE ~ "Sufficient Observations"
+      ),
+      # Dummy depth value for plotting NA points (will NOT affect the line)
+      plot_depth = if_else(is.na(Depth_Saturation_Horizon), 0, Depth_Saturation_Horizon)
+    )
+  
+  ggplot(saturation_summary, aes(x = Year_UTC)) +
+    geom_line(aes(y = plot_depth, group = 1), color = "grey50", alpha = 0.5) +
+    geom_point(aes(y = plot_depth, color = data_quality), size = 3) +
+    scale_color_manual(
+      values = c("Few Observations" = "red", "Sufficient Observations" = "blue", "NA" = "gray")
+    ) +
+    scale_y_reverse() +
+    labs(
+      title = paste("Depth of Saturation Horizon by Year for Station", station_id),
+      x = "Year",
+      y = "Depth of Saturation Horizon (m)",
+      color = "Data Quality"
+    ) +
+    theme_minimal() +
+    theme(plot.title = element_text(hjust = 0.5, face = "bold"))
+}
 
 
+plot_saturation_horizon("081.8 046.9", bottle_data)
 ```
 
 ```{r}

@@ -83,22 +83,30 @@ window.Quarto = {
   <li><a href="#btedb-krill-abundances" id="toc-btedb-krill-abundances" class="nav-link" data-scroll-target="#btedb-krill-abundances">BTEDB (Krill) Abundances:</a></li>
   <li><a href="#prpoos-calcifiersnon-calcifiers" id="toc-prpoos-calcifiersnon-calcifiers" class="nav-link" data-scroll-target="#prpoos-calcifiersnon-calcifiers">PRPOOS (Calcifiers/Non-Calcifiers):</a></li>
   </ul></li>
-  <li><a href="#methods" id="toc-methods" class="nav-link" data-scroll-target="#methods">Methods</a></li>
+  <li><a href="#key-definitions" id="toc-key-definitions" class="nav-link" data-scroll-target="#key-definitions">Key Definitions</a></li>
+  <li><a href="#methods" id="toc-methods" class="nav-link" data-scroll-target="#methods">Methods</a>
+  <ul class="collapse">
+  <li><a href="#summary-of-merged-datasets" id="toc-summary-of-merged-datasets" class="nav-link" data-scroll-target="#summary-of-merged-datasets">Summary of Merged Datasets</a></li>
+  <li><a href="#generalized-additive-models-gams" id="toc-generalized-additive-models-gams" class="nav-link" data-scroll-target="#generalized-additive-models-gams">Generalized Additive Models (GAMs)</a></li>
+  <li><a href="#interpolating-depth-of-saturation-horizon-and-ph" id="toc-interpolating-depth-of-saturation-horizon-and-ph" class="nav-link" data-scroll-target="#interpolating-depth-of-saturation-horizon-and-ph">Interpolating Depth of Saturation Horizon and pH</a></li>
+  </ul></li>
   <li><a href="#results" id="toc-results" class="nav-link" data-scroll-target="#results">Results</a>
   <ul class="collapse">
-  <li><a href="#zooplankton-models" id="toc-zooplankton-models" class="nav-link" data-scroll-target="#zooplankton-models">Zooplankton Models</a>
+  <li><a href="#noaa-zooplankton" id="toc-noaa-zooplankton" class="nav-link" data-scroll-target="#noaa-zooplankton">NOAA Zooplankton</a>
   <ul class="collapse">
-  <li><a href="#total-plankton" id="toc-total-plankton" class="nav-link" data-scroll-target="#total-plankton">Total Plankton</a></li>
-  <li><a href="#small-plankton" id="toc-small-plankton" class="nav-link" data-scroll-target="#small-plankton">Small Plankton</a></li>
+  <li><a href="#gam-for-total-plankton" id="toc-gam-for-total-plankton" class="nav-link" data-scroll-target="#gam-for-total-plankton">GAM for Total Plankton</a></li>
+  <li><a href="#gam-for-small-plankton" id="toc-gam-for-small-plankton" class="nav-link" data-scroll-target="#gam-for-small-plankton">GAM for Small Plankton</a></li>
   </ul></li>
-  <li><a href="#krill-models" id="toc-krill-models" class="nav-link" data-scroll-target="#krill-models">Krill Models</a>
+  <li><a href="#btedb-krill" id="toc-btedb-krill" class="nav-link" data-scroll-target="#btedb-krill">BTEDB Krill</a></li>
+  <li><a href="#prpoos-calcifyingnon-calcifying-zooplankton" id="toc-prpoos-calcifyingnon-calcifying-zooplankton" class="nav-link" data-scroll-target="#prpoos-calcifyingnon-calcifying-zooplankton">PRPOOS Calcifying/Non-Calcifying Zooplankton</a>
   <ul class="collapse">
-  <li><a href="#prpoos-data" id="toc-prpoos-data" class="nav-link" data-scroll-target="#prpoos-data">PRPOOS data</a></li>
+  <li><a href="#effects-of-ph-at-saturation-depth-on-abundance-by-season" id="toc-effects-of-ph-at-saturation-depth-on-abundance-by-season" class="nav-link" data-scroll-target="#effects-of-ph-at-saturation-depth-on-abundance-by-season">Effects of pH at Saturation Depth on Abundance by Season</a></li>
+  <li><a href="#gams-for-individual-calcifying-taxa" id="toc-gams-for-individual-calcifying-taxa" class="nav-link" data-scroll-target="#gams-for-individual-calcifying-taxa">GAMs for Individual Calcifying Taxa</a></li>
   </ul></li>
   </ul></li>
   <li><a href="#summary-of-findings" id="toc-summary-of-findings" class="nav-link" data-scroll-target="#summary-of-findings">Summary of Findings</a></li>
   <li><a href="#future-work" id="toc-future-work" class="nav-link" data-scroll-target="#future-work">Future Work</a></li>
-  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  <li><a href="#acknowledgements" id="toc-acknowledgements" class="nav-link" data-scroll-target="#acknowledgements">Acknowledgements</a></li>
   </ul>
 </nav>
 </div>
@@ -107,7 +115,7 @@ window.Quarto = {
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
 <h1 class="title">Investigating the Impacts of Ocean Acidfication on Zooplankton and Krill Biovolumes</h1>
-<p class="subtitle lead">Part II</p>
+<p class="subtitle lead">Part II: Biological Systems</p>
 </div>
 
 
@@ -126,55 +134,547 @@ window.Quarto = {
 
 <section id="introduction" class="level1">
 <h1>Introduction</h1>
+<p>Since the start of the Industrial Revolution, atmospheric carbon dioxide levels have spiked upward due to practices like deforestation and the burning of fossil fuels, causing an ever increasing amount of carbon dioxide to dissolve into the ocean. Once dissolved, carbon dioxide undergoes a series of chemical equilibrium reactions that ultimately lowers the pH of the water in a process known as ocean acidification. This process has numerous ramifications on marine ecosystems, including but not limited to the impairment of specific pH dependent biological processes and the leaching of calcium carbonate required to build the shells and skeletons of many marine species.<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a></p>
+<p>This project is sponsored by California Cooperative Oceanic Fisheries Investigations (CalCOFI), an organization founded in 1949 to study the ecological aspects of the Pacific sardine collapse off of the coast of California. CalCOFI is committed to studying California’s coastal marine environment and collecting relevant oceanographic data in order to provide insight on important climate change related topics such as renewable energy, integrated ocean management, and marine spatial planning.<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a></p>
 </section>
 <section id="problems-of-interest" class="level1">
 <h1>Problems of Interest</h1>
-<p>Our goal is to study the impact of ocean acidification on zooplankton and krill biovolumes off of the California coast. First, we want to conduct a cross-comparison of bottle data and biological data to assess the amount of spatial and temporal overlap present. Using co-located measurements, we wish to model the effects of ocean acidification, using carbonate chemistry and oceanographic variables, on zooplankton and krill abundance. In addition, we are interested in exploring how pH and related environmental factors affect the abundance of calcifying versus non-calcifying species.</p>
+<p>Our goal is to study the impact of ocean acidification on zooplankton and krill biovolumes off of the California coast. First, we want to conduct a cross-comparison of bottle data and biological data to assess the amount of spatial and temporal overlap present. Using co-located measurements, we wish to model the effects of ocean acidification, using carbonate chemistry and oceanographic variables, on zooplankton and krill abundance. Specifically, In addition, we are interested in exploring how pH and related environmental factors affect the abundance of calcifying versus non-calcifying species.</p>
 </section>
 <section id="data" class="level1">
 <h1>Data</h1>
 <section id="bottle-data" class="level2">
-<h2 class="anchored" data-anchor-id="bottle-data">Bottle Data<a href="#fn1" class="footnote-ref" id="fnref1" role="doc-noteref"><sup>1</sup></a></h2>
-<p>CalCOFI has collected environmental and hydrographic data for over 70 years during their quarterly cruises to their CalCOFI stations. We used the merged data from Part I which contains oceanographic and carbonate chemistry data as well as computed CO2SYS values for variables such as <span class="math inline">\(pH\)</span>, <span class="math inline">\(CO_3\)</span>, and <span class="math inline">\(\Omega_{aragonite}\)</span>. This merged dataset we are working with is called merged_bottle_co2sys.csv. One important thing to note is that there is a large temporal gap between the years 2002-2007.</p>
-<p>There are three datasets that we are focusing on for our biological data: (1) CalCOFI NOAA Zooplankton Volume, (2) BTEDB (Krill) Abundances, and (3) PRPOOS Data (for Zooplankton Calcifiers/Non-Calcifiers Abundance). The zooplankton and krill biovolume data are obtained using net tows (Bongo and/or Pairovet) at each standard CalCOFI station. The PRPOOS data is also obtained using a net tow but rather than sampling at station, it is conducted during transits between stations. These three datasets have each been merged with the bottle data to create zoop_data/zooplankton_pH.csv, krill_data/CV_merged_krill.csv, and PRPOOS/prpoos_summary.csv, respectively.</p>
+<h2 class="anchored" data-anchor-id="bottle-data">Bottle Data<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a></h2>
+<p>CalCOFI has collected environmental and hydrographic data for over 70 years during their quarterly cruises to their CalCOFI stations. We used the merged data from Part I which contains oceanographic and carbonate chemistry data as well as computed CO2SYS values for variables such as <span class="math inline">\(pH\)</span>, <span class="math inline">\(CO_3\)</span>, and <span class="math inline">\(\Omega_{aragonite}\)</span>.</p>
+<p>There are three datasets that we are focusing on for our biological data: (1) CalCOFI NOAA Zooplankton Volume, (2) BTEDB (Krill) Abundances, and (3) PRPOOS Data (for Zooplankton Calcifiers/Non-Calcifiers Abundance). The zooplankton and krill biovolume data are obtained using net tows (Bongo and/or Pairovet) at each standard CalCOFI station. The PRPOOS data is also obtained using a net tow but rather than sampling at station, it is conducted during transits between stations. These three datasets have each been merged with the bottle data to create zoop_data/zooplankton_pH.csv, krill_data/CV_merged_krill.csv, and PRPOOS/prpoos_summary.csv, respectively. Refer to Methods section for the merging process.</p>
 </section>
 <section id="calcofi-noaa-zooplankton-volume" class="level2">
-<h2 class="anchored" data-anchor-id="calcofi-noaa-zooplankton-volume">CalCOFI NOAA Zooplankton Volume<a href="#fn2" class="footnote-ref" id="fnref2" role="doc-noteref"><sup>2</sup></a>:</h2>
+<h2 class="anchored" data-anchor-id="calcofi-noaa-zooplankton-volume">CalCOFI NOAA Zooplankton Volume<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a>:</h2>
 <p>The zooplankton biovolume data measures the amount of “plankton” (the small and microscopic organisms floating in the sea, consisting chiefly of diatoms, protozoans, small crustaceans, and the eggs and larval stages of larger animals) in the volume of sea water sampled. In particular, we are interested in the variables <code>total_plankton</code> and <code>small_plankton</code>.</p>
 </section>
 <section id="btedb-krill-abundances" class="level2">
-<h2 class="anchored" data-anchor-id="btedb-krill-abundances">BTEDB (Krill) Abundances<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a>:</h2>
+<h2 class="anchored" data-anchor-id="btedb-krill-abundances">BTEDB (Krill) Abundances<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a>:</h2>
 <p>The krill dataset provides information on krill abundance from the Brinton and Townsend Euphausiid Database (BTEDB). The samples collected include species such as <em>Euphausia pacifica</em>, <em>Nematoscelis difficilis</em>, and <em>Thysanoessa spinifera</em>, with individuals categorized by size and developmental phase (e.g., calyptopis, furcilia, juvenile, adult).</p>
 </section>
 <section id="prpoos-calcifiersnon-calcifiers" class="level2">
-<h2 class="anchored" data-anchor-id="prpoos-calcifiersnon-calcifiers">PRPOOS (Calcifiers/Non-Calcifiers)<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a>:</h2>
+<h2 class="anchored" data-anchor-id="prpoos-calcifiersnon-calcifiers">PRPOOS (Calcifiers/Non-Calcifiers)<a href="#fn6" class="footnote-ref" id="fnref6" role="doc-noteref"><sup>6</sup></a>:</h2>
 <p>The PRPOOS (Planktonic Rate Processes in Oligotrophic Ocean Systems) dataset contains abundance and estimated biomass values for various zooplankton taxa, which can be categorized into calcifying and non-calcifying groups. The calcifying taxa are defined as <em>byrozoan larvae</em>, <em>pteropoda heteropoda</em>, <em>ostracods</em>, and <em>rhizaria</em>; the remaining taxa are considered non-calcifying.</p>
 </section>
 </section>
-<section id="methods" class="level1">
-<h1>Methods</h1>
-</section>
-<section id="results" class="level1">
-<h1>Results</h1>
+<section id="key-definitions" class="level1">
+<h1>Key Definitions</h1>
 <div class="cell">
 <div class="cell-output-display">
-<div id="vlzljdemjw" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#vlzljdemjw table {
+<div id="zghnoqtsct" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#zghnoqtsct table {
   font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-#vlzljdemjw thead, #vlzljdemjw tbody, #vlzljdemjw tfoot, #vlzljdemjw tr, #vlzljdemjw td, #vlzljdemjw th {
+#zghnoqtsct thead, #zghnoqtsct tbody, #zghnoqtsct tfoot, #zghnoqtsct tr, #zghnoqtsct td, #zghnoqtsct th {
   border-style: none;
 }
 
-#vlzljdemjw p {
+#zghnoqtsct p {
   margin: 0;
   padding: 0;
 }
 
-#vlzljdemjw .gt_table {
+#zghnoqtsct .gt_table {
+  display: table;
+  border-collapse: collapse;
+  line-height: normal;
+  margin-left: auto;
+  margin-right: auto;
+  color: #333333;
+  font-size: 14px;
+  font-weight: normal;
+  font-style: normal;
+  background-color: #FFFFFF;
+  width: 100%;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #004F84;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #004F84;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+}
+
+#zghnoqtsct .gt_caption {
+  padding-top: 4px;
+  padding-bottom: 4px;
+}
+
+#zghnoqtsct .gt_title {
+  color: #333333;
+  font-size: 125%;
+  font-weight: initial;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-color: #FFFFFF;
+  border-bottom-width: 0;
+}
+
+#zghnoqtsct .gt_subtitle {
+  color: #333333;
+  font-size: 85%;
+  font-weight: initial;
+  padding-top: 3px;
+  padding-bottom: 5px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-color: #FFFFFF;
+  border-top-width: 0;
+}
+
+#zghnoqtsct .gt_heading {
+  background-color: #FFFFFF;
+  text-align: left;
+  border-bottom-color: #FFFFFF;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#zghnoqtsct .gt_bottom_border {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#zghnoqtsct .gt_col_headings {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+}
+
+#zghnoqtsct .gt_col_heading {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 6px;
+  padding-left: 5px;
+  padding-right: 5px;
+  overflow-x: hidden;
+}
+
+#zghnoqtsct .gt_column_spanner_outer {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: normal;
+  text-transform: inherit;
+  padding-top: 0;
+  padding-bottom: 0;
+  padding-left: 4px;
+  padding-right: 4px;
+}
+
+#zghnoqtsct .gt_column_spanner_outer:first-child {
+  padding-left: 0;
+}
+
+#zghnoqtsct .gt_column_spanner_outer:last-child {
+  padding-right: 0;
+}
+
+#zghnoqtsct .gt_column_spanner {
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: bottom;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  overflow-x: hidden;
+  display: inline-block;
+  width: 100%;
+}
+
+#zghnoqtsct .gt_spanner_row {
+  border-bottom-style: hidden;
+}
+
+#zghnoqtsct .gt_group_heading {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  text-align: left;
+}
+
+#zghnoqtsct .gt_empty_group_heading {
+  padding: 0.5px;
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  vertical-align: middle;
+}
+
+#zghnoqtsct .gt_from_md > :first-child {
+  margin-top: 0;
+}
+
+#zghnoqtsct .gt_from_md > :last-child {
+  margin-bottom: 0;
+}
+
+#zghnoqtsct .gt_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  margin: 10px;
+  border-top-style: solid;
+  border-top-width: 1px;
+  border-top-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 1px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 1px;
+  border-right-color: #D3D3D3;
+  vertical-align: middle;
+  overflow-x: hidden;
+}
+
+#zghnoqtsct .gt_stub {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#zghnoqtsct .gt_stub_row_group {
+  color: #333333;
+  background-color: #FFFFFF;
+  font-size: 100%;
+  font-weight: initial;
+  text-transform: inherit;
+  border-right-style: solid;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+  padding-left: 5px;
+  padding-right: 5px;
+  vertical-align: top;
+}
+
+#zghnoqtsct .gt_row_group_first td {
+  border-top-width: 2px;
+}
+
+#zghnoqtsct .gt_row_group_first th {
+  border-top-width: 2px;
+}
+
+#zghnoqtsct .gt_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#zghnoqtsct .gt_first_summary_row {
+  border-top-style: solid;
+  border-top-color: #D3D3D3;
+}
+
+#zghnoqtsct .gt_first_summary_row.thick {
+  border-top-width: 2px;
+}
+
+#zghnoqtsct .gt_last_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#zghnoqtsct .gt_grand_summary_row {
+  color: #333333;
+  background-color: #FFFFFF;
+  text-transform: inherit;
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#zghnoqtsct .gt_first_grand_summary_row {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-top-style: double;
+  border-top-width: 6px;
+  border-top-color: #D3D3D3;
+}
+
+#zghnoqtsct .gt_last_grand_summary_row_top {
+  padding-top: 8px;
+  padding-bottom: 8px;
+  padding-left: 5px;
+  padding-right: 5px;
+  border-bottom-style: double;
+  border-bottom-width: 6px;
+  border-bottom-color: #D3D3D3;
+}
+
+#zghnoqtsct .gt_striped {
+  background-color: #FFFFFF;
+}
+
+#zghnoqtsct .gt_table_body {
+  border-top-style: solid;
+  border-top-width: 2px;
+  border-top-color: #D3D3D3;
+  border-bottom-style: solid;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+}
+
+#zghnoqtsct .gt_footnotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#zghnoqtsct .gt_footnote {
+  margin: 0px;
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#zghnoqtsct .gt_sourcenotes {
+  color: #333333;
+  background-color: #FFFFFF;
+  border-bottom-style: none;
+  border-bottom-width: 2px;
+  border-bottom-color: #D3D3D3;
+  border-left-style: none;
+  border-left-width: 2px;
+  border-left-color: #D3D3D3;
+  border-right-style: none;
+  border-right-width: 2px;
+  border-right-color: #D3D3D3;
+}
+
+#zghnoqtsct .gt_sourcenote {
+  font-size: 90%;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  padding-left: 5px;
+  padding-right: 5px;
+}
+
+#zghnoqtsct .gt_left {
+  text-align: left;
+}
+
+#zghnoqtsct .gt_center {
+  text-align: center;
+}
+
+#zghnoqtsct .gt_right {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+#zghnoqtsct .gt_font_normal {
+  font-weight: normal;
+}
+
+#zghnoqtsct .gt_font_bold {
+  font-weight: bold;
+}
+
+#zghnoqtsct .gt_font_italic {
+  font-style: italic;
+}
+
+#zghnoqtsct .gt_super {
+  font-size: 65%;
+}
+
+#zghnoqtsct .gt_footnote_marks {
+  font-size: 75%;
+  vertical-align: 0.4em;
+  position: initial;
+}
+
+#zghnoqtsct .gt_asterisk {
+  font-size: 100%;
+  vertical-align: 0;
+}
+
+#zghnoqtsct .gt_indent_1 {
+  text-indent: 5px;
+}
+
+#zghnoqtsct .gt_indent_2 {
+  text-indent: 10px;
+}
+
+#zghnoqtsct .gt_indent_3 {
+  text-indent: 15px;
+}
+
+#zghnoqtsct .gt_indent_4 {
+  text-indent: 20px;
+}
+
+#zghnoqtsct .gt_indent_5 {
+  text-indent: 25px;
+}
+
+#zghnoqtsct .katex-display {
+  display: inline-flex !important;
+  margin-bottom: 0.75em !important;
+}
+
+#zghnoqtsct div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+  height: 0px !important;
+}
+</style>
+
+<table class="gt_table caption-top table table-sm table-striped small" data-quarto-postprocess="true" data-quarto-disable-processing="false" data-quarto-bootstrap="false">
+<tbody class="gt_table_body">
+<tr class="odd">
+<td class="gt_row gt_left" headers="Variable">Total Alkalinity (TA)</td>
+<td class="gt_row gt_left" headers="Description">A measure of how much alkaline (basic) material is in the water, or essentially the buffering capacity or ability to resist acidification.</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="Variable">Total Dissolved Inorganic Carbon (DIC)</td>
+<td class="gt_row gt_left" headers="Description">The sum of all dissolved inorganic carbon species in the water (carbon dioxide CO[2], bicarbonate ions [HCO[3]^–], and carbonate ions [CO[3]^2–]).</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="Variable">pCO[2]</td>
+<td class="gt_row gt_left" headers="Description">The partial pressure of carbon dioxide, a measure of CO[2] concentration.</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="Variable">CO^3</td>
+<td class="gt_row gt_left" headers="Description">Carbonate ion concentration</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="Variable">Nitrate, Silicate, and Phosphate</td>
+<td class="gt_row gt_left" headers="Description">Key macronutrients in marine ecosystems that are vital to phytoplankton growth.</td>
+</tr>
+<tr class="even">
+<td class="gt_row gt_left" headers="Variable">Ω[calcite] and Ω[aragonite]</td>
+<td class="gt_row gt_left" headers="Description">Carbonate saturation states, a measurement of how likely calcium carbonate (CaCO[3]) is to dissolve or form in the ocean.</td>
+</tr>
+<tr class="odd">
+<td class="gt_row gt_left" headers="Variable">Revelle Factor (RF)</td>
+<td class="gt_row gt_left" headers="Description">A measure of the buffering capacity of seawater, it is a measurement of how easily the ocean absorbs carbon dioxide from the atmosphere.</td>
+</tr>
+</tbody>
+</table>
+
+</div>
+</div>
+</div>
+</section>
+<section id="methods" class="level1">
+<h1>Methods</h1>
+<section id="summary-of-merged-datasets" class="level2">
+<h2 class="anchored" data-anchor-id="summary-of-merged-datasets">Summary of Merged Datasets</h2>
+<div class="cell">
+<div class="cell-output-display">
+<div id="quufysjkmb" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#quufysjkmb table {
+  font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#quufysjkmb thead, #quufysjkmb tbody, #quufysjkmb tfoot, #quufysjkmb tr, #quufysjkmb td, #quufysjkmb th {
+  border-style: none;
+}
+
+#quufysjkmb p {
+  margin: 0;
+  padding: 0;
+}
+
+#quufysjkmb .gt_table {
   display: table;
   border-collapse: collapse;
   line-height: normal;
@@ -200,12 +700,12 @@ window.Quarto = {
   border-left-color: #D3D3D3;
 }
 
-#vlzljdemjw .gt_caption {
+#quufysjkmb .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
 
-#vlzljdemjw .gt_title {
+#quufysjkmb .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -217,7 +717,7 @@ window.Quarto = {
   border-bottom-width: 0;
 }
 
-#vlzljdemjw .gt_subtitle {
+#quufysjkmb .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -229,7 +729,7 @@ window.Quarto = {
   border-top-width: 0;
 }
 
-#vlzljdemjw .gt_heading {
+#quufysjkmb .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -241,13 +741,13 @@ window.Quarto = {
   border-right-color: #D3D3D3;
 }
 
-#vlzljdemjw .gt_bottom_border {
+#quufysjkmb .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#vlzljdemjw .gt_col_headings {
+#quufysjkmb .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -262,7 +762,7 @@ window.Quarto = {
   border-right-color: #D3D3D3;
 }
 
-#vlzljdemjw .gt_col_heading {
+#quufysjkmb .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -282,7 +782,7 @@ window.Quarto = {
   overflow-x: hidden;
 }
 
-#vlzljdemjw .gt_column_spanner_outer {
+#quufysjkmb .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -294,15 +794,15 @@ window.Quarto = {
   padding-right: 4px;
 }
 
-#vlzljdemjw .gt_column_spanner_outer:first-child {
+#quufysjkmb .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#vlzljdemjw .gt_column_spanner_outer:last-child {
+#quufysjkmb .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#vlzljdemjw .gt_column_spanner {
+#quufysjkmb .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -314,11 +814,11 @@ window.Quarto = {
   width: 100%;
 }
 
-#vlzljdemjw .gt_spanner_row {
+#quufysjkmb .gt_spanner_row {
   border-bottom-style: hidden;
 }
 
-#vlzljdemjw .gt_group_heading {
+#quufysjkmb .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -344,7 +844,7 @@ window.Quarto = {
   text-align: left;
 }
 
-#vlzljdemjw .gt_empty_group_heading {
+#quufysjkmb .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -359,15 +859,15 @@ window.Quarto = {
   vertical-align: middle;
 }
 
-#vlzljdemjw .gt_from_md > :first-child {
+#quufysjkmb .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#vlzljdemjw .gt_from_md > :last-child {
+#quufysjkmb .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#vlzljdemjw .gt_row {
+#quufysjkmb .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -386,7 +886,7 @@ window.Quarto = {
   overflow-x: hidden;
 }
 
-#vlzljdemjw .gt_stub {
+#quufysjkmb .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -399,7 +899,7 @@ window.Quarto = {
   padding-right: 5px;
 }
 
-#vlzljdemjw .gt_stub_row_group {
+#quufysjkmb .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -413,15 +913,15 @@ window.Quarto = {
   vertical-align: top;
 }
 
-#vlzljdemjw .gt_row_group_first td {
+#quufysjkmb .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#vlzljdemjw .gt_row_group_first th {
+#quufysjkmb .gt_row_group_first th {
   border-top-width: 2px;
 }
 
-#vlzljdemjw .gt_summary_row {
+#quufysjkmb .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -431,16 +931,16 @@ window.Quarto = {
   padding-right: 5px;
 }
 
-#vlzljdemjw .gt_first_summary_row {
+#quufysjkmb .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#vlzljdemjw .gt_first_summary_row.thick {
+#quufysjkmb .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#vlzljdemjw .gt_last_summary_row {
+#quufysjkmb .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -450,7 +950,7 @@ window.Quarto = {
   border-bottom-color: #D3D3D3;
 }
 
-#vlzljdemjw .gt_grand_summary_row {
+#quufysjkmb .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -460,7 +960,7 @@ window.Quarto = {
   padding-right: 5px;
 }
 
-#vlzljdemjw .gt_first_grand_summary_row {
+#quufysjkmb .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -470,7 +970,7 @@ window.Quarto = {
   border-top-color: #D3D3D3;
 }
 
-#vlzljdemjw .gt_last_grand_summary_row_top {
+#quufysjkmb .gt_last_grand_summary_row_top {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -480,11 +980,11 @@ window.Quarto = {
   border-bottom-color: #D3D3D3;
 }
 
-#vlzljdemjw .gt_striped {
+#quufysjkmb .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#vlzljdemjw .gt_table_body {
+#quufysjkmb .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -493,7 +993,7 @@ window.Quarto = {
   border-bottom-color: #D3D3D3;
 }
 
-#vlzljdemjw .gt_footnotes {
+#quufysjkmb .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -507,7 +1007,7 @@ window.Quarto = {
   border-right-color: #D3D3D3;
 }
 
-#vlzljdemjw .gt_footnote {
+#quufysjkmb .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-top: 4px;
@@ -516,7 +1016,7 @@ window.Quarto = {
   padding-right: 5px;
 }
 
-#vlzljdemjw .gt_sourcenotes {
+#quufysjkmb .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -530,7 +1030,7 @@ window.Quarto = {
   border-right-color: #D3D3D3;
 }
 
-#vlzljdemjw .gt_sourcenote {
+#quufysjkmb .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -538,72 +1038,72 @@ window.Quarto = {
   padding-right: 5px;
 }
 
-#vlzljdemjw .gt_left {
+#quufysjkmb .gt_left {
   text-align: left;
 }
 
-#vlzljdemjw .gt_center {
+#quufysjkmb .gt_center {
   text-align: center;
 }
 
-#vlzljdemjw .gt_right {
+#quufysjkmb .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#vlzljdemjw .gt_font_normal {
+#quufysjkmb .gt_font_normal {
   font-weight: normal;
 }
 
-#vlzljdemjw .gt_font_bold {
+#quufysjkmb .gt_font_bold {
   font-weight: bold;
 }
 
-#vlzljdemjw .gt_font_italic {
+#quufysjkmb .gt_font_italic {
   font-style: italic;
 }
 
-#vlzljdemjw .gt_super {
+#quufysjkmb .gt_super {
   font-size: 65%;
 }
 
-#vlzljdemjw .gt_footnote_marks {
+#quufysjkmb .gt_footnote_marks {
   font-size: 75%;
   vertical-align: 0.4em;
   position: initial;
 }
 
-#vlzljdemjw .gt_asterisk {
+#quufysjkmb .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#vlzljdemjw .gt_indent_1 {
+#quufysjkmb .gt_indent_1 {
   text-indent: 5px;
 }
 
-#vlzljdemjw .gt_indent_2 {
+#quufysjkmb .gt_indent_2 {
   text-indent: 10px;
 }
 
-#vlzljdemjw .gt_indent_3 {
+#quufysjkmb .gt_indent_3 {
   text-indent: 15px;
 }
 
-#vlzljdemjw .gt_indent_4 {
+#quufysjkmb .gt_indent_4 {
   text-indent: 20px;
 }
 
-#vlzljdemjw .gt_indent_5 {
+#quufysjkmb .gt_indent_5 {
   text-indent: 25px;
 }
 
-#vlzljdemjw .katex-display {
+#quufysjkmb .katex-display {
   display: inline-flex !important;
   margin-bottom: 0.75em !important;
 }
 
-#vlzljdemjw div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+#quufysjkmb div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
   height: 0px !important;
 }
 </style>
@@ -621,7 +1121,7 @@ window.Quarto = {
 </colgroup>
 <thead>
 <tr class="gt_heading header">
-<th colspan="8" class="gt_heading gt_title gt_font_normal gt_bottom_border">Datasets</th>
+<th colspan="8" class="gt_heading gt_title gt_font_normal gt_bottom_border">Merged Biological Datasets</th>
 </tr>
 <tr class="gt_col_headings gt_spanner_row even">
 <th rowspan="2" id="a::stub" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col"></th>
@@ -642,7 +1142,7 @@ PRPOOS Calcifiers
 <th id="krill_og" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Original</th>
 <th id="krill_merge" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Merged</th>
 <th id="prpoos_og" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Original</th>
-<th id="prpoos_merge" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col">Merged</th>
+<th id="prpoos_merge" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Merged</th>
 </tr>
 </thead>
 <tbody class="gt_table_body">
@@ -653,8 +1153,8 @@ PRPOOS Calcifiers
 <td class="gt_row gt_right" headers="stub_1_1 zoop_merge">434</td>
 <td class="gt_row gt_right" headers="stub_1_1 krill_og">7482</td>
 <td class="gt_row gt_right" headers="stub_1_1 krill_merge">70</td>
-<td class="gt_row gt_right" headers="stub_1_1 prpoos_og">1394</td>
-<td class="gt_row gt_left" headers="stub_1_1 prpoos_merge">FILL</td>
+<td class="gt_row gt_right" headers="stub_1_1 prpoos_og">1384</td>
+<td class="gt_row gt_right" headers="stub_1_1 prpoos_merge">388</td>
 </tr>
 <tr class="even">
 <td id="stub_1_2" class="gt_row gt_left gt_stub" data-quarto-table-cell-role="th" scope="row"># of Stations</td>
@@ -664,7 +1164,7 @@ PRPOOS Calcifiers
 <td class="gt_row gt_right" headers="stub_1_2 krill_og">411</td>
 <td class="gt_row gt_right" headers="stub_1_2 krill_merge">21</td>
 <td class="gt_row gt_right" headers="stub_1_2 prpoos_og">20</td>
-<td class="gt_row gt_left" headers="stub_1_2 prpoos_merge">FILL</td>
+<td class="gt_row gt_right" headers="stub_1_2 prpoos_merge">16</td>
 </tr>
 <tr class="odd">
 <td id="stub_1_3" class="gt_row gt_left gt_stub" data-quarto-table-cell-role="th" scope="row">Start Year</td>
@@ -674,7 +1174,7 @@ PRPOOS Calcifiers
 <td class="gt_row gt_right" headers="stub_1_3 krill_og">1951</td>
 <td class="gt_row gt_right" headers="stub_1_3 krill_merge">1984</td>
 <td class="gt_row gt_right" headers="stub_1_3 prpoos_og">2005</td>
-<td class="gt_row gt_left" headers="stub_1_3 prpoos_merge">FILL</td>
+<td class="gt_row gt_right" headers="stub_1_3 prpoos_merge">2009</td>
 </tr>
 <tr class="even">
 <td id="stub_1_4" class="gt_row gt_left gt_stub" data-quarto-table-cell-role="th" scope="row">End Year</td>
@@ -684,7 +1184,7 @@ PRPOOS Calcifiers
 <td class="gt_row gt_right" headers="stub_1_4 krill_og">2019</td>
 <td class="gt_row gt_right" headers="stub_1_4 krill_merge">2019</td>
 <td class="gt_row gt_right" headers="stub_1_4 prpoos_og">2025</td>
-<td class="gt_row gt_left" headers="stub_1_4 prpoos_merge">FILL</td>
+<td class="gt_row gt_right" headers="stub_1_4 prpoos_merge">2021</td>
 </tr>
 </tbody><tfoot class="gt_sourcenotes">
 <tr class="odd">
@@ -695,12 +1195,27 @@ PRPOOS Calcifiers
 </table>
 
 </div>
+<p>Table 2: Summary of the size, spatial coverage, and temporal range of the merged datasets used in this analysis.</p>
 </div>
 </div>
-<section id="zooplankton-models" class="level2">
-<h2 class="anchored" data-anchor-id="zooplankton-models">Zooplankton Models</h2>
-<section id="total-plankton" class="level3">
-<h3 class="anchored" data-anchor-id="total-plankton">Total Plankton</h3>
+<p>To merge the NOAA Zooplankton data (zoop_data/Zooplankton-new.csv) with the bottle data (merged_bottle_co2sys.csv), we performed an inner join on Station ID, month, year, and average monthly DIC to create zoop_data/zooplankton_pH.csv. The same merge process was used for the BTEDB Krill data (krill_data/BTEDB_Abundances.csv) to create krill_data/CV_merged_krill.csv).</p>
+<p>To merge the PRPOOS data (PRPOOS/PRPOOS_all.csv) with the bottle data (merged_bottle_co2sys.csv), we performed a left join on Station ID, month, and year. Then, we collapsed the overlapping observations by calculating summary statistics for pH, <span class="math inline">\(\Omega_{aragonite}\)</span>, <span class="math inline">\(\Omega_{calcium}\)</span>, and other relevant carbonate chemistry variables.</p>
+</section>
+<section id="generalized-additive-models-gams" class="level2">
+<h2 class="anchored" data-anchor-id="generalized-additive-models-gams">Generalized Additive Models (GAMs)</h2>
+<p>To model the response variables <code>total_plankton</code> and <code>small_plankton</code> in the NOAA dataset, we used GAMs with smoothing terms and spatial splines. We applied a log(x+1) transformation to both response variables. The following variables were used as predictors: spatial coordinates (longitude and latitude), oceanographic variables (salinity and temperature), temporal variables (month and year), carbonate chemistry variables (TA, DIC, pH, pCO2, RF, CO3, OmegaCA, and OmegaAR), and key macronutrients (nitrate, silicate, and phosphate).</p>
+</section>
+<section id="interpolating-depth-of-saturation-horizon-and-ph" class="level2">
+<h2 class="anchored" data-anchor-id="interpolating-depth-of-saturation-horizon-and-ph">Interpolating Depth of Saturation Horizon and pH</h2>
+<p>To visualize the effects of pH on plankton abundance, we first had to find the depth of the saturation horizon for aragonite, which is the boundary between supersaturated conditions above and undersaturated conditions below. We are specifically looking at aragonite because it is a mineral form of calcium carbonate. To compute the saturation depth, we interpolate across depths to find where <span class="math inline">\(\Omega_{aragonite}\)</span> = 1. Then, to compute the pH value we interpolate again to find the pH at that threshold depth. We use the dataset merged_bottle_co2sys.csv. Yearly data was used to estimate the saturation horizon because it provides more stable estimates and then seasonal data was used to estimate the pH.</p>
+</section>
+</section>
+<section id="results" class="level1">
+<h1>Results</h1>
+<section id="noaa-zooplankton" class="level2">
+<h2 class="anchored" data-anchor-id="noaa-zooplankton">NOAA Zooplankton</h2>
+<section id="gam-for-total-plankton" class="level3">
+<h3 class="anchored" data-anchor-id="gam-for-total-plankton">GAM for Total Plankton</h3>
 <div class="cell">
 <div class="cell-output cell-output-stdout">
 <pre><code>
@@ -710,105 +1225,42 @@ Link function: identity
 Formula:
 log_total_plankton ~ te(Longitude, Latitude) + s(pHout) + s(TA) + 
     s(DIC) + s(Salinity_PSS78) + s(CTDTEMP_ITS90) + s(Year_UTC) + 
-    s(Month_UTC)
+    s(Month_UTC) + s(pCO2in) + s(RFin) + s(CO3in) + s(OmegaCAin) + 
+    s(OmegaARin) + s(NO3uM) + s(SiO3uM) + s(PO4uM)
 
 Parametric coefficients:
             Estimate Std. Error t value Pr(&gt;|t|)    
-(Intercept)  4.35101    0.04021   108.2   &lt;2e-16 ***
+(Intercept)  4.35101    0.03913   111.2   &lt;2e-16 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 Approximate significance of smooth terms:
-                          edf Ref.df     F p-value    
-te(Longitude,Latitude) 12.741 14.409 2.385 0.00380 ** 
-s(pHout)                1.000  1.000 2.972 0.08548 .  
-s(TA)                   1.000  1.000 2.288 0.13118    
-s(DIC)                  1.000  1.000 2.050 0.15299    
-s(Salinity_PSS78)       3.406  4.363 1.186 0.34596    
-s(CTDTEMP_ITS90)        1.015  1.028 0.235 0.63092    
-s(Year_UTC)             7.079  7.932 2.782 0.00847 ** 
-s(Month_UTC)            4.758  5.606 8.880 &lt; 2e-16 ***
+                         edf Ref.df     F p-value    
+te(Longitude,Latitude) 3.000  3.000 3.552 0.01458 *  
+s(pHout)               3.388  4.397 1.350 0.26436    
+s(TA)                  3.171  4.014 2.560 0.03914 *  
+s(DIC)                 1.603  1.948 3.864 0.02264 *  
+s(Salinity_PSS78)      3.538  4.459 1.701 0.14720    
+s(CTDTEMP_ITS90)       7.585  8.167 2.794 0.00350 ** 
+s(Year_UTC)            1.000  1.000 0.099 0.75365    
+s(Month_UTC)           5.778  6.520 7.062 2.1e-06 ***
+s(pCO2in)              1.000  1.000 2.789 0.09571 .  
+s(RFin)                1.639  1.994 2.394 0.08226 .  
+s(CO3in)               1.000  1.000 8.464 0.00383 ** 
+s(OmegaCAin)           1.000  1.000 0.960 0.32788    
+s(OmegaARin)           1.000  1.000 0.258 0.61146    
+s(NO3uM)               1.000  1.000 0.622 0.43069    
+s(SiO3uM)              3.513  4.529 4.437 0.00104 ** 
+s(PO4uM)               1.000  1.000 4.452 0.03549 *  
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-R-sq.(adj) =  0.284   Deviance explained = 33.7%
-GCV = 0.75938  Scale est. = 0.70164   n = 434</code></pre>
+R-sq.(adj) =  0.322   Deviance explained = 38.5%
+GCV = 0.73413  Scale est. = 0.66441   n = 434</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 1111.535</code></pre>
+<pre><code>[1] 1095.319</code></pre>
 </div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-3-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-3-2.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-3-3.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-3-4.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-3-5.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-3-6.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-3-7.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-3-8.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-3-9.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-3-10.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-<div class="cell">
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -817,9 +1269,18 @@ GCV = 0.75938  Scale est. = 0.70164   n = 434</code></pre>
 </div>
 </div>
 </div>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
 </section>
-<section id="small-plankton" class="level3">
-<h3 class="anchored" data-anchor-id="small-plankton">Small Plankton</h3>
+<section id="gam-for-small-plankton" class="level3">
+<h3 class="anchored" data-anchor-id="gam-for-small-plankton">GAM for Small Plankton</h3>
 <div class="cell">
 <div class="cell-output cell-output-stdout">
 <pre><code>
@@ -829,105 +1290,42 @@ Link function: identity
 Formula:
 log_small_plankton ~ te(Longitude, Latitude) + s(pHout) + s(TA) + 
     s(DIC) + s(Salinity_PSS78) + s(CTDTEMP_ITS90) + s(Year_UTC) + 
-    s(Month_UTC)
+    s(Month_UTC) + s(pCO2in) + s(RFin) + s(CO3in) + s(OmegaCAin) + 
+    s(OmegaARin) + s(NO3uM) + s(SiO3uM) + s(PO4uM)
 
 Parametric coefficients:
             Estimate Std. Error t value Pr(&gt;|t|)    
-(Intercept)  4.20459    0.03497   120.2   &lt;2e-16 ***
+(Intercept)  4.20459    0.03333   126.1   &lt;2e-16 ***
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
 Approximate significance of smooth terms:
                          edf Ref.df     F  p-value    
-te(Longitude,Latitude) 6.716  7.600 3.523 0.000643 ***
-s(pHout)               1.143  1.264 3.420 0.042776 *  
-s(TA)                  1.000  1.000 5.389 0.020763 *  
-s(DIC)                 1.000  1.000 2.003 0.157777    
-s(Salinity_PSS78)      2.921  3.742 1.086 0.468981    
-s(CTDTEMP_ITS90)       8.571  8.929 2.430 0.007295 ** 
-s(Year_UTC)            3.828  4.775 2.446 0.037035 *  
-s(Month_UTC)           6.291  7.073 7.382  &lt; 2e-16 ***
+te(Longitude,Latitude) 8.424  9.926 2.597  0.00532 ** 
+s(pHout)               3.956  5.171 2.509  0.02263 *  
+s(TA)                  1.000  1.000 1.522  0.21810    
+s(DIC)                 2.070  2.649 0.691  0.56614    
+s(Salinity_PSS78)      2.962  3.796 1.340  0.26672    
+s(CTDTEMP_ITS90)       7.806  8.290 2.996  0.00151 ** 
+s(Year_UTC)            3.519  4.425 1.384  0.23190    
+s(Month_UTC)           7.440  7.911 6.764  &lt; 2e-16 ***
+s(pCO2in)              1.000  1.000 1.497  0.22183    
+s(RFin)                1.000  1.000 7.356  0.00698 ** 
+s(CO3in)               1.000  1.000 2.160  0.14246    
+s(OmegaCAin)           1.000  1.000 0.021  0.88547    
+s(OmegaARin)           1.000  1.000 0.196  0.65841    
+s(NO3uM)               1.000  1.000 0.320  0.57214    
+s(SiO3uM)              3.809  4.920 5.646 5.83e-05 ***
+s(PO4uM)               1.000  1.000 5.774  0.01674 *  
 ---
 Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
 
-R-sq.(adj) =  0.341   Deviance explained = 38.9%
-GCV = 0.57369  Scale est. = 0.53077   n = 434</code></pre>
+R-sq.(adj) =  0.402   Deviance explained = 46.8%
+GCV = 0.54351  Scale est. = 0.48217   n = 434</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
-<pre><code>[1] 989.9243</code></pre>
+<pre><code>[1] 963.0438</code></pre>
 </div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-5-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-5-2.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-5-3.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-5-4.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-5-5.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-5-6.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-5-7.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-5-8.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-5-9.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-5-10.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-<div class="cell">
 <div class="cell-output-display">
 <div>
 <figure class="figure">
@@ -936,17 +1334,80 @@ GCV = 0.57369  Scale est. = 0.53077   n = 434</code></pre>
 </div>
 </div>
 </div>
-</section>
-</section>
-<section id="krill-models" class="level2">
-<h2 class="anchored" data-anchor-id="krill-models">Krill Models</h2>
-<section id="prpoos-data" class="level3">
-<h3 class="anchored" data-anchor-id="prpoos-data">PRPOOS data</h3>
 <div class="cell">
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-8-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-7-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+</section>
+<section id="btedb-krill" class="level2">
+<h2 class="anchored" data-anchor-id="btedb-krill">BTEDB Krill</h2>
+</section>
+<section id="prpoos-calcifyingnon-calcifying-zooplankton" class="level2">
+<h2 class="anchored" data-anchor-id="prpoos-calcifyingnon-calcifying-zooplankton">PRPOOS Calcifying/Non-Calcifying Zooplankton</h2>
+<section id="effects-of-ph-at-saturation-depth-on-abundance-by-season" class="level3">
+<h3 class="anchored" data-anchor-id="effects-of-ph-at-saturation-depth-on-abundance-by-season">Effects of pH at Saturation Depth on Abundance by Season</h3>
+<section id="calcifiernon-calcifier-abundance-vs.-ph" class="level4">
+<h4 class="anchored" data-anchor-id="calcifiernon-calcifier-abundance-vs.-ph">Calcifier/Non-Calcifier Abundance vs.&nbsp;pH</h4>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="individual-calcifying-taxa-vs.-ph" class="level4">
+<h4 class="anchored" data-anchor-id="individual-calcifying-taxa-vs.-ph">Individual Calcifying Taxa vs.&nbsp;pH</h4>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-10-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-10-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-10-4.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="visualizing-saturation-depth-over-time-by-station" class="level4">
+<h4 class="anchored" data-anchor-id="visualizing-saturation-depth-over-time-by-station">Visualizing Saturation Depth Over Time by Station</h4>
+</section>
+</section>
+<section id="gams-for-individual-calcifying-taxa" class="level3">
+<h3 class="anchored" data-anchor-id="gams-for-individual-calcifying-taxa">GAMs for Individual Calcifying Taxa</h3>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
@@ -984,406 +1445,6 @@ GCV =  5.143  Scale est. = 4.6603    n = 388</code></pre>
 </div>
 <div class="cell-output cell-output-stdout">
 <pre><code>[1] 1734.853</code></pre>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-8-2.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-8-3.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-8-4.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-8-5.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-8-6.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-8-7.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-8-8.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-8-9.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-<div class="cell">
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-9-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-Family: gaussian 
-Link function: identity 
-
-Formula:
-log1p(cnidaria_ctenophoresAbundance) ~ s(Longitude, Latitude, 
-    k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean) + s(TA_mean) + 
-    s(DIC_mean) + s(RF_mean) + s(OmegaAR_mean)
-
-Parametric coefficients:
-            Estimate Std. Error t value Pr(&gt;|t|)    
-(Intercept)  6.86866    0.08623   79.65   &lt;2e-16 ***
----
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-Approximate significance of smooth terms:
-                        edf Ref.df      F  p-value    
-s(Longitude,Latitude) 4.375  5.667  1.983 0.062129 .  
-s(pH_mean)            7.668  8.498  3.442 0.004753 ** 
-s(OmegaCA_mean)       1.000  1.000  0.929 0.335745    
-s(CO3_mean)           1.000  1.000 11.653 0.000715 ***
-s(TA_mean)            6.887  7.912  1.779 0.077466 .  
-s(DIC_mean)           6.328  7.574  2.445 0.016046 *  
-s(RF_mean)            1.879  2.445  0.379 0.818575    
-s(OmegaAR_mean)       1.000  1.000  3.376 0.066983 .  
----
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-R-sq.(adj) =  0.292   Deviance explained = 34.8%
-GCV = 3.1368  Scale est. = 2.8851    n = 388</code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>[1] 1544.022</code></pre>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-9-2.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-9-3.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-9-4.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-9-5.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-9-6.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-9-7.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-9-8.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-9-9.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-<div class="cell">
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-Family: gaussian 
-Link function: identity 
-
-Formula:
-log1p(copepoda_calanoida_minus_eucalanidsAbundance) ~ s(Longitude, 
-    Latitude, k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean) + 
-    s(TA_mean) + s(DIC_mean) + s(RF_mean) + s(OmegaAR_mean)
-
-Parametric coefficients:
-            Estimate Std. Error t value Pr(&gt;|t|)    
-(Intercept) 11.60855    0.03314   350.3   &lt;2e-16 ***
----
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-Approximate significance of smooth terms:
-                        edf Ref.df     F  p-value    
-s(Longitude,Latitude) 9.441 11.252 3.370 0.000157 ***
-s(pH_mean)            3.214  4.174 1.367 0.276694    
-s(OmegaCA_mean)       1.000  1.000 3.599 0.058622 .  
-s(CO3_mean)           3.265  4.134 0.788 0.532249    
-s(TA_mean)            5.016  6.044 2.553 0.019225 *  
-s(DIC_mean)           1.000  1.000 2.965 0.085959 .  
-s(RF_mean)            3.110  3.832 1.056 0.365551    
-s(OmegaAR_mean)       1.000  1.000 4.661 0.031512 *  
----
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-R-sq.(adj) =  0.316   Deviance explained = 36.4%
-GCV = 0.45922  Scale est. = 0.42603   n = 388</code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>[1] 799.0149</code></pre>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-10-2.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-10-3.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-10-4.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-10-5.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-10-6.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-10-7.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-10-8.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-10-9.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-<div class="cell">
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-11-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-Family: gaussian 
-Link function: identity 
-
-Formula:
-log1p(copepoda_oithona_likeAbundance) ~ s(Longitude, Latitude, 
-    k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean) + s(TA_mean) + 
-    s(DIC_mean) + s(RF_mean) + s(OmegaAR_mean)
-
-Parametric coefficients:
-            Estimate Std. Error t value Pr(&gt;|t|)    
-(Intercept) 10.06649    0.04333   232.3   &lt;2e-16 ***
----
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-Approximate significance of smooth terms:
-                        edf Ref.df     F p-value  
-s(Longitude,Latitude) 3.120  3.935 1.935  0.0982 .
-s(pH_mean)            7.719  8.538 1.209  0.2187  
-s(OmegaCA_mean)       1.000  1.000 0.166  0.6842  
-s(CO3_mean)           1.000  1.000 0.915  0.3395  
-s(TA_mean)            4.692  5.700 1.889  0.0848 .
-s(DIC_mean)           1.000  1.000 0.182  0.6703  
-s(RF_mean)            2.962  3.853 1.043  0.4612  
-s(OmegaAR_mean)       1.657  2.047 0.291  0.7161  
----
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-R-sq.(adj) =  0.313   Deviance explained = 35.4%
-GCV = 0.7767  Scale est. = 0.72836   n = 388</code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>[1] 1003.481</code></pre>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-11-2.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-11-3.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-11-4.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-11-5.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-11-6.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-11-7.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-11-8.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-11-9.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
-<div class="cell">
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-Family: gaussian 
-Link function: identity 
-
-Formula:
-log1p(ostracodsAbundance) ~ s(Longitude, Latitude, k = 15) + 
-    s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean) + s(TA_mean) + 
-    s(DIC_mean) + s(RF_mean) + s(OmegaAR_mean)
-
-Parametric coefficients:
-            Estimate Std. Error t value Pr(&gt;|t|)    
-(Intercept)  7.22863    0.08311   86.98   &lt;2e-16 ***
----
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-Approximate significance of smooth terms:
-                         edf Ref.df     F p-value    
-s(Longitude,Latitude) 13.146 13.834 7.281 &lt; 2e-16 ***
-s(pH_mean)             7.065  8.182 2.601 0.00789 ** 
-s(OmegaCA_mean)        1.000  1.000 3.927 0.04826 *  
-s(CO3_mean)            1.000  1.000 0.166 0.68418    
-s(TA_mean)             1.000  1.000 0.452 0.50185    
-s(DIC_mean)            1.000  1.000 0.604 0.43767    
-s(RF_mean)             1.000  1.000 0.203 0.65222    
-s(OmegaAR_mean)        1.000  1.000 6.057 0.01432 *  
----
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-R-sq.(adj) =  0.319   Deviance explained = 36.5%
-GCV =  2.882  Scale est. = 2.6799    n = 388</code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>[1] 1511.786</code></pre>
 </div>
 <div class="cell-output-display">
 <div>
@@ -1442,7 +1503,406 @@ GCV =  2.882  Scale est. = 2.6799    n = 388</code></pre>
 </div>
 </div>
 </div>
-<p>```</p>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-13-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Family: gaussian 
+Link function: identity 
+
+Formula:
+log1p(cnidaria_ctenophoresAbundance) ~ s(Longitude, Latitude, 
+    k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean) + s(TA_mean) + 
+    s(DIC_mean) + s(RF_mean) + s(OmegaAR_mean)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)  6.86866    0.08623   79.65   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+                        edf Ref.df      F  p-value    
+s(Longitude,Latitude) 4.375  5.667  1.983 0.062129 .  
+s(pH_mean)            7.668  8.498  3.442 0.004753 ** 
+s(OmegaCA_mean)       1.000  1.000  0.929 0.335745    
+s(CO3_mean)           1.000  1.000 11.653 0.000715 ***
+s(TA_mean)            6.887  7.912  1.779 0.077466 .  
+s(DIC_mean)           6.328  7.574  2.445 0.016046 *  
+s(RF_mean)            1.879  2.445  0.379 0.818575    
+s(OmegaAR_mean)       1.000  1.000  3.376 0.066983 .  
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+R-sq.(adj) =  0.292   Deviance explained = 34.8%
+GCV = 3.1368  Scale est. = 2.8851    n = 388</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 1544.022</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-13-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-13-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-13-4.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-13-5.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-13-6.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-13-7.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-13-8.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-13-9.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-14-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Family: gaussian 
+Link function: identity 
+
+Formula:
+log1p(copepoda_calanoida_minus_eucalanidsAbundance) ~ s(Longitude, 
+    Latitude, k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean) + 
+    s(TA_mean) + s(DIC_mean) + s(RF_mean) + s(OmegaAR_mean)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept) 11.60855    0.03314   350.3   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+                        edf Ref.df     F  p-value    
+s(Longitude,Latitude) 9.441 11.252 3.370 0.000157 ***
+s(pH_mean)            3.214  4.174 1.367 0.276694    
+s(OmegaCA_mean)       1.000  1.000 3.599 0.058622 .  
+s(CO3_mean)           3.265  4.134 0.788 0.532249    
+s(TA_mean)            5.016  6.044 2.553 0.019225 *  
+s(DIC_mean)           1.000  1.000 2.965 0.085959 .  
+s(RF_mean)            3.110  3.832 1.056 0.365551    
+s(OmegaAR_mean)       1.000  1.000 4.661 0.031512 *  
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+R-sq.(adj) =  0.316   Deviance explained = 36.4%
+GCV = 0.45922  Scale est. = 0.42603   n = 388</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 799.0149</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-14-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-14-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-14-4.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-14-5.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-14-6.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-14-7.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-14-8.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-14-9.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-15-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Family: gaussian 
+Link function: identity 
+
+Formula:
+log1p(copepoda_oithona_likeAbundance) ~ s(Longitude, Latitude, 
+    k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean) + s(TA_mean) + 
+    s(DIC_mean) + s(RF_mean) + s(OmegaAR_mean)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept) 10.06649    0.04333   232.3   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+                        edf Ref.df     F p-value  
+s(Longitude,Latitude) 3.120  3.935 1.935  0.0982 .
+s(pH_mean)            7.719  8.538 1.209  0.2187  
+s(OmegaCA_mean)       1.000  1.000 0.166  0.6842  
+s(CO3_mean)           1.000  1.000 0.915  0.3395  
+s(TA_mean)            4.692  5.700 1.889  0.0848 .
+s(DIC_mean)           1.000  1.000 0.182  0.6703  
+s(RF_mean)            2.962  3.853 1.043  0.4612  
+s(OmegaAR_mean)       1.657  2.047 0.291  0.7161  
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+R-sq.(adj) =  0.313   Deviance explained = 35.4%
+GCV = 0.7767  Scale est. = 0.72836   n = 388</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 1003.481</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-15-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-15-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-15-4.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-15-5.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-15-6.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-15-7.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-15-8.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-15-9.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+<div class="cell">
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+Family: gaussian 
+Link function: identity 
+
+Formula:
+log1p(ostracodsAbundance) ~ s(Longitude, Latitude, k = 15) + 
+    s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean) + s(TA_mean) + 
+    s(DIC_mean) + s(RF_mean) + s(OmegaAR_mean)
+
+Parametric coefficients:
+            Estimate Std. Error t value Pr(&gt;|t|)    
+(Intercept)  7.22863    0.08311   86.98   &lt;2e-16 ***
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+Approximate significance of smooth terms:
+                         edf Ref.df     F p-value    
+s(Longitude,Latitude) 13.146 13.834 7.281 &lt; 2e-16 ***
+s(pH_mean)             7.065  8.182 2.601 0.00789 ** 
+s(OmegaCA_mean)        1.000  1.000 3.927 0.04826 *  
+s(CO3_mean)            1.000  1.000 0.166 0.68418    
+s(TA_mean)             1.000  1.000 0.452 0.50185    
+s(DIC_mean)            1.000  1.000 0.604 0.43767    
+s(RF_mean)             1.000  1.000 0.203 0.65222    
+s(OmegaAR_mean)        1.000  1.000 6.057 0.01432 *  
+---
+Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
+
+R-sq.(adj) =  0.319   Deviance explained = 36.5%
+GCV =  2.882  Scale est. = 2.6799    n = 388</code></pre>
+</div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 1511.786</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-16-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-16-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-16-4.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-16-5.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-16-6.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-16-7.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-16-8.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-16-9.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
 </section>
 </section>
 </section>
@@ -1452,18 +1912,21 @@ GCV =  2.882  Scale est. = 2.6799    n = 388</code></pre>
 <section id="future-work" class="level1">
 <h1>Future Work</h1>
 </section>
-<section id="references" class="level1">
-<h1>References</h1>
+<section id="acknowledgements" class="level1">
+<h1>Acknowledgements</h1>
+<p>A special thank you to our mentors, Erin Satterthwaite and Erika McPhillips, for their guidance and support.</p>
 </section>
 
 
 <div id="quarto-appendix" class="default"><section id="footnotes" class="footnotes footnotes-end-of-document" role="doc-endnotes"><h2 class="anchored quarto-appendix-heading">Footnotes</h2>
 
 <ol>
-<li id="fn1"><p>Bottle Database: <a href="https://calcofi.org/data/oceanographic-data/bottle-database/" class="uri">https://calcofi.org/data/oceanographic-data/bottle-database/</a><a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn2"><p>CalCOFI Zooplankton Volume Database: <a href="https://oceanview.pfeg.noaa.gov/erddap/tabledap/erdCalCOFIzoovol.html" class="uri">https://oceanview.pfeg.noaa.gov/erddap/tabledap/erdCalCOFIzoovol.html</a><a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn3"><p>BTEDB (Krill Volume) Data: <a href="https://portal.edirepository.org/nis/mapbrowse?packageid=knb-lter-cce.313.1" class="uri">https://portal.edirepository.org/nis/mapbrowse?packageid=knb-lter-cce.313.1</a><a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
-<li id="fn4"><p>PRPOOS (Zooplankton Calcifiers/Non-Calcifiers Volume) Zooscan Database: <a href="https://oceaninformatics.ucsd.edu/zooscandb/" class="uri">https://oceaninformatics.ucsd.edu/zooscandb/</a><a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn1"><p>Ocean acidification: <a href="https://www.nature.com/scitable/knowledge/library/ocean-acidification-25822734/" class="uri">https://www.nature.com/scitable/knowledge/library/ocean-acidification-25822734/</a><a href="#fnref1" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn2"><p>CalCOFI report: <a href="https://calcofi.org/downloads/publications/CalCOFI3YrReports/CalCOFI_Review_2017_2021.pdf" class="uri">https://calcofi.org/downloads/publications/CalCOFI3YrReports/CalCOFI_Review_2017_2021.pdf</a><a href="#fnref2" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn3"><p>Bottle Database: <a href="https://calcofi.org/data/oceanographic-data/bottle-database/" class="uri">https://calcofi.org/data/oceanographic-data/bottle-database/</a><a href="#fnref3" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn4"><p>CalCOFI Zooplankton Volume Database: <a href="https://oceanview.pfeg.noaa.gov/erddap/tabledap/erdCalCOFIzoovol.html" class="uri">https://oceanview.pfeg.noaa.gov/erddap/tabledap/erdCalCOFIzoovol.html</a><a href="#fnref4" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn5"><p>BTEDB (Krill Volume) Data: <a href="https://portal.edirepository.org/nis/mapbrowse?packageid=knb-lter-cce.313.1" class="uri">https://portal.edirepository.org/nis/mapbrowse?packageid=knb-lter-cce.313.1</a><a href="#fnref5" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
+<li id="fn6"><p>PRPOOS (Zooplankton Calcifiers/Non-Calcifiers Volume) Zooscan Database: <a href="https://oceaninformatics.ucsd.edu/zooscandb/" class="uri">https://oceaninformatics.ucsd.edu/zooscandb/</a><a href="#fnref6" class="footnote-back" role="doc-backlink">↩︎</a></p></li>
 </ol>
 </section></div></main>
 <!-- /main column -->

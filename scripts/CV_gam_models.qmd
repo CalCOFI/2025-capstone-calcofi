@@ -7,6 +7,8 @@ library(mgcv)
 library(tidyr)
 library(purrr)
 library(tibble)
+library(lubridate)
+library(stringr)
 ```
 
 ```{r}
@@ -52,7 +54,22 @@ bottle_data <- bottle_data %>%
 ```
 
 ```{r}
-# bottle_data %>% filter(Station_ID == "081.8 046.9") %>% dplyr::select(Station_ID, Year_UTC, Month_UTC, Depth_Saturation_Horizon, pH_at_saturation_depth, Season)
+bottle_data %>% filter(Station_ID == "081.8 046.9") %>% dplyr::select(Station_ID, Year_UTC, Month_UTC, Depth_Saturation_Horizon)
+```
+
+```{r}
+bottle_data[[221]] <- as.vector(bottle_data[[221]])
+bottle_data <- bottle_data %>%
+  filter(Depth_Saturation_Horizon >= 0 | is.na(Depth_Saturation_Horizon))
+write_csv(bottle_data, here::here("data/CV_bottle_test.csv"))
+```
+
+```{r}
+
+```
+
+```{r}
+
 ```
 
 ```{r}
@@ -163,6 +180,18 @@ zoop_merge <- zoop_merge %>%
 ```{r}
 ggplot(zoop_merge, aes(x=log1p(total_plankton), y=pH_at_saturation_depth)) + 
     geom_point()
+
+ggplot(zoop_merge, aes(x = pH_at_saturation_depth, y = log1p(`total_plankton`), color = Season)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~Season) +
+  labs(
+    title = "Bryozoan Larvae Abundance vs. pH by Season",
+    x = "pH at Saturation Depth",
+    y = "Log Total Abundance (no. per m2)",
+    color = "Season"
+  ) +
+  theme_minimal()
 ```
 
 ```{r}
@@ -257,7 +286,7 @@ prpoos_clean <- prpoos_clean %>%
 prpoos_merge <- bottle_data %>%
   inner_join(prpoos_clean, by = c("Station_ID", "Year_UTC", "Month_UTC"))
 
-prpoos_merge %>% dplyr::select(Station_ID, Year_UTC, Month_UTC, Depth_Saturation_Horizon, pH_at_saturation_depth, calcifier_total, non_calcifier_total)
+# prpoos_merge %>% dplyr::select(Station_ID, Year_UTC, Month_UTC, Depth_Saturation_Horizon, pH_at_saturation_depth, calcifier_total, non_calcifier_total)
 
 prpoos_merge <- prpoos_merge %>% distinct()
 ```
@@ -303,6 +332,16 @@ ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(non_calcifier_tot
   ) +
   theme_minimal()
 
+# prpoos_merge %>%
+#   mutate(log_calcifier_total = log1p(calcifier_total)) %>%
+#   group_by(Season.x) %>%
+#   summarize(
+#     correlation = cor(pH_at_saturation_depth, log_calcifier_total, use = "complete.obs", method = "pearson")
+#   )
+```
+
+```{r}
+
 ggplot(prpoos_merge, aes(x = Depth_Saturation_Horizon, y = log1p(calcifier_total), color = Season.x)) +
   geom_point(alpha = 0.2) +
   geom_smooth(method = "lm", se = FALSE) +
@@ -326,4 +365,226 @@ ggplot(prpoos_merge, aes(x = Depth_Saturation_Horizon, y = log1p(non_calcifier_t
     color = "Season"
   ) +
   theme_minimal()
+```
+
+```{r}
+ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(`bryozoan_larvae Abundance`), color = Season.x)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~Season.x) +
+  labs(
+    title = "Bryozoan Larvae Abundance vs. pH by Season",
+    x = "pH at Saturation Depth",
+    y = "Log Total Abundance (no. per m2)",
+    color = "Season"
+  ) +
+  theme_minimal()
+
+ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(`pteropoda_heteropoda Abundance`), color = Season.x)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~Season.x) +
+  labs(
+    title = "Pteropoda Heteropoda Abundance vs. pH by Season",
+    x = "pH at Saturation Depth",
+    y = "Log Total Abundance (no. per m2)",
+    color = "Season"
+  ) +
+  theme_minimal()
+
+ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(`ostracods Abundance`), color = Season.x)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~Season.x) +
+  labs(
+    title = "Ostracoda Abundance vs. pH by Season",
+    x = "pH at Saturation Depth",
+    y = "Log Total Abundance (no. per m2)",
+    color = "Season"
+  ) +
+  theme_minimal()
+
+
+
+ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(`rhizaria Abundance`), color = Season.x)) +
+  geom_point(alpha = 0.2) +
+  geom_smooth(method = "lm", se = FALSE) +
+  facet_wrap(~Season.x) +
+  labs(
+    title = "Rhizaria Abundance vs. pH by Season",
+    x = "pH at Saturation Depth",
+    y = "Log Total Abundance (no. per m2)",
+    color = "Season"
+  ) +
+  theme_minimal()
+```
+
+```{r}
+ggplot(bottle_data %>%
+         filter(!is.na(pH_at_saturation_depth), !is.na(Season), !is.na(Year_UTC)) %>%
+         group_by(Year_UTC, Season) %>%
+         summarize(mean_pH = mean(pH_at_saturation_depth, na.rm = TRUE), .groups = "drop"),
+       aes(x = Year_UTC, y = mean_pH)) +
+  geom_line(color = "steelblue", size = 1) +
+  geom_point(color = "steelblue") +
+  facet_wrap(~Season) +
+  labs(
+    title = "Seasonal Trends in pH at Saturation Depth",
+    x = "Year",
+    y = "Mean pH"
+  ) +
+  theme_minimal(base_size = 14)
+
+```
+
+
+#prpoos models
+
+```{r}
+library(lubridate)
+library(mgcv)
+library(ggplot2)
+library(dplyr)
+library(maps)
+library(stringr)
+library(readr)
+library(gam)
+# read in data
+prpoos_summary <- read_csv("../data/PRPOOS/prpoos_summary_namecleaned.csv")
+```
+
+
+```{r}
+abundance_vars <- names(prpoos_summary)[str_detect(names(prpoos_summary), "Abundance$")]
+
+# Example for one species, you can wrap in loop later
+species <- "bryozoan_larvaeAbundance"
+
+# Fit the GAM
+formula_text <- as.formula(paste("log1p(", species, ") ~ te(Longitude, Latitude) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean) + s(TA_mean) + s(DIC_mean) + s(RF_mean) + s(OmegaAR_mean) + s(pCO2_mean) + 
+                  s(Salinity_PSS78) +
+                  s(CTDTEMP_ITS90) +
+                  s(Year_UTC) + s(Month_UTC)"))
+gam_model_bl <- gam(formula_text, data = prpoos_summary)
+
+# Make a prediction grid over your spatial extent
+lon_seq <- seq(min(prpoos_summary$Longitude) - 3,
+               max(prpoos_summary$Longitude) + 3,
+               length.out = 200)
+lat_seq <- seq(min(prpoos_summary$Latitude) - 3,
+               max(prpoos_summary$Latitude) + 3,
+               length.out = 200)
+grid <- expand.grid(Longitude = lon_seq, Latitude = lat_seq)
+
+# Use mean values for non-spatial covariates
+grid$pH_mean <- mean(prpoos_summary$pH_mean, na.rm = TRUE)
+grid$OmegaCA_mean <- mean(prpoos_summary$OmegaCA_mean, na.rm = TRUE)
+grid$CO3_mean <- mean(prpoos_summary$CO3_mean, na.rm = TRUE)
+grid$TA_mean <- mean(prpoos_summary$TA_mean, na.rm = TRUE)
+grid$DIC_mean <- mean(prpoos_summary$DIC_mean, na.rm = TRUE)
+grid$RF_mean <- mean(prpoos_summary$RF_mean, na.rm = TRUE)
+grid$OmegaAR_mean <- mean(prpoos_summary$OmegaAR_mean, na.rm = TRUE)
+
+# Predict from GAM
+grid$fit <- predict(gam_model_bl, newdata = grid)
+
+# World map data
+world <- map_data("world")
+
+# Plot with ggplot2
+ggplot() +
+  geom_raster(data = grid, aes(x = Longitude, y = Latitude, fill = fit), alpha = 0.8) +  # transparency
+  borders("world", colour = "black") +
+  coord_quickmap(xlim = range(prpoos_summary$Longitude) + c(-2, 2),
+                 ylim = range(prpoos_summary$Latitude) + c(-2, 2)) +
+  scale_fill_viridis_c(name = paste("log1p(", species, ")", sep = "")) +
+  labs(title = paste("GAM Spatial Smooth for", gsub("Abundance$", "", species)),
+       x = "Longitude", y = "Latitude") +
+  geom_point(data = prpoos_summary, aes(x = Longitude, y = Latitude), 
+             shape = 21, fill = "white", color = "black", size = 2, stroke = 0.3) + 
+
+  theme_minimal()
+summary(gam_model_bl)
+AIC(gam_model_bl)
+plot(gam_model_bl)
+
+
+mymodel <- gam(
+  bryozoan_larvaeAbundance ~ 
+    te(Longitude, Latitude) +
+                  s(pH_mean) +
+                  s(TA_mean) + s(DIC_mean) +
+                  s(Salinity_PSS78) +
+                  s(CTDTEMP_ITS90) +
+                  s(Year_UTC) + s(Month_UTC) +
+                  s(pCO2in) + s(RFin) + s(CO3in) +s(OmegaCAin) + s(OmegaARin),
+  data = prpoos_summary,
+)
+
+summary(mymodel)
+```
+
+
+```{r}
+library(readr)
+plankton <- read_csv(here::here("data/zoop_data/Zooplankton-new.csv"))
+krill <- read_csv(here::here("data/krill_data/BTEDB_Abundances.csv"))
+
+plankton$Station_ID <- paste(
+  sprintf('%05.1f', plankton$line),
+  sprintf('%05.1f', as.numeric(plankton$station)),
+  sep = ' '
+)
+
+plankton <- plankton %>%
+  relocate(Station_ID, .before = line)
+
+## Create `Month` and `Year` variable
+plankton <- plankton %>%
+  mutate(
+    time = ymd_hms(time),
+    Year_UTC = year(time),
+    Month_UTC = month(time),
+    .after = time
+  )
+
+krill$Station_ID <- paste(
+  sprintf('%05.1f', krill$Line),
+  sprintf('%05.1f', as.numeric(krill$Station)),
+  sep = ' '
+)
+
+krill <- krill %>%
+  relocate(Station_ID, .before = Line)
+
+## Create `Month` and `Year` variable
+krill <- krill %>%
+  mutate(
+    Year_UTC = year(Date),
+    Month_UTC = month(Date),
+    .after = Date
+  )
+
+plankton %>%
+  summarise(
+    unique_stations = n_distinct(plankton$Station_ID),
+    min_year = min(Year_UTC, na.rm = TRUE),
+    max_year = max(Year_UTC, na.rm = TRUE),
+    num_observations = n()
+  )
+
+
+
+krill %>%
+  summarise(
+    unique_stations = n_distinct(Station_ID),
+    min_year = min(Year_UTC, na.rm = TRUE),
+    max_year = max(Year_UTC, na.rm = TRUE),
+    num_observations = n()
+  )
+
+
+unique_stations <- plankton %>% distinct(Station_ID)
+nrow(unique_stations)  # number of unique stations
+head(unique_stations)
 ```
