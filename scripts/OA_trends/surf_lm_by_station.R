@@ -40,6 +40,7 @@ stations <- bottle_co2sys %>%
   summarize(
     lat = mean(Latitude),
     lon = mean(Longitude),
+    observations = n()
   )
 
 # FIT LINEAR MODELS -------------------------------------------------------
@@ -276,7 +277,8 @@ ggplot(
     aes(
       x = lon,
       y = lat,
-      color = coastal
+      color = coastal,
+      size = observations
     ),
     show.legend=TRUE # force shape to always show in legend
   ) +
@@ -290,6 +292,7 @@ ggplot(
     values = c("Yes" = 24, "No" = 21),
     drop = FALSE # force both shapes to always show in legend
   ) +
+  scale_color_manual(labels = c("No", "Yes"), values = c("#F8766D", "#619CFF")) + 
   theme(
     panel.grid.major = element_line(
       color = gray(0.5), 
@@ -303,9 +306,22 @@ ggplot(
     fill = guide_colorbar(order = 1),
     size = guide_legend(order = 50),
     shape = guide_legend(order = 98)
+  ) + 
+  labs(
+    title = "Map of Sampling Stations",
+    x = "Longitude",
+    y = "Latidude",
+    size = "Observations",
+    col = "Coastal"
+  ) + 
+  theme(
+    plot.title = element_text(size = 28, hjust = 0.5),      # Title
+    legend.title = element_text(size = 20),                 # Legend title
+    legend.text = element_text(size = 18),                                  # Legend labels
+    axis.title = element_text(size = 20)
   )
 
-ggsave("images/OA_trends/coastal_stations.png", bg = "white")
+ggsave("images/OA_trends/coastal_stations.png", bg = "white", units = "in", width = 8, height = 8)
 
 
 

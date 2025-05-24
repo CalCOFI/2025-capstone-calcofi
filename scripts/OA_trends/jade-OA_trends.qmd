@@ -26,6 +26,17 @@ bottle_co2sys <- sea_dtd_data(qty, bottle_co2sys, "Date.cc")
 ```
 
 ```{r}
+bottle_co2sys |> 
+  ggplot() +
+  geom_histogram(aes(x = Date_Dec), fill = 'blue', color = "black") + 
+  theme_bw() +
+  xlab("Year") + 
+  ylab("Observations") + 
+  labs(title = "Number of Observations Per Year")
+```
+
+
+```{r}
 bottle_co2sys |> group_by(Station_ID, Depth, Date_Dec) |>
   filter(n() > 1) |>
   ungroup() |> 
