@@ -41,7 +41,7 @@ This project is sponsored by California Cooperative Oceanic Fisheries Investigat
 
 # Problems of Interest
 
-Our goal is to study the impact of ocean acidification on zooplankton and krill biovolumes off of the California coast. First, we want to conduct a cross-comparison of bottle data and biological data to assess the amount of spatial and temporal overlap present. Using co-located measurements, we wish to model the effects of ocean acidification, using carbonate chemistry and oceanographic variables, on zooplankton and krill abundance. Specifically, In addition, we are interested in exploring how pH and related environmental factors affect the abundance of calcifying versus non-calcifying species. 
+Our goal is to study the impact of ocean acidification on zooplankton and krill biovolumes off of the California coast. First, we want to conduct a cross-comparison of bottle data and biological data to assess the amount of spatial and temporal overlap present. Using co-located measurements, we wish to model the effects of ocean acidification, using carbonate chemistry and oceanographic variables, on zooplankton and krill abundance. Specifically, we wish to identify the key environemntal drivers contributing to plankton variability in a dynamic ocean environment. In addition, we are interested in exploring how pH and related environmental factors affect the abundance of calcifying versus non-calcifying species. 
 
 # Data
 
@@ -63,10 +63,8 @@ The PRPOOS (Planktonic Rate Processes in Oligotrophic Ocean Systems) dataset con
 
 # Key Definitions
 
-```{r}
-library(gt)
+```{r, fig.cap = "Table 1: Description of variables used in models."}
 
-# Define your data
 def_table <- tibble::tibble(
   Variable = c(
     "Total Alkalinity (TA)",
@@ -88,7 +86,7 @@ def_table <- tibble::tibble(
   )
 )
 
-# Create gt table
+
 def_table %>%
   gt() %>%
   cols_label(
@@ -164,8 +162,10 @@ To visualize the effects of pH on plankton abundance, we first had to find the d
 
 ### GAM for Total Plankton
 
+The model has an adjusted $R^2$ of 0.32 with an AIC of 1095. There are nine significant variables at the $\alpha=0.05$ level: longitude and latitude, DIC, salinity, temperature, month, CO3, silicate, and phosphate. The partial effect plots of these smooth terms are shown in Figures 1-2.  
 
-```{r}
+```{r, fig.cap = "Figure 1: Partial effects of significant GAM smooth terms on log(x+1) total zooplankton abundance."}
+# GAM for total plankton
 zooplankton <- read_csv("../data/zoop_data/zooplankton_pH.csv")
 
 total_zooplankton <- zooplankton %>% 
@@ -188,8 +188,8 @@ total_plankton_gam <- gam(
   data = total_zooplankton,
 )
 
-summary(total_plankton_gam)
-AIC(total_plankton_gam)
+#summary(total_plankton_gam)
+#AIC(total_plankton_gam)
 
 
 significant_terms <- c(3, 4, 6, 8, 11, 12, 15, 16)
@@ -200,10 +200,13 @@ for (i in significant_terms) {
   plot(total_plankton_gam, select = i, se = TRUE, shade = TRUE)
 }
 
+# mtext("Figure: Partial effects of significant GAM smooth terms on log plankton abundance",
+#       side = 1, line = 2, outer = TRUE, cex = 1.2)
 ```
 
+The strongest signals, TA, DIC, and temperature, show nonlinear relationships with zooplankton abundance and CO3 has a slight positive linear effect. Most of the other variables show weak or flat relationships. 
 
-```{r}
+```{r, fig.cap = "Figure 2: GAM spatial effect for log(x+1) total zooplankton abundance. Colors indicate positive or negative relationship with abundance and points represent individual stations. "}
 # grid res
 lon_seq <- seq(min(total_zooplankton$Longitude), max(total_zooplankton$Longitude), length.out = 100)
 lat_seq <- seq(min(total_zooplankton$Latitude), max(total_zooplankton$Latitude), length.out = 100)
@@ -260,7 +263,7 @@ ggplot() +
   geom_point(data = stations, aes(x = Longitude, y = Latitude), 
              color = "black", size = 1.5, alpha = 0.8) +
   coord_fixed(xlim = range(grid$Longitude), ylim = range(grid$Latitude)) +
-  scale_fill_viridis_c(name = "Predicted log Abundance") +
+  scale_fill_viridis_c(name = "Estimated Spatial Effect") +
   labs(
     title = "GAM Spatial Effect for Total Plankton",
     x = "Longitude", y = "Latitude"
@@ -269,11 +272,14 @@ ggplot() +
 
 ```
 
-
+Figure 2 shows that there is higher predicted abundance near the coast, specifically in the Santa Barbara Channel, and lower predicted abundance offshore. 
 
 ### GAM for Small Plankton
 
-```{r}
+The model has an adjusted $R^2$ of 0.4 with an AIC of 963. There are seven significant variables at the $\alpha=0.05$ level: longitude and latitude, pH, temperature, month, the revelle factor, silicate, and phosphate. The partial effect plots of these smooth terms are shown in Figures 3-4. 
+
+```{r, fig.cap = "Figure 3: Partial effects of significant GAM smooth terms on log(x+1) small zooplankton abundance."}
+# GAM for small plankton
 small_zooplankton <- zooplankton %>% 
   dplyr::select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, small_plankton, pHout, Latitude, Longitude, Year_UTC, Month_UTC, Station_ID, pCO2in, RFin, CO3in, OmegaCAin, OmegaARin, NO3uM, SiO3uM, PO4uM) %>%
   drop_na() %>%
@@ -294,8 +300,8 @@ small_plankton_gam <- gam(
   data = small_zooplankton,
 )
 
-summary(small_plankton_gam)
-AIC(small_plankton_gam)
+#summary(small_plankton_gam)
+#AIC(small_plankton_gam)
 
 
 significant_terms <- c(2, 6, 8, 10, 15, 16)
@@ -308,9 +314,9 @@ for (i in significant_terms) {
 
 ```
 
+Silicate shows the most consistent pattern with a slight negative effect, however, most variables have flat or weak effects on their own. 
 
-
-```{r}
+```{r, fig.cap = "Figure 4: GAM spatial effect for log(x+1) small plankton abundance."}
 # grid res
 lon_seq <- seq(min(small_zooplankton$Longitude), max(small_zooplankton$Longitude), length.out = 100)
 lat_seq <- seq(min(small_zooplankton$Latitude), max(small_zooplankton$Latitude), length.out = 100)
@@ -363,13 +369,15 @@ ggplot() +
   geom_point(data = stations, aes(x = Longitude, y = Latitude), 
              color = "black", size = 1.5, alpha = 0.8) +
   coord_fixed(xlim = range(grid$Longitude), ylim = range(grid$Latitude)) +
-  scale_fill_viridis_c(name = "Predicted\nLog\nAbundance") +
+  scale_fill_viridis_c(name = "Estimated Spatial Effect") +
   labs(
     title = "GAM Spatial Effect for Small Plankton",
     x = "Longitude", y = "Latitude"
   ) 
 
 ```
+
+Figure 4 shows coastal and northern regions show the highest predicted abundance whereas southern offshore regions show the lowest predicted abundance. This pattern is similar to Figure 2 although Figure 4 displays a smoother gradient from more to less abundant from shore to offshore, respectively, whereas Figure 2 displays more spatial structure. Figure 2 has slightly higher predicted values in some coastal areas, possibly due to the influence of large plankton taxa that cluster in coastal regions. 
 
 ## BTEDB Krill
 
@@ -524,7 +532,7 @@ prpoos_merge <- prpoos_merge %>%
 ```
 
 
-```{r}
+```{r, fig.cap = "Figure 5: Seasonal linear relatinoships between pH at saturation depth and log-transformed total abundance of calcifying zooplankton. There are steeper negative slopes (e.g. in summer and fall) suggesting stronger sensitivity to pH changes."}
 ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(calcifier_total), color = Season.x)) +
   geom_point(alpha = 0.2) +
   geom_smooth(method = "lm", se = FALSE) +
@@ -536,7 +544,9 @@ ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(calcifier_total),
     color = "Season"
   ) +
   theme_minimal()
+```
 
+```{r, fig.cap = "Figure 6: Seasonal linear relationships between pH at saturation depth and log-transformed total abundance of non-calcifying zooplankton. Trends are generally flatter across all seasons, indicating weaker or negligible relationships between abundance and pH."}
 ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(non_calcifier_total), color = Season.x)) +
   geom_point(alpha = 0.2) +
   geom_smooth(method = "lm", se = FALSE) +
@@ -557,10 +567,11 @@ ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(non_calcifier_tot
 #   )
 ```
 
+Figures 5-6 suggest the calcifying zooplankton exhibit stronger seasonal sensitivity to pH at saturation depth than non-calcifiers, but not in the way one would expect. In the summer and fall, calcifier abundance shows a clear, negative relationship with increasing pH. Non-calcifiers, by contrast, show relatively stable or weakly negative trends across all seasons except winter where there is a slight positive trend in both calcifier and non-calcifier abundance.
 
 #### Individual Calcifying Taxa vs. pH
 
-```{r}
+```{r, fig.cap = "Figure 7: Seasonal linear relationships between pH at saturation depth and log-transformed total abundance of bryozoan larvae."}
 ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(`bryozoan_larvae Abundance`), color = Season.x)) +
   geom_point(alpha = 0.2) +
   geom_smooth(method = "lm", se = FALSE) +
@@ -572,7 +583,9 @@ ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(`bryozoan_larvae 
     color = "Season"
   ) +
   theme_minimal()
+```
 
+```{r, fig.cap = "Figure 8: Seasonal linear relationships between pH at saturation depth and log-transformed total abundance of pteropoda heteropoda."}
 ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(`pteropoda_heteropoda Abundance`), color = Season.x)) +
   geom_point(alpha = 0.2) +
   geom_smooth(method = "lm", se = FALSE) +
@@ -584,7 +597,10 @@ ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(`pteropoda_hetero
     color = "Season"
   ) +
   theme_minimal()
+```
 
+
+```{r, fig.cap = "Figure 9: Seasonal linear relationships between pH at saturation depth and log-transformed total abundance of ostracods."}
 ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(`ostracods Abundance`), color = Season.x)) +
   geom_point(alpha = 0.2) +
   geom_smooth(method = "lm", se = FALSE) +
@@ -596,9 +612,9 @@ ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(`ostracods Abunda
     color = "Season"
   ) +
   theme_minimal()
+```
 
-
-
+```{r, fig.cap = "Figure 10: Seasonal linear relationships between pH at saturation depth and log-transformed total abundance of rhizaria."}
 ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(`rhizaria Abundance`), color = Season.x)) +
   geom_point(alpha = 0.2) +
   geom_smooth(method = "lm", se = FALSE) +
@@ -611,6 +627,10 @@ ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(`rhizaria Abundan
   ) +
   theme_minimal()
 ```
+
+Across all four calcifying taxa, there is a strong seasonal influence in how abundance responds to pH at the depth of the aragonite saturation horizon. Bryozoan larvae, pteropods/heterpods, and rhizaria follow similar patterns across seasons, with negative relationships between pH and abundance in fall and summer, indicating that these taxa may be most sensitive to higher pH during warmer months, and a positive relationship in winter. Ostracoda, on the other hand, appear relatively insensitive to pH fluctuations, except in spring where abundance has a positive relationship with pH. 
+
+Overall, these findings indicate that calcifying zooplankton responses to ocean acidifcation are not uniform and may be seasonally mediated. Also, they may be influenced by additional environmental factors, as supported by the GAMs.
 
 #### Visualizing Saturation Depth Over Time by Station
 
@@ -682,9 +702,11 @@ plot_saturation_horizon <- function(station_id, data) {
 }
 ```
 
-```{r}
+```{r, fig.cap = "Figure 11: Time series of the depth of aragonite saturation horizon at Station 81.8 46.9 from 2009-2021."}
 plot_saturation_horizon("081.8 046.9", bottle_data)
 ```
+
+The `plot_saturation_horizon` function visualizes the depth of the aragonite saturation horizon from 2009 to 2021 for a given Station ID. Blue points represent years with sufficient observations, while red points indicate limited data availability. Gray points at 0 m reflect missing values, where data were insufficient to interpolate a saturation depth. Shallower horizons (closer to the surface) indicate more corrosive conditions, whereas deeper depths are more favorable for calcifying organisms.
 
 ### GAMs for Individual Calcifying Taxa
 
@@ -963,10 +985,11 @@ plot(gam_model_bl)
 
 # Summary of Findings
 
+The GAMs showed that spatial patterns are consistent indicators of total and small zooplankton variation.
 
 # Future Work
 
-A potential extension of this project could to be to create an interactive spatio-temporal mapping tool where users can specify the taxa, time, and depth range to generate dynamic heatmaps of variables such as abundance, saturation horizon depths, and pH levels. 
+A potential extension of this project could to be to create an interactive spatio-temporal mapping tool where users can specify the taxa, time, and depth range to generate dynamic heatmaps of variables such as abundance, saturation horizon depths, and pH levels. Another extension could be to employ additional modeling approaches or incorporate more nutrient-based variables that plankton are dependent upon (e.g. chlorophyll) to increase the proportion of variance explained in the total and species-specific plankton modeling.
 
 
 
