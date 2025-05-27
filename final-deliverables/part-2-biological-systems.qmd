@@ -35,31 +35,45 @@ library(patchwork)
 
 # Introduction
 
-Since the start of the Industrial Revolution, atmospheric carbon dioxide levels have spiked upward due to practices like deforestation and the burning of fossil fuels, causing an ever increasing amount of carbon dioxide to dissolve into the ocean. Once dissolved, carbon dioxide undergoes a series of chemical equilibrium reactions that ultimately lowers the pH of the water in a process known as ocean acidification. This process has numerous ramifications on marine ecosystems, including but not limited to the impairment of specific pH dependent biological processes and the leaching of calcium carbonate required to build the shells and skeletons of many marine species.^[Ocean acidification: <https://www.nature.com/scitable/knowledge/library/ocean-acidification-25822734/>] 
+Since the start of the Industrial Revolution, atmospheric carbon dioxide levels have spiked upward due to practices like deforestation and the burning of fossil fuels, causing an ever increasing amount of carbon dioxide to dissolve into the ocean. Once dissolved, carbon dioxide undergoes a series of chemical equilibrium reactions that ultimately lowers the pH of the water in a process known as ocean acidification. This process has numerous ramifications on marine ecosystems, including but not limited to the impairment of specific pH dependent biological processes and the leaching of calcium carbonate required to build the shells and skeletons of many marine species.[^1]
 
-This project is sponsored by California Cooperative Oceanic Fisheries Investigations (CalCOFI), an organization founded in 1949 to study the ecological aspects of the Pacific sardine collapse off of the coast of California. CalCOFI is committed to studying California’s coastal marine environment and collecting relevant oceanographic data in order to provide insight on important climate change related topics such as renewable energy, integrated ocean management, and marine spatial planning.^[CalCOFI report: <https://calcofi.org/downloads/publications/CalCOFI3YrReports/CalCOFI_Review_2017_2021.pdf>]
+[^1]: Ocean acidification: <https://www.nature.com/scitable/knowledge/library/ocean-acidification-25822734/>
+
+This project is sponsored by California Cooperative Oceanic Fisheries Investigations (CalCOFI), an organization founded in 1949 to study the ecological aspects of the Pacific sardine collapse off of the coast of California. CalCOFI is committed to studying California’s coastal marine environment and collecting relevant oceanographic data in order to provide insight on important climate change related topics such as renewable energy, integrated ocean management, and marine spatial planning.[^2]
+
+[^2]: CalCOFI report: <https://calcofi.org/downloads/publications/CalCOFI3YrReports/CalCOFI_Review_2017_2021.pdf>
 
 # Problems of Interest
 
-Our goal is to study the impact of ocean acidification on zooplankton and krill biovolumes off of the California coast. First, we want to conduct a cross-comparison of bottle data and biological data to assess the amount of spatial and temporal overlap present. Using co-located measurements, we wish to model the effects of ocean acidification, using carbonate chemistry and oceanographic variables, on zooplankton and krill abundance. Specifically, we wish to identify the key environemntal drivers contributing to plankton variability in a dynamic ocean environment. In addition, we are interested in exploring how pH and related environmental factors affect the abundance of calcifying versus non-calcifying species. 
+Our goal is to study the impact of ocean acidification on zooplankton and krill biovolumes off of the California coast. First, we want to conduct a cross-comparison of bottle data and biological data to assess the amount of spatial and temporal overlap present. Using co-located measurements, we wish to model the effects of ocean acidification, using carbonate chemistry and oceanographic variables, on zooplankton and krill abundance. Specifically, we wish to identify the key environemntal drivers contributing to plankton variability in a dynamic ocean environment. In addition, we are interested in exploring how pH and related environmental factors affect the abundance of calcifying versus non-calcifying species.
 
 # Data
 
-## Bottle Data^[Bottle Database: <https://calcofi.org/data/oceanographic-data/bottle-database/>]
+## Bottle Data[^3]
+
+[^3]: Bottle Database: <https://calcofi.org/data/oceanographic-data/bottle-database/>
 
 CalCOFI has collected environmental and hydrographic data for over 70 years during their quarterly cruises to their CalCOFI stations. We used the merged data from Part I which contains oceanographic and carbonate chemistry data as well as computed CO2SYS values for variables such as $pH$, $CO_3$, and $\Omega_{aragonite}$.
 
-There are three datasets that we are focusing on for our biological data: (1) CalCOFI NOAA Zooplankton Volume, (2) BTEDB (Krill) Abundances, and (3) PRPOOS Data (for Zooplankton Calcifiers/Non-Calcifiers Abundance). The zooplankton and krill biovolume data are obtained using net tows (Bongo and/or Pairovet) at each standard CalCOFI station. The PRPOOS data is also obtained using a net tow but rather than sampling at station, it is conducted during transits between stations. These three datasets have each been merged with the bottle data to create zoop_data/zooplankton_pH.csv, krill_data/CV_merged_krill.csv, and PRPOOS/prpoos_summary.csv, respectively. Refer to Methods section for the merging process. 
+There are three datasets that we are focusing on for our biological data: (1) CalCOFI NOAA Zooplankton Volume, (2) BTEDB (Krill) Abundances, and (3) PRPOOS Data (for Zooplankton Calcifiers/Non-Calcifiers Abundance). The zooplankton and krill biovolume data are obtained using net tows (Bongo and/or Pairovet) at each standard CalCOFI station. The PRPOOS data is also obtained using a net tow but rather than sampling at station, it is conducted during transits between stations. These three datasets have each been merged with the bottle data to create zoop_data/zooplankton_pH.csv, krill_data/CV_merged_krill.csv, and PRPOOS/prpoos_summary.csv, respectively. Refer to Methods section for the merging process.
 
-## CalCOFI NOAA Zooplankton Volume^[CalCOFI Zooplankton Volume Database: <https://oceanview.pfeg.noaa.gov/erddap/tabledap/erdCalCOFIzoovol.html>]:
+## CalCOFI NOAA Zooplankton Volume[^4]:
+
+[^4]: CalCOFI Zooplankton Volume Database: <https://oceanview.pfeg.noaa.gov/erddap/tabledap/erdCalCOFIzoovol.html>
+
 The zooplankton biovolume data measures the amount of “plankton” (the small and microscopic organisms floating in the sea, consisting chiefly of diatoms, protozoans, small crustaceans, and the eggs and larval stages of larger animals) in the volume of sea water sampled. In particular, we are interested in the variables `total_plankton` and `small_plankton`.
 
-## BTEDB (Krill) Abundances^[BTEDB (Krill Volume) Data: <https://portal.edirepository.org/nis/mapbrowse?packageid=knb-lter-cce.313.1>]:
+## BTEDB (Krill) Abundances[^5]:
+
+[^5]: BTEDB (Krill Volume) Data: <https://portal.edirepository.org/nis/mapbrowse?packageid=knb-lter-cce.313.1>
 
 The krill dataset provides information on krill abundance from the Brinton and Townsend Euphausiid Database (BTEDB). The samples collected include species such as *Euphausia pacifica*, *Nematoscelis difficilis*, and *Thysanoessa spinifera*, with individuals categorized by size and developmental phase (e.g., calyptopis, furcilia, juvenile, adult).
 
-## PRPOOS (Calcifiers/Non-Calcifiers)^[PRPOOS (Zooplankton Calcifiers/Non-Calcifiers Volume) Zooscan Database: <https://oceaninformatics.ucsd.edu/zooscandb/>]:
-The PRPOOS (Planktonic Rate Processes in Oligotrophic Ocean Systems) dataset contains abundance and estimated biomass values for various zooplankton taxa, which can be categorized into calcifying and non-calcifying groups. The calcifying taxa are defined as *byrozoan larvae*, *pteropoda heteropoda*, *ostracods*, and *rhizaria*; the remaining taxa are considered non-calcifying. 
+## PRPOOS (Calcifiers/Non-Calcifiers)[^6]:
+
+[^6]: PRPOOS (Zooplankton Calcifiers/Non-Calcifiers Volume) Zooscan Database: <https://oceaninformatics.ucsd.edu/zooscandb/>
+
+The PRPOOS (Planktonic Rate Processes in Oligotrophic Ocean Systems) dataset contains abundance and estimated biomass values for various zooplankton taxa, which can be categorized into calcifying and non-calcifying groups. The calcifying taxa are defined as *byrozoan larvae*, *pteropoda heteropoda*, *ostracods*, and *rhizaria*; the remaining taxa are considered non-calcifying.
 
 # Key Definitions
 
@@ -109,8 +123,7 @@ def_table %>%
 
 ```
 
-
-# Methods 
+# Methods
 
 ## Summary of Merged Datasets
 
@@ -149,12 +162,11 @@ To merge the PRPOOS data (PRPOOS/PRPOOS_all.csv) with the bottle data (merged_bo
 
 ## Generalized Additive Models (GAMs)
 
-To model the response variables `total_plankton` and `small_plankton` in the NOAA dataset, we used GAMs with smoothing terms and spatial splines. We applied a log(x+1) transformation to both response variables. The following variables were used as predictors: spatial coordinates (longitude and latitude), oceanographic variables (salinity and temperature), temporal variables (month and year), carbonate chemistry variables (TA, DIC, pH, pCO2, RF, CO3, OmegaCA, and OmegaAR), and key macronutrients (nitrate, silicate, and phosphate). 
+To model the response variables `total_plankton` and `small_plankton` in the NOAA dataset, we used GAMs with smoothing terms and spatial splines. We applied a log(x+1) transformation to both response variables. The following variables were used as predictors: spatial coordinates (longitude and latitude), oceanographic variables (salinity and temperature), temporal variables (month and year), carbonate chemistry variables (TA, DIC, pH, pCO2, RF, CO3, OmegaCA, and OmegaAR), and key macronutrients (nitrate, silicate, and phosphate).
 
 ## Interpolating Depth of Saturation Horizon and pH
 
-To visualize the effects of pH on plankton abundance, we first had to find the depth of the saturation horizon for aragonite, which is the boundary between supersaturated conditions above and undersaturated conditions below. We are specifically looking at aragonite because it is a mineral form of calcium carbonate. To compute the saturation depth, we interpolate across depths to find where $\Omega_{aragonite}$ = 1. Then, to compute the pH value we interpolate again to find the pH at that threshold depth. We use the dataset merged_bottle_co2sys.csv. Yearly data was used to estimate the saturation horizon because it provides more stable estimates and then seasonal data was used to estimate the pH. 
-
+To visualize the effects of pH on plankton abundance, we first had to find the depth of the saturation horizon for aragonite, which is the boundary between supersaturated conditions above and undersaturated conditions below. We are specifically looking at aragonite because it is a mineral form of calcium carbonate. To compute the saturation depth, we interpolate across depths to find where $\Omega_{aragonite}$ = 1. Then, to compute the pH value we interpolate again to find the pH at that threshold depth. We use the dataset merged_bottle_co2sys.csv. Yearly data was used to estimate the saturation horizon because it provides more stable estimates and then seasonal data was used to estimate the pH.
 
 # Results
 
@@ -162,7 +174,7 @@ To visualize the effects of pH on plankton abundance, we first had to find the d
 
 ### GAM for Total Plankton
 
-The model has an adjusted $R^2$ of 0.32 with an AIC of 1095. There are nine significant variables at the $\alpha=0.05$ level: longitude and latitude, DIC, salinity, temperature, month, CO3, silicate, and phosphate. The partial effect plots of these smooth terms are shown in Figures 1-2.  
+The model has an adjusted $R^2$ of 0.32 with an AIC of 1095. There are nine significant variables at the $\alpha=0.05$ level: longitude and latitude, DIC, salinity, temperature, month, CO3, silicate, and phosphate. The partial effect plots of these smooth terms are shown in Figures 1-2.
 
 ```{r, fig.cap = "Figure 1: Partial effects of significant GAM smooth terms on log(x+1) total zooplankton abundance."}
 # GAM for total plankton
@@ -204,7 +216,7 @@ for (i in significant_terms) {
 #       side = 1, line = 2, outer = TRUE, cex = 1.2)
 ```
 
-The strongest signals, TA, DIC, and temperature, show nonlinear relationships with zooplankton abundance and CO3 has a slight positive linear effect. Most of the other variables show weak or flat relationships. 
+The strongest signals, TA, DIC, and temperature, show nonlinear relationships with zooplankton abundance and CO3 has a slight positive linear effect. Most of the other variables show weak or flat relationships.
 
 ```{r, fig.cap = "Figure 2: GAM spatial effect for log(x+1) total zooplankton abundance. Colors indicate positive or negative relationship with abundance and points represent individual stations. "}
 # grid res
@@ -272,11 +284,11 @@ ggplot() +
 
 ```
 
-Figure 2 shows that there is higher predicted abundance near the coast, specifically in the Santa Barbara Channel, and lower predicted abundance offshore. 
+Figure 2 shows that there is higher predicted abundance near the coast, specifically in the Santa Barbara Channel, and lower predicted abundance offshore.
 
 ### GAM for Small Plankton
 
-The model has an adjusted $R^2$ of 0.4 with an AIC of 963. There are seven significant variables at the $\alpha=0.05$ level: longitude and latitude, pH, temperature, month, the revelle factor, silicate, and phosphate. The partial effect plots of these smooth terms are shown in Figures 3-4. 
+The model has an adjusted $R^2$ of 0.4 with an AIC of 963. There are seven significant variables at the $\alpha=0.05$ level: longitude and latitude, pH, temperature, month, the revelle factor, silicate, and phosphate. The partial effect plots of these smooth terms are shown in Figures 3-4.
 
 ```{r, fig.cap = "Figure 3: Partial effects of significant GAM smooth terms on log(x+1) small zooplankton abundance."}
 # GAM for small plankton
@@ -314,7 +326,7 @@ for (i in significant_terms) {
 
 ```
 
-Silicate shows the most consistent pattern with a slight negative effect, however, most variables have flat or weak effects on their own. 
+Silicate shows the most consistent pattern with a slight negative effect, however, most variables have flat or weak effects on their own.
 
 ```{r, fig.cap = "Figure 4: GAM spatial effect for log(x+1) small plankton abundance."}
 # grid res
@@ -377,7 +389,7 @@ ggplot() +
 
 ```
 
-Figure 4 shows coastal and northern regions show the highest predicted abundance whereas southern offshore regions show the lowest predicted abundance. This pattern is similar to Figure 2 although Figure 4 displays a smoother gradient from more to less abundant from shore to offshore, respectively, whereas Figure 2 displays more spatial structure. Figure 2 has slightly higher predicted values in some coastal areas, possibly due to the influence of large plankton taxa that cluster in coastal regions. 
+Figure 4 shows coastal and northern regions show the highest predicted abundance whereas southern offshore regions show the lowest predicted abundance. This pattern is similar to Figure 2 although Figure 4 displays a smoother gradient from more to less abundant from shore to offshore, respectively, whereas Figure 2 displays more spatial structure. Figure 2 has slightly higher predicted values in some coastal areas, possibly due to the influence of large plankton taxa that cluster in coastal regions.
 
 ## BTEDB Krill
 
@@ -531,7 +543,6 @@ prpoos_merge <- prpoos_merge %>%
   filter(Depth_Saturation_Horizon >= 0 | is.na(Depth_Saturation_Horizon))
 ```
 
-
 ```{r, fig.cap = "Figure 5: Seasonal linear relatinoships between pH at saturation depth and log-transformed total abundance of calcifying zooplankton. There are steeper negative slopes (e.g. in summer and fall) suggesting stronger sensitivity to pH changes."}
 ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(calcifier_total), color = Season.x)) +
   geom_point(alpha = 0.2) +
@@ -599,7 +610,6 @@ ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(`pteropoda_hetero
   theme_minimal()
 ```
 
-
 ```{r, fig.cap = "Figure 9: Seasonal linear relationships between pH at saturation depth and log-transformed total abundance of ostracods."}
 ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(`ostracods Abundance`), color = Season.x)) +
   geom_point(alpha = 0.2) +
@@ -628,7 +638,7 @@ ggplot(prpoos_merge, aes(x = pH_at_saturation_depth, y = log1p(`rhizaria Abundan
   theme_minimal()
 ```
 
-Across all four calcifying taxa, there is a strong seasonal influence in how abundance responds to pH at the depth of the aragonite saturation horizon. Bryozoan larvae, pteropods/heterpods, and rhizaria follow similar patterns across seasons, with negative relationships between pH and abundance in fall and summer, indicating that these taxa may be most sensitive to higher pH during warmer months, and a positive relationship in winter. Ostracoda, on the other hand, appear relatively insensitive to pH fluctuations, except in spring where abundance has a positive relationship with pH. 
+Across all four calcifying taxa, there is a strong seasonal influence in how abundance responds to pH at the depth of the aragonite saturation horizon. Bryozoan larvae, pteropods/heterpods, and rhizaria follow similar patterns across seasons, with negative relationships between pH and abundance in fall and summer, indicating that these taxa may be most sensitive to higher pH during warmer months, and a positive relationship in winter. Ostracoda, on the other hand, appear relatively insensitive to pH fluctuations, except in spring where abundance has a positive relationship with pH.
 
 Overall, these findings indicate that calcifying zooplankton responses to ocean acidifcation are not uniform and may be seasonally mediated. Also, they may be influenced by additional environmental factors, as supported by the GAMs.
 
@@ -714,7 +724,6 @@ The `plot_saturation_horizon` function visualizes the depth of the aragonite sat
 # read in data
 prpoos_summary <- read_csv("../data/PRPOOS/prpoos_summary_namecleaned.csv")
 ```
-
 
 ```{r}
 abundance_vars <- names(prpoos_summary)[str_detect(names(prpoos_summary), "Abundance$")]
@@ -980,9 +989,6 @@ plot(gam_model_bl)
 
 ```
 
-
-
-
 # Summary of Findings
 
 The GAMs showed that spatial patterns are consistent indicators of total and small zooplankton variation.
@@ -991,10 +997,6 @@ The GAMs showed that spatial patterns are consistent indicators of total and sma
 
 A potential extension of this project could to be to create an interactive spatio-temporal mapping tool where users can specify the taxa, time, and depth range to generate dynamic heatmaps of variables such as abundance, saturation horizon depths, and pH levels. Another extension could be to employ additional modeling approaches or incorporate more nutrient-based variables that plankton are dependent upon (e.g. chlorophyll) to increase the proportion of variance explained in the total and species-specific plankton modeling.
 
-
-
 # Acknowledgements
 
-A special thank you to our mentors, Erin Satterthwaite, Todd Martz, Brice Semmens, and Erika McPhillips, for their guidance and support. 
-
-
+A special thank you to our mentors, Erin Satterthwaite, Todd Martz, Brice Semmens, and Erika McPhillips, for their guidance and support.
