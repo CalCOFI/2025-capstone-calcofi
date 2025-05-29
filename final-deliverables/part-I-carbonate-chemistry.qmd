@@ -1,7 +1,14 @@
 ---
 title: "Carbonate Chemistry Trend Analysis"
-format: html
+format:
+  html:
+    code-fold: true
+
+execute: 
+  warning: false
+  message: false
 ---
+
 
 # Overview
 
@@ -28,7 +35,7 @@ library(tidyverse)
 
 # Read in oceanographic bottle data
 hydro_bottle <- read_csv(
-  "data/194903-202105_Bottle.csv",
+  "part-1/data/194903-202105_Bottle.csv",
    # change encoding
    locale=locale(encoding="latin1"),
    # increase guess_max to correctly guess column types
@@ -36,10 +43,10 @@ hydro_bottle <- read_csv(
 )
 
 # Read in cast data
-cast_bottle <- read_csv("data/194903-202105_Cast.csv")
+cast_bottle <- read_csv("part-1/data/194903-202105_Cast.csv")
 
 # Read in carbonate chemistry bottle data
-cc_bottle <- read_csv("data/carbonate_chem_bottle.csv")
+cc_bottle <- read_csv("part-1/data/carbonate_chem_bottle.csv")
 
 # Drop first row (containing units) of carbonate chemistry bottle data
 cc_bottle <- cc_bottle[2:nrow(cc_bottle),]
@@ -95,17 +102,112 @@ merged_bottle_data <- inner_join(
 )
 
 # Save merged data
-write_csv(merged_bottle_data, "data/merged_bottle_data.csv")
+write_csv(merged_bottle_data, "part-1/data/merged_bottle_data.csv")
 ```
 
 ## EDA
 
-Next we'll take a closer look at some of the variables of interest in our new merged dataset. 
+### Sampling Over Time
 
-Firstly, we'll examine how the 
+The below histogram shows the number of observations recorded each year. Note that there is a gap from 2002 to 2007.
 
 ```{r}
+merged_bottle_data |> 
+  ggplot() +
+  geom_histogram(aes(x = Date.cc), fill = 'blue', color = "black") + 
+  theme_bw() +
+  xlab("Year") + 
+  ylab("Observations") + 
+  labs(title = "Number of Observations Per Year")
+```
 
+### Map of Sampling Stations
+
+Next we'll take a closer look at what our data looks like by creating a map of the sampling stations.
+
+```{r}
+library(gt)
+library(sf)
+library(rnaturalearth)
+library(scales)
+
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+stations <- merged_bottle_data %>%
+  group_by(
+    Station_ID
+  ) %>%
+  summarize(
+    lat = mean(Latitude),
+    lon = mean(Longitude),
+    observations = n()
+  )
+
+ggplot(
+  data = world
+) +
+  geom_sf(fill = "antiquewhite1") +
+  geom_point(
+    data = stations,
+    aes(
+      x = lon,
+      y = lat,
+      fill = observations,
+    ),
+    color = "black",
+    pch = 21,
+    show.legend=TRUE # force shape to always show in legend
+  ) +
+  coord_sf(
+    xlim = c(stations$lon %>% min() - 2, stations$lon %>% max() + 2),
+    ylim = c(stations$lat %>% min(), stations$lat %>% max())
+  ) +
+  # create color scale for slope estimates
+  scale_fill_gradient2(
+    low = "#d7191c",
+    high = "#2c7bb6",
+    mid = "#ffffbf"
+  ) +
+  # create custom shape scale
+  scale_shape_manual(
+    values = c("Yes" = 24, "No" = 21),
+    drop = FALSE # force both shapes to always show in legend
+  ) +
+  theme(
+    panel.grid.major = element_line(
+      color = gray(0.5), 
+      linetype = "solid", 
+      linewidth = 0.5
+    ), 
+    panel.background = element_rect(fill = "aliceblue")
+  ) +
+  # fix the order of the legends
+  guides(
+    fill = guide_colorbar(order = 1),
+    size = guide_legend(order = 50),
+    shape = guide_legend(order = 98)
+  ) +
+  labs(
+    x = NULL,
+    y = NULL,
+    title = "Map of CalCOFI Sampling Stations",
+    fill = str_wrap("Number of Observations", 40)
+  )
+
+```
+
+### Outliers
+
+The below histogram shows the distribution of salinity in the dataset. Note that there is a small group of observations with salinity values in the 20's. These are unreasonable values that are likely a result of a data entry error, so we will be mindful to remove these observations from future analysis.
+
+```{r}
+merged_bottle_data |> 
+  ggplot() +
+  geom_histogram(aes(x = Salnty), fill = 'blue', color = "black") + 
+  theme_bw() +
+  xlab("Salinity") + 
+  ylab("Observations") + 
+  labs(title = "Salinity Distribution")
 ```
 
 
@@ -123,7 +225,14 @@ The resulting dataset of CO2SYS calculated varaibles is named CO2SYS_out.csv in 
 
 # Carbon Trend Analysis
 
-As mentioned prior, we are interested in examining how carbonate chemistry variables have been changing over time, and whether this temporal trend differs among coastal versus non coastal stations. 
+As mentioned prior, we are interested in examining how carbonate chemistry variables have been changing over time, and whether this temporal trend differs among coastal versus non coastal stations. In particular, we are interested in the following variables:
+- `TA`
+- `DIC`
+- `pCO2in`
+- `pHin`
+- `CO3in`
+- `OmegaCAin`
+- `OmegaARin`
 
 As pointed out in  “Advancing best practices for assessing trends of ocean acidification time series” by Sutton et al, oceanographic carbonate time series data is likely to have a seasonal trend. Below we create a function we can apply to our data to deal with this by following the procedure that Sutton outlined in the above article.
 
@@ -233,8 +342,8 @@ library(ggrepel)
 # READ AND PROCESS DATA ---------------------------------------------------
 
 # Load merged bottle data and CO2SYS output
-merged_bottle_data <- read_csv("data/merged_bottle_data.csv")
-co2sys_out <- read_csv("data/CO2SYS_out.csv")
+merged_bottle_data <- read_csv("part-1/data/merged_bottle_data.csv")
+co2sys_out <- read_csv("part-1/data/CO2SYS_out.csv")
 
 # Combine merged bottle data and CO2SYS output and filter out anomalies
 bottle_co2sys <- bind_cols(merged_bottle_data, co2sys_out) %>%
@@ -244,7 +353,7 @@ bottle_co2sys <- bind_cols(merged_bottle_data, co2sys_out) %>%
   )
 
 # Create vector of variables to be detrended
-qty <- c("T_degC","Salnty","TA","DIC","pCO2in","RFin","pHin","CO3in","OmegaCAin","OmegaARin")
+qty <- c("TA","DIC","pCO2in","pHin","CO3in","OmegaCAin","OmegaARin")
 
 # Detrend variables of interest
 bottle_co2sys <- sea_dtd_data(qty, bottle_co2sys, "Date.cc")
@@ -257,6 +366,7 @@ stations <- bottle_co2sys %>%
   summarize(
     lat = mean(Latitude),
     lon = mean(Longitude),
+    observations = n()
   )
 
 # FIT LINEAR MODELS -------------------------------------------------------
@@ -417,7 +527,7 @@ for (i in 1:10) {
     )
   
   # save plots
-  ggsave(paste0("images/surf_", qty[i], "_by_station.png"), bg = "white", units = "in", width = 8, height = 8)
+  ggsave(paste0("part-1/images/surf_", qty[i], "_by_station.png"), bg = "white", units = "in", width = 8, height = 8)
 }
 ```
 
@@ -425,7 +535,7 @@ All of the plots can be found in the images folder, below we can see an example 
 
 
 ```{r, echo=FALSE}
-knitr::include_graphics("images/surf_DIC_by_station.png")
+knitr::include_graphics("part-1/images/surf_DIC_by_station.png")
 ```
 
 We can also use the `sign_stations` dataframe we made earlier to create a map that shows the proportion of models with a significant temporal trend for each station. 
@@ -485,17 +595,301 @@ ggplot(
     size = str_wrap("Proportion of Variables of Interest with Significant Temporal Trend", 40)
   )
 ```
-
+From this plot we see that stations further from the coast tend to have a higher proportion of variables of interest that have a significant temporal trend. We are interested in performing a hypothesis testing to see if this is truly the case, which leads us to creating hierarchical models. 
 
 ## Hierarchical Model
 
+In order to rigorously test the overall temporal trend for each of our variables of interest, as well as to determine if their is an interaction between time and coastal stations we will use hierarchical models.
 
-# Conclusion
+The first step is to determine which stations to classify as coastal stations. This process was done by hand using our intuition, and a map of the results can be seen below. 
+
+```{r}
+st_test <- stations
+st_test$st <- 0
+st_test$line <- 0
+for (i in 1:nrow(st_test)){
+  st_test$st[i] <- str_split(st_test$Station_ID[i], " ")[[1]][1]
+  st_test$line[i] <- str_split(st_test$Station_ID[i], " ")[[1]][2]
+}
+st_test <- st_test |> 
+mutate(coastal = case_when(
+  (as.numeric(st) <= 86) & (as.numeric(line) < 70) ~ TRUE,
+  (as.numeric(st) < 90) & (as.numeric(line) < 40) ~ TRUE,
+  (as.numeric(st)) >= 90 & (as.numeric(line) < 35) ~ TRUE,
+  TRUE ~ FALSE
+))
 
 
+ggplot(
+  data = world
+) +
+  geom_sf(fill = "antiquewhite1") +
+  geom_point(
+    data = st_test,
+    aes(
+      x = lon,
+      y = lat,
+      color = coastal,
+      size = observations
+    ),
+    show.legend=TRUE # force shape to always show in legend
+  ) +
+  # manually adjust coordinates
+  coord_sf(
+    xlim = c(st_test$lon %>% min() - 2, st_test$lon %>% max() + 2),
+    ylim = c(st_test$lat %>% min(), st_test$lat %>% max())
+  ) +
+  # create custom shape scale
+  scale_shape_manual(
+    values = c("Yes" = 24, "No" = 21),
+    drop = FALSE # force both shapes to always show in legend
+  ) +
+  scale_color_manual(labels = c("No", "Yes"), values = c("#F8766D", "#619CFF")) + 
+  theme(
+    panel.grid.major = element_line(
+      color = gray(0.5), 
+      linetype = "solid", 
+      linewidth = 0.5
+    ), 
+    panel.background = element_rect(fill = "aliceblue")
+  ) +
+  # fix the order of the legends
+  guides(
+    fill = guide_colorbar(order = 1),
+    size = guide_legend(order = 50),
+    shape = guide_legend(order = 98)
+  ) + 
+  labs(
+    title = "Map of Sampling Stations",
+    x = "Longitude",
+    y = "Latidude",
+    size = "Observations",
+    col = "Coastal"
+  ) + 
+  theme(
+    plot.title = element_text(size = 28, hjust = 0.5),      # Title
+    legend.title = element_text(size = 20),                 # Legend title
+    legend.text = element_text(size = 18),                                  # Legend labels
+    axis.title = element_text(size = 20)
+  )
+```
 
-# ALSO NEEDED
-- Note of Gap in data
-- graph showing observations over time
-- EDA?
-- Either examining columns in data or pointing to a website that does it
+
+Next we need to actually fit the hierarchical models. These models will be specified as follows: 
+
+$$
+response_{ij} = time_i + coastal\_int_i + time_i*coastal\_int_i + depth_i 
+$$
+with the exception of pH and TA which will instead be modeled: 
+$$
+response_{ij} = time_i + coastal\_int_i + time_i*coastal\_int_i
+$$
+since these variables have a different relationship with depth, and omitting depth from the model results in a better AIC value.
+
+Note that `coastal_int` is an indicator variable for if the observation belongs to a coastal station. 
+
+The following code outlines the model fitting process. 
+```{r}
+library(tidyverse)
+library(lme4)
+library(gt)
+library(MuMIn)
+library(ModelMetrics)
+
+
+merged_bottle_data <- read_csv(here::here("data/merged_bottle_data.csv"))
+co2sys_out <- read_csv(here::here("data/CO2SYS_out.csv"))
+
+# Combine merged bottle data and CO2SYS output and filter out anomalies
+surf_bottle_co2sys <- bind_cols(merged_bottle_data, co2sys_out) %>%
+  filter(
+    Salnty > 30,
+    Depth <= 20
+  )
+
+qty <- c("T_degC", "Salnty","TA","DIC","pCO2in", "RFin", "pHin","CO3in","OmegaCAin","OmegaARin")
+
+# Detrend variables of interest
+surf_bottle_co2sys <- sea_dtd_data(qty, surf_bottle_co2sys, "Date.cc")
+
+# Average repeated measures
+
+surf_bottle_co2sys <- surf_bottle_co2sys |> group_by(Station_ID, Depth, Date.cc) |>
+  select(Station_ID, Depth, Date_Dec, TA_dtd, T_degC_dtd, DIC_dtd, pCO2in_dtd, RFin_dtd, pHin_dtd, CO3in_dtd, OmegaCAin_dtd, OmegaARin_dtd, Salnty_dtd) |> 
+  summarize(Station_ID = max(Station_ID),
+            Depth = max(Depth),
+            Date_Dec = max(Date_Dec),
+            TA_dtd = mean(TA_dtd, na.rm = T),
+            DIC_dtd = mean(DIC_dtd, na.rm = T),
+            T_degC_dtd = mean(T_degC_dtd, na.rm = T),
+            pCO2in_dtd = mean(pCO2in_dtd, na.rm = T),
+            RFin_dtd = mean(RFin_dtd),
+            pHin_dtd = mean(pHin_dtd),
+            CO3in_dtd = mean(CO3in_dtd, na.rm = T),
+            OmegaCAin_dtd = mean(OmegaCAin_dtd, na.rm = T),
+            OmegaARin_dtd = mean(OmegaARin_dtd, na.rm = T),
+            Salnty_dtd = mean(Salnty_dtd, na.rm = T)) |> 
+  ungroup()
+
+surf_bottle_co2sys$st <- 0
+surf_bottle_co2sys$line <- 0
+for (i in 1:nrow(surf_bottle_co2sys)){
+  surf_bottle_co2sys$st[i] <- str_split(surf_bottle_co2sys$Station_ID[i], " ")[[1]][1]
+  surf_bottle_co2sys$line[i] <- str_split(surf_bottle_co2sys$Station_ID[i], " ")[[1]][2]
+}
+surf_bottle_co2sys <- surf_bottle_co2sys |> 
+  mutate(coastal = case_when(
+    (as.numeric(st) <= 86) & (as.numeric(line) < 70) ~ TRUE,
+    (as.numeric(st) < 90) & (as.numeric(line) < 40) ~ TRUE,
+    (as.numeric(st)) >= 90 & (as.numeric(line) < 35) ~ TRUE,
+    TRUE ~ FALSE
+  ))
+
+# Modeling
+
+# Depth is either included or not based on if it increases AIC 
+# models for pH, and TA do not include depth
+
+surf_bottle_co2sys <- surf_bottle_co2sys |> 
+  filter(!is.na(Date_Dec)) |> 
+  mutate(Date_Dec_cen = Date_Dec - min(surf_bottle_co2sys$Date_Dec))
+
+omegaARin_mod <- lmer(
+  OmegaARin_dtd ~ Date_Dec + Date_Dec:coastal + Depth + coastal + (1 | Station_ID),
+  data = surf_bottle_co2sys,
+  na.action = na.omit,
+  REML = FALSE
+)
+
+TA_mod <- lmer(
+  TA_dtd ~ Date_Dec + Date_Dec:coastal + coastal + (1 | Station_ID),
+  data = surf_bottle_co2sys,
+  na.action = na.omit,
+  REML = FALSE
+)
+
+DIC_mod <- lmer(
+  DIC_dtd ~ Date_Dec + Date_Dec:coastal +  Depth + coastal + (1 | Station_ID),
+  data = surf_bottle_co2sys,
+  na.action = na.omit,
+  REML = FALSE
+)
+
+
+pCO2in_mod <- lmer(
+  pCO2in_dtd ~ Date_Dec + Date_Dec:coastal + Depth + coastal + (1 | Station_ID),
+  data = surf_bottle_co2sys,
+  na.action = na.omit,
+  REML = FALSE
+)
+
+
+pHin_mod <- lmer(
+  pHin_dtd ~ Date_Dec + Date_Dec:coastal + coastal + (1 | Station_ID),
+  data = surf_bottle_co2sys,
+  na.action = na.omit,
+  REML = FALSE
+)
+
+CO3in_mod <- lmer(
+  CO3in_dtd ~ Date_Dec + Date_Dec:coastal +  Depth + coastal + (1 | Station_ID),
+  data = surf_bottle_co2sys,
+  na.action = na.omit,
+  REML = FALSE
+)
+
+omegaCAin_mod <- lmer(
+  OmegaCAin_dtd ~ Date_Dec + Date_Dec:coastal +  Depth + coastal + (1 | Station_ID),
+  data = surf_bottle_co2sys,
+  na.action = na.omit,
+  REML = FALSE
+)
+
+```
+
+Next we will format the results into a table.
+
+```{r}
+models <- list(TA_mod, DIC_mod, pCO2in_mod, pHin_mod, CO3in_mod, omegaCAin_mod, omegaARin_mod)
+lapply(
+  1:7,
+  function(i) {
+    c(qty = qty[i], 
+      int_est = coef(summary(models[[i]]))[nrow(coef(summary(models[[i]]))),1], 
+      t_est = coef(summary(models[[i]]))[2,1], n = nobs(models[[i]]),
+      r2 = r.squaredGLMM(models[[i]])[2],
+      int_CI = paste0("(", format(round(confint(models[[i]])[nrow(confint(models[[i]])),1], 5), nsmall = 5), ", ", format(round(confint(models[[i]])[nrow(confint(models[[i]])),2], 5), nsmall = 5), ")"),
+      t_CI = paste0("(", format(round(confint(models[[i]])[4,1], 5), nsmall = 5), ", ", format(round(confint(models[[i]])[4,2], 5), nsmall = 5), ")"),
+      t_p = coef(summary(models[[i]]))[2,3],
+      int_p= coef(summary(models[[i]]))[nrow(coef(summary(models[[i]]))),2])
+  }
+) %>%
+  # combine results into a dataframe
+  bind_rows() %>%
+  # convert appropriate columns to numeric
+  mutate(
+    across(-c(qty, t_CI, int_CI), as.numeric)
+  ) %>%
+  # rename quantities vector for tidier appearance in table
+  mutate(
+    qty = c("TA", "DIC", "*p*CO2", "pH", "CO~3~<sup>2-</sup>", "Ω~calcite~", "Ω~aragonite~")
+  ) %>%
+  gt(
+    rowname_col = "qty"
+  ) %>%
+  tab_spanner(
+    label = "Temporal Effect",
+    columns = c(t_est, t_CI, t_p)
+  ) |> 
+  tab_spanner(
+    label = "Temporal-Coastal Interaction Effect",
+    columns = c(int_est, int_CI, int_p)
+  ) |> 
+  tab_header(
+    title = "Carbonate Chemistry Mixed Effect Regression Statistics for CalCOFI Stations"
+  ) %>%
+  tab_row_group(
+    label = "Seawater carbonate chemistry",
+    rows = c("DIC", "TA", "*p*CO2")
+  ) %>%
+  tab_row_group(
+    label = "Ocean acidification indicators",
+    rows = c("pH", "CO~3~<sup>2-</sup>", "Ω~calcite~", "Ω~aragonite~")
+  ) |> 
+  # add label to row names
+  tab_stubhead(
+    label = "Parameter"
+  ) %>%
+  # rename columns
+  cols_label(
+    t_est = "Estimate",
+    int_est = "Estimate",
+    t_p = "p-value",
+    int_p = "p-value",
+    r2 = md("r<sup>2</sup>"),
+    t_CI = "95% CI",
+    int_CI = "95% CI"
+    
+  ) %>%
+  fmt_markdown(
+    columns = c(qty, t_CI, int_CI)
+  ) %>%
+  fmt_number(
+    columns = c("t_est", "int_est", "t_p", "int_p", "r2"),
+    decimals = 4
+  ) %>%
+  sub_small_vals(
+    columns = c(t_p, int_p),
+    threshold = 0.0001
+  ) %>%
+  opt_stylize(
+    style = 3
+  ) |> 
+  tab_options(
+    heading.title.font.size = 25
+  )
+```
+As seen in the above table we can conclude that all variables of interest except for TA have a significant temporal effect, and all variables of interest except for pH, DIC, and pCO2 have significant temporal-coastal interactions, which implies that there is evidence for reduced carbon uptake at coastal stations due to coastal upwelling.
+
+# Acknowledgements
+A special thank you to our mentors, Erin Satterthwaite, Todd Martz, Brice Semmens, and Erika McPhillips, for their guidance and support.
