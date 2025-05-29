@@ -3,20 +3,20 @@ title: "Carbonate Chemistry Trend Analysis"
 format:
   html:
     code-fold: true
+    toc: true
 
 execute: 
   warning: false
   message: false
 ---
 
-
 # Overview
 
 This project is sponsored by California Cooperative Oceanic Fisheries Investigations (CalCOFI), an organization founded in 1949 to study the ecological aspects of the Pacific sardine collapse off of the coast of California. CalCOFI is committed to studying California’s coastal marine environment and collecting relevant oceanographic data in order to provide insight on important climate change related topics such as renewable energy, integrated ocean management, and marine spatial planning.
 
-We aim to extend the research done in “A 37 year record of ocean acidification in the Southern California current” by Wolfe et al. on the yearly rate of change of certain carbonate chemistry variables by examining all available carbonate chemistry data collected across CalCOFI observation stations rather than only surface data collected at station 90.90.
+We aim to extend the research done in [“A 37 year record of ocean acidification in the Southern California current” by Wolfe et al.](https://www.nature.com/articles/s43247-023-01065-0) on the yearly rate of change of certain carbonate chemistry variables by examining all available carbonate chemistry data collected across CalCOFI observation stations rather than only surface data collected at station 90.90.
 
-In particular, it is of interest to examine how the measurements of important ocean carbon chemistry and oceanographic variables have changed over time, namely total alkalinity (TA), total dissolved inorganic carbon (DIC), the Revelle Factor, pH, pCO2, Omega aragonite ($\Omega_{aragonite}$), Omega calcite ($\Omega_{calcite}$), temperature, salinity, and CO2-. Additionally, we aim to examine whether there is a difference in carbon uptake between coastal and non coastal stations due to coastal upwelling. Finally, we wish to assess the performance of Empirical Seawater Property Estimation Routines (ESPER) in predicting carbonate chemistry variables across different depths with easy to collect oceanographic variables such as temperature and salinity as inputs. 
+In particular, it is of interest to examine how the measurements of important ocean carbon chemistry and oceanographic variables have changed over time, namely total alkalinity (TA), total dissolved inorganic carbon (DIC), pH, pCO2, Omega aragonite ($\Omega_{aragonite}$), Omega calcite ($\Omega_{calcite}$), and CO2-. Additionally, we aim to examine whether there is a difference in carbon uptake between coastal and non coastal stations due to coastal upwelling. Finally, we wish to assess the performance of Empirical Seawater Property Estimation Routines (ESPER) in predicting carbonate chemistry variables across different depths with easy to collect oceanographic variables such as temperature and salinity as inputs. 
 
 # Data
 
@@ -24,7 +24,7 @@ CalCOFI samples from a predetermined sampling grid off the coast of California o
 
 While oceanographic data is measured on every CalCOFI cruise, carbonate chemistry values such as TA and DIC are only occasionally measured from the collected water samples and are stored in their own dataset. 
 
-The oceanographic dataset can be found here https://calcofi.org/data/oceanographic-data/bottle-database/, while the carbonate chemistry dataset can be found here https://calcofi.org/data/oceanographic-data/dic/
+The oceanographic dataset can be found [here](https://calcofi.org/data/oceanographic-data/bottle-database/) , while the carbonate chemistry dataset can be found [here](https://calcofi.org/data/oceanographic-data/dic/).
 
 The above datasets must be downloaded manually and put in the data folder in order for this qmd to run. They are unfortunately too large to upload to Github.
 
@@ -123,7 +123,7 @@ merged_bottle_data |>
 
 ### Map of Sampling Stations
 
-Next we'll take a closer look at what our data looks like by creating a map of the sampling stations.
+Next we'll take a closer look at what our data looks like by creating a map of the sampling stations. The station with the largest number of observations is station 90.90.
 
 ```{r}
 library(gt)
@@ -213,10 +213,10 @@ merged_bottle_data |>
 
 ## CO2SYS
 
-In the merged dataset above, the only carbonate chemistry variables that have been recorded are TA and DIC. To remedy this, we can use CO2SYS, a program that uses a mechanistic model to calculate all other carbonate chemistry variables given at least two carbonate chemistry variables as well as envirornmental variables such as
+In the merged dataset above, the only carbonate chemistry variables that have been recorded are TA and DIC. To remedy this, we can use CO2SYS, a program that uses a mechanistic model to calculate all other carbonate chemistry variables given at least two carbonate chemistry variables as well as environmental variables such as
 temperature and salinity. The CO2SYS routines are written and contained in MATLAB files, so we unfortunately cannot run them in this document. However, the folder titled CO2SYS contains both the CO2SYS routines as well as a script called CO2SYS_calc.m where we apply CO2SYS to our data in order to get the other carbonate variables of interest. 
 
-The resulting dataset of CO2SYS calculated varaibles is named CO2SYS_out.csv in the data folder.
+The resulting dataset of CO2SYS calculated variables is named CO2SYS_out.csv in the data folder.
 
 
 # ESPER Model Validation
@@ -226,15 +226,16 @@ The resulting dataset of CO2SYS calculated varaibles is named CO2SYS_out.csv in 
 # Carbon Trend Analysis
 
 As mentioned prior, we are interested in examining how carbonate chemistry variables have been changing over time, and whether this temporal trend differs among coastal versus non coastal stations. In particular, we are interested in the following variables:
-- `TA`
-- `DIC`
-- `pCO2in`
-- `pHin`
-- `CO3in`
-- `OmegaCAin`
-- `OmegaARin`
 
-As pointed out in  “Advancing best practices for assessing trends of ocean acidification time series” by Sutton et al, oceanographic carbonate time series data is likely to have a seasonal trend. Below we create a function we can apply to our data to deal with this by following the procedure that Sutton outlined in the above article.
+  - `TA`
+  - `DIC`
+  - `pCO2in`
+  - `pHin`
+  - `CO3in`
+  - `OmegaCAin`
+  - `OmegaARin`
+
+As pointed out in [“Advancing best practices for assessing trends of ocean acidification time series” by Sutton et al](https://www.frontiersin.org/journals/marine-science/articles/10.3389/fmars.2022.1045667/full), oceanographic carbonate time series data is likely to have a seasonal trend. Below we create a function we can apply to our data to deal with this by following the procedure that Sutton outlined in the above article.
 
 ```{r}
 sea_dtd_data <- function(qty, df, date_col) {
@@ -412,7 +413,7 @@ for (i in 1:nrow(stations)) {
 }
 ```
 
-Note that we have stored the results in a new dataframe called surf_results. For easier analysis, we are going to add a column stating whether the model had a statistically significant temporal trend, as well as a new dataframe that contains the proportion of significant models at each station. We use the proportion rather than the exact number since the presence of missing observations causes some stations to not have sufficient observations to properly fit all of the models.
+Note that we have stored the results in a new dataframe called `surf_results`. For easier analysis, we are going to add a column stating whether the model had a statistically significant temporal trend, as well as a new dataframe that contains the proportion of significant models at each station. We use the proportion rather than the exact number since the presence of missing observations causes some stations to not have sufficient observations to properly fit all of the models.
 
 ```{r}
 surf_results <- surf_results %>%
@@ -590,7 +591,7 @@ ggplot(
   labs(
     x = NULL,
     y = NULL,
-    title = "Number of Time Significant Variables by Station at Surface (Depth<=20m)",
+    title = str_wrap("Number of Time Significant Variables by Station at Surface (Depth<=20m)", 40),
     fill = "Mean Observations per Model",
     size = str_wrap("Proportion of Variables of Interest with Significant Temporal Trend", 40)
   )
@@ -665,12 +666,6 @@ ggplot(
     y = "Latidude",
     size = "Observations",
     col = "Coastal"
-  ) + 
-  theme(
-    plot.title = element_text(size = 28, hjust = 0.5),      # Title
-    legend.title = element_text(size = 20),                 # Legend title
-    legend.text = element_text(size = 18),                                  # Legend labels
-    axis.title = element_text(size = 20)
   )
 ```
 

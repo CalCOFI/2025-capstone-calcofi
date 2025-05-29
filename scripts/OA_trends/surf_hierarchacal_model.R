@@ -18,7 +18,7 @@ surf_bottle_co2sys <- bind_cols(merged_bottle_data, co2sys_out) %>%
     Depth <= 20
   )
 
-qty <- c("T_degC","Salnty","TA","DIC","pCO2in","RFin","pHin","CO3in","OmegaCAin","OmegaARin")
+qty <- c("TA","DIC","pCO2in","pHin","CO3in","OmegaCAin","OmegaARin")
 
 # Detrend variables of interest
 surf_bottle_co2sys <- sea_dtd_data(qty, surf_bottle_co2sys, "Date.cc")
