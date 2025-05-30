@@ -1,7 +1,8 @@
-% ESPER_calc_all.m
+% ESPER_calc_lim.m
 
-% Use ESPER_Mixed function to compute TA, TC, pH, etc. from combined 
-% bottle data using only temperature and salinity as predictors
+% Use ESPER_LIR, ESPER_NN, and ESPER_Mixed functions to compute TA, DIC, 
+% pH, etc. from combined bottle data using only temperature and salinity 
+% as predictors
 
 % read in combined bottle data
 merged_bottle = readtable("../../data/merged_bottle_data.csv");

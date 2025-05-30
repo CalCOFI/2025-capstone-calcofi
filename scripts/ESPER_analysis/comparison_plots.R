@@ -8,6 +8,7 @@ library(scales)
 library(ModelMetrics)
 library(gt)
 library(cowplot)
+library(latex2exp)
 
 # READ IN DATA ------------------------------------------------------------
 source("scripts/ESPER_analysis/ESPER_out_proc.R")
@@ -94,10 +95,10 @@ esper_bottle_combined %>%
   )
 ggsave("images/ESPER_analysis/TA_pred_vs_obs.png", bg = "white")
 
-# NN-all plots
+# Mixed-all plots
 esper_bottle_combined %>%
   filter(
-    (Salnty > 30) & (ESPER_model == "NN") & (ESPER_input == "all")
+    (Salnty > 30) & (ESPER_model == "Mixed") & (ESPER_input == "all")
   ) %>%
   rename(
     DIC_obs = DIC,
@@ -116,6 +117,9 @@ esper_bottle_combined %>%
   ) %>%
   unnest(
     c = c(obs, est)
+  ) %>%
+  mutate(
+    qty = factor(qty, levels = c("TA", "DIC"))
   ) %>%
   ggplot(
     aes(
@@ -140,13 +144,17 @@ esper_bottle_combined %>%
     vars(qty),
     scales = "free"
   ) +
-  theme_minimal() +
+  theme_bw() +
   labs(
-    x = "Observed",
-    y = "Predicted",
-    title = "ESPER NN Predictions Using All Input Variables vs. Observed Values"
+    x = TeX("Observed ($\\mu{mol}$ {kg}$^{-1}$\ {yr}$^{-1}$)"),
+    y = TeX("Predicted ($\\mu{mol}$ {kg}$^{-1}$\ {yr}$^{-1}$)"),
+    title = "ESPER Mixed Predicted vs. Observed Values",
+    color = "Depth (m)"
+  ) +
+  theme(
+    text = element_text(size = 20)
   )
-ggsave("images/ESPER_analysis/ESPER_NN_all_preds_v_obs.png", bg = "white")
+ggsave("images/ESPER_analysis/ESPER_Mixed_all_preds_v_obs.png", width = 10, height = 6, units = 'in', bg = "white",dpi=600)
 
 
 # COMPARE ABSOLUTE RESIDUALS AGAINST OBSERVED -----------------------------
