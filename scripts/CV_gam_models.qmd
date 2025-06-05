@@ -588,3 +588,35 @@ unique_stations <- plankton %>% distinct(Station_ID)
 nrow(unique_stations)  # number of unique stations
 head(unique_stations)
 ```
+
+
+
+```{r}
+zooplankton <- read_csv("../data/zoop_data/zooplankton_pH.csv")
+min(zooplankton$Year_UTC)
+max(zooplankton$Year_UTC)
+
+total_zooplankton <- zooplankton %>% 
+  dplyr::select(CTDTEMP_ITS90, Salinity_PSS78, DIC, TA, total_plankton, pHout, Latitude, Longitude, Year_UTC, Month_UTC, Station_ID, pCO2in, RFin, CO3in, OmegaCAin, OmegaARin, NO3uM, SiO3uM, PO4uM) %>%
+  drop_na() %>%
+  mutate(log_total_plankton = log1p(total_plankton)) %>%
+  dplyr::select(-total_plankton) %>%
+  mutate(Station_ID = as.factor(Station_ID)) %>%
+  filter(Year_UTC > 2010)
+
+total_plankton_gam <- gam(
+  log_total_plankton ~ 
+    te(Longitude, Latitude) +
+                  s(pHout) +
+                  s(TA) + s(DIC) +
+                  s(Salinity_PSS78) +
+                  s(CTDTEMP_ITS90) +
+                  s(Year_UTC) + s(Month_UTC) +
+                  s(pCO2in) + s(RFin) + s(CO3in) +s(OmegaCAin) + s(OmegaARin) +
+                  s(NO3uM) + s(SiO3uM) + s(PO4uM),
+  data = total_zooplankton,
+)
+
+summary(total_plankton_gam)
+plot(total_plankton_gam, select = 1, se = TRUE, shade = TRUE)
+```

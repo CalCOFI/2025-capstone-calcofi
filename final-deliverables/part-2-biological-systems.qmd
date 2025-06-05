@@ -4,6 +4,7 @@ subtitle: "Part II: Biological Systems"
 format:
   html:
     toc: true
+    code-fold: true
 fig-pos: H
 ---
 
@@ -45,7 +46,7 @@ This project is sponsored by California Cooperative Oceanic Fisheries Investigat
 
 # Problems of Interest
 
-Our goal is to study the impact of ocean acidification on zooplankton and krill biovolumes off of the California coast. First, we want to conduct a cross-comparison of bottle data and biological data to assess the amount of spatial and temporal overlap present. Using co-located measurements, we wish to model the effects of ocean acidification, using carbonate chemistry and oceanographic variables, on zooplankton and krill abundance. Specifically, we wish to identify the key environemntal drivers contributing to plankton variability in a dynamic ocean environment. In addition, we are interested in exploring how pH and related environmental factors affect the abundance of calcifying versus non-calcifying species.
+Our goal is to study the impact of ocean acidification on zooplankton and krill biovolumes off of the California coast. First, we want to conduct a cross-comparison of bottle data and biological data to assess the amount of spatial and temporal overlap present. Using co-located measurements, we wish to model the effects of ocean acidification, using carbonate chemistry and oceanographic variables, on zooplankton and krill abundance. Specifically, we wish to identify the key environmental drivers contributing to plankton variability in a dynamic ocean environment. In addition, we are interested in exploring how pH and related environmental factors affect the abundance of calcifying versus non-calcifying species.
 
 # Data
 
@@ -991,7 +992,7 @@ plot(gam_model_bl)
 
 # Summary of Findings
 
-The GAMs showed that spatial patterns are consistent indicators of total and small zooplankton variation.
+Overall, calcifying zooplankton abundance is disproportionately affected by pH in the fall and summer as indicated by the steep negative slope, which is interesting because we would typically expect an overall positive trend as observed in the winter. Ostracods, in particular, seem less influenced by changes in pH, maintaining a stable abundance over the course of the seasons. This could be due to the fact that the pH range does not exhibit abnormal values of pH (i.e. very low or very high pH values). However, the GAMs showed that spatial patterns are consistently significant indicators of total, small, and species-specific zooplankton variation. While their spatial location varies from species to species, total plankton tend to congregate coastally, which aligns with findings from Part I where coastal stations seem to be less impacted by ocean acidification than offshore stations. 
 
 # Future Work
 
