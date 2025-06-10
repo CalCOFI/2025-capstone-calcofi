@@ -159,7 +159,7 @@ datasets_summary_table %>%
 
 To merge the NOAA Zooplankton data (zoop_data/Zooplankton-new.csv) with the bottle data (merged_bottle_co2sys.csv), we performed an inner join on Station ID, month, year, and average monthly DIC to create zoop_data/zooplankton_pH.csv. The same merge process was used for the BTEDB Krill data (krill_data/BTEDB_Abundances.csv) to create krill_data/CV_merged_krill.csv).
 
-To merge the PRPOOS data (PRPOOS/PRPOOS_all.csv) with the bottle data (merged_bottle_co2sys.csv), we performed a left join on Station ID, month, and year. Then, we collapsed the overlapping observations by calculating summary statistics for pH, $\Omega_{aragonite}$, $\Omega_{calcium}$, and other relevant carbonate chemistry variables.
+To merge the PRPOOS data (PRPOOS/PRPOOS_all.csv) with the bottle data (merged_bottle_co2sys.csv), we performed a left join on Station ID, month, and year. Then, we collapsed the overlapping observations by calculating summary statistics for pH, $\Omega_{aragonite}$, $\Omega_{calcium}$, and other relevant carbonate chemistry variables to create PRPOOS/prpoos_summary.csv.
 
 ## Generalized Additive Models (GAMs)
 
@@ -717,7 +717,7 @@ plot_saturation_horizon <- function(station_id, data) {
 plot_saturation_horizon("081.8 046.9", bottle_data)
 ```
 
-The `plot_saturation_horizon` function visualizes the depth of the aragonite saturation horizon from 2009 to 2021 for a given Station ID. Blue points represent years with sufficient observations, while red points indicate limited data availability. Gray points at 0 m reflect missing values, where data were insufficient to interpolate a saturation depth. Shallower horizons (closer to the surface) indicate more corrosive conditions, whereas deeper depths are more favorable for calcifying organisms.
+The `plot_saturation_horizon` function visualizes the depth of the aragonite saturation horizon from 2009 to 2021 for a given Station ID. Blue points represent years with sufficient observations, while red points indicate limited data availability. Gray points at 0 m reflect missing values, where data were insufficient to interpolate a saturation depth. Shallower horizons (closer to the surface) indicate more corrosive conditions, whereas deeper depths are more favorable for calcifying organisms. Try changing the parameter to another Station ID to see how the depth of saturation changes over time!
 
 ### GAMs for Individual Calcifying Taxa
 
