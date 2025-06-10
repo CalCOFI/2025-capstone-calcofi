@@ -78,10 +78,10 @@ window.Quarto = {
   <li><a href="#problems-of-interest" id="toc-problems-of-interest" class="nav-link" data-scroll-target="#problems-of-interest">Problems of Interest</a></li>
   <li><a href="#data" id="toc-data" class="nav-link" data-scroll-target="#data">Data</a>
   <ul class="collapse">
-  <li><a href="#bottle-data" id="toc-bottle-data" class="nav-link" data-scroll-target="#bottle-data">Bottle Data</a></li>
-  <li><a href="#calcofi-noaa-zooplankton-volume" id="toc-calcofi-noaa-zooplankton-volume" class="nav-link" data-scroll-target="#calcofi-noaa-zooplankton-volume">CalCOFI NOAA Zooplankton Volume:</a></li>
-  <li><a href="#btedb-krill-abundances" id="toc-btedb-krill-abundances" class="nav-link" data-scroll-target="#btedb-krill-abundances">BTEDB (Krill) Abundances:</a></li>
-  <li><a href="#prpoos-calcifiersnon-calcifiers" id="toc-prpoos-calcifiersnon-calcifiers" class="nav-link" data-scroll-target="#prpoos-calcifiersnon-calcifiers">PRPOOS (Calcifiers/Non-Calcifiers):</a></li>
+  <li><a href="#bottle-data3" id="toc-bottle-data3" class="nav-link" data-scroll-target="#bottle-data3">Bottle Data</a></li>
+  <li><a href="#calcofi-noaa-zooplankton-volume4" id="toc-calcofi-noaa-zooplankton-volume4" class="nav-link" data-scroll-target="#calcofi-noaa-zooplankton-volume4">CalCOFI NOAA Zooplankton Volume:</a></li>
+  <li><a href="#btedb-krill-abundances5" id="toc-btedb-krill-abundances5" class="nav-link" data-scroll-target="#btedb-krill-abundances5">BTEDB (Krill) Abundances:</a></li>
+  <li><a href="#prpoos-calcifiersnon-calcifiers6" id="toc-prpoos-calcifiersnon-calcifiers6" class="nav-link" data-scroll-target="#prpoos-calcifiersnon-calcifiers6">PRPOOS (Calcifiers/Non-Calcifiers):</a></li>
   </ul></li>
   <li><a href="#key-definitions" id="toc-key-definitions" class="nav-link" data-scroll-target="#key-definitions">Key Definitions</a></li>
   <li><a href="#methods" id="toc-methods" class="nav-link" data-scroll-target="#methods">Methods</a>
@@ -139,25 +139,25 @@ window.Quarto = {
 </section>
 <section id="problems-of-interest" class="level1">
 <h1>Problems of Interest</h1>
-<p>Our goal is to study the impact of ocean acidification on zooplankton and krill biovolumes off of the California coast. First, we want to conduct a cross-comparison of bottle data and biological data to assess the amount of spatial and temporal overlap present. Using co-located measurements, we wish to model the effects of ocean acidification, using carbonate chemistry and oceanographic variables, on zooplankton and krill abundance. Specifically, we wish to identify the key environemntal drivers contributing to plankton variability in a dynamic ocean environment. In addition, we are interested in exploring how pH and related environmental factors affect the abundance of calcifying versus non-calcifying species.</p>
+<p>Our goal is to study the impact of ocean acidification on zooplankton and krill biovolumes off of the California coast. First, we want to conduct a cross-comparison of bottle data and biological data to assess the amount of spatial and temporal overlap present. Using co-located measurements, we wish to model the effects of ocean acidification, using carbonate chemistry and oceanographic variables, on zooplankton and krill abundance. Specifically, we wish to identify the key environmental drivers contributing to plankton variability in a dynamic ocean environment. In addition, we are interested in exploring how pH and related environmental factors affect the abundance of calcifying versus non-calcifying species.</p>
 </section>
 <section id="data" class="level1">
 <h1>Data</h1>
-<section id="bottle-data" class="level2">
-<h2 class="anchored" data-anchor-id="bottle-data">Bottle Data<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a></h2>
+<section id="bottle-data3" class="level2">
+<h2 class="anchored" data-anchor-id="bottle-data3">Bottle Data<a href="#fn3" class="footnote-ref" id="fnref3" role="doc-noteref"><sup>3</sup></a></h2>
 <p>CalCOFI has collected environmental and hydrographic data for over 70 years during their quarterly cruises to their CalCOFI stations. We used the merged data from Part I which contains oceanographic and carbonate chemistry data as well as computed CO2SYS values for variables such as <span class="math inline">\(pH\)</span>, <span class="math inline">\(CO_3\)</span>, and <span class="math inline">\(\Omega_{aragonite}\)</span>.</p>
 <p>There are three datasets that we are focusing on for our biological data: (1) CalCOFI NOAA Zooplankton Volume, (2) BTEDB (Krill) Abundances, and (3) PRPOOS Data (for Zooplankton Calcifiers/Non-Calcifiers Abundance). The zooplankton and krill biovolume data are obtained using net tows (Bongo and/or Pairovet) at each standard CalCOFI station. The PRPOOS data is also obtained using a net tow but rather than sampling at station, it is conducted during transits between stations. These three datasets have each been merged with the bottle data to create zoop_data/zooplankton_pH.csv, krill_data/CV_merged_krill.csv, and PRPOOS/prpoos_summary.csv, respectively. Refer to Methods section for the merging process.</p>
 </section>
-<section id="calcofi-noaa-zooplankton-volume" class="level2">
-<h2 class="anchored" data-anchor-id="calcofi-noaa-zooplankton-volume">CalCOFI NOAA Zooplankton Volume<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a>:</h2>
+<section id="calcofi-noaa-zooplankton-volume4" class="level2">
+<h2 class="anchored" data-anchor-id="calcofi-noaa-zooplankton-volume4">CalCOFI NOAA Zooplankton Volume<a href="#fn4" class="footnote-ref" id="fnref4" role="doc-noteref"><sup>4</sup></a>:</h2>
 <p>The zooplankton biovolume data measures the amount of “plankton” (the small and microscopic organisms floating in the sea, consisting chiefly of diatoms, protozoans, small crustaceans, and the eggs and larval stages of larger animals) in the volume of sea water sampled. In particular, we are interested in the variables <code>total_plankton</code> and <code>small_plankton</code>.</p>
 </section>
-<section id="btedb-krill-abundances" class="level2">
-<h2 class="anchored" data-anchor-id="btedb-krill-abundances">BTEDB (Krill) Abundances<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a>:</h2>
+<section id="btedb-krill-abundances5" class="level2">
+<h2 class="anchored" data-anchor-id="btedb-krill-abundances5">BTEDB (Krill) Abundances<a href="#fn5" class="footnote-ref" id="fnref5" role="doc-noteref"><sup>5</sup></a>:</h2>
 <p>The krill dataset provides information on krill abundance from the Brinton and Townsend Euphausiid Database (BTEDB). The samples collected include species such as <em>Euphausia pacifica</em>, <em>Nematoscelis difficilis</em>, and <em>Thysanoessa spinifera</em>, with individuals categorized by size and developmental phase (e.g., calyptopis, furcilia, juvenile, adult).</p>
 </section>
-<section id="prpoos-calcifiersnon-calcifiers" class="level2">
-<h2 class="anchored" data-anchor-id="prpoos-calcifiersnon-calcifiers">PRPOOS (Calcifiers/Non-Calcifiers)<a href="#fn6" class="footnote-ref" id="fnref6" role="doc-noteref"><sup>6</sup></a>:</h2>
+<section id="prpoos-calcifiersnon-calcifiers6" class="level2">
+<h2 class="anchored" data-anchor-id="prpoos-calcifiersnon-calcifiers6">PRPOOS (Calcifiers/Non-Calcifiers)<a href="#fn6" class="footnote-ref" id="fnref6" role="doc-noteref"><sup>6</sup></a>:</h2>
 <p>The PRPOOS (Planktonic Rate Processes in Oligotrophic Ocean Systems) dataset contains abundance and estimated biomass values for various zooplankton taxa, which can be categorized into calcifying and non-calcifying groups. The calcifying taxa are defined as <em>byrozoan larvae</em>, <em>pteropoda heteropoda</em>, <em>ostracods</em>, and <em>rhizaria</em>; the remaining taxa are considered non-calcifying.</p>
 </section>
 </section>
@@ -165,23 +165,23 @@ window.Quarto = {
 <h1>Key Definitions</h1>
 <div class="cell">
 <div class="cell-output-display">
-<div id="wugauvjubh" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#wugauvjubh table {
+<div id="qteulpmgtw" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#qteulpmgtw table {
   font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-#wugauvjubh thead, #wugauvjubh tbody, #wugauvjubh tfoot, #wugauvjubh tr, #wugauvjubh td, #wugauvjubh th {
+#qteulpmgtw thead, #qteulpmgtw tbody, #qteulpmgtw tfoot, #qteulpmgtw tr, #qteulpmgtw td, #qteulpmgtw th {
   border-style: none;
 }
 
-#wugauvjubh p {
+#qteulpmgtw p {
   margin: 0;
   padding: 0;
 }
 
-#wugauvjubh .gt_table {
+#qteulpmgtw .gt_table {
   display: table;
   border-collapse: collapse;
   line-height: normal;
@@ -207,12 +207,12 @@ window.Quarto = {
   border-left-color: #D3D3D3;
 }
 
-#wugauvjubh .gt_caption {
+#qteulpmgtw .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
 
-#wugauvjubh .gt_title {
+#qteulpmgtw .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -224,7 +224,7 @@ window.Quarto = {
   border-bottom-width: 0;
 }
 
-#wugauvjubh .gt_subtitle {
+#qteulpmgtw .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -236,7 +236,7 @@ window.Quarto = {
   border-top-width: 0;
 }
 
-#wugauvjubh .gt_heading {
+#qteulpmgtw .gt_heading {
   background-color: #FFFFFF;
   text-align: left;
   border-bottom-color: #FFFFFF;
@@ -248,13 +248,13 @@ window.Quarto = {
   border-right-color: #D3D3D3;
 }
 
-#wugauvjubh .gt_bottom_border {
+#qteulpmgtw .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#wugauvjubh .gt_col_headings {
+#qteulpmgtw .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -269,7 +269,7 @@ window.Quarto = {
   border-right-color: #D3D3D3;
 }
 
-#wugauvjubh .gt_col_heading {
+#qteulpmgtw .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -289,7 +289,7 @@ window.Quarto = {
   overflow-x: hidden;
 }
 
-#wugauvjubh .gt_column_spanner_outer {
+#qteulpmgtw .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -301,15 +301,15 @@ window.Quarto = {
   padding-right: 4px;
 }
 
-#wugauvjubh .gt_column_spanner_outer:first-child {
+#qteulpmgtw .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#wugauvjubh .gt_column_spanner_outer:last-child {
+#qteulpmgtw .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#wugauvjubh .gt_column_spanner {
+#qteulpmgtw .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -321,11 +321,11 @@ window.Quarto = {
   width: 100%;
 }
 
-#wugauvjubh .gt_spanner_row {
+#qteulpmgtw .gt_spanner_row {
   border-bottom-style: hidden;
 }
 
-#wugauvjubh .gt_group_heading {
+#qteulpmgtw .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -351,7 +351,7 @@ window.Quarto = {
   text-align: left;
 }
 
-#wugauvjubh .gt_empty_group_heading {
+#qteulpmgtw .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -366,15 +366,15 @@ window.Quarto = {
   vertical-align: middle;
 }
 
-#wugauvjubh .gt_from_md > :first-child {
+#qteulpmgtw .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#wugauvjubh .gt_from_md > :last-child {
+#qteulpmgtw .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#wugauvjubh .gt_row {
+#qteulpmgtw .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -393,7 +393,7 @@ window.Quarto = {
   overflow-x: hidden;
 }
 
-#wugauvjubh .gt_stub {
+#qteulpmgtw .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -406,7 +406,7 @@ window.Quarto = {
   padding-right: 5px;
 }
 
-#wugauvjubh .gt_stub_row_group {
+#qteulpmgtw .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -420,15 +420,15 @@ window.Quarto = {
   vertical-align: top;
 }
 
-#wugauvjubh .gt_row_group_first td {
+#qteulpmgtw .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#wugauvjubh .gt_row_group_first th {
+#qteulpmgtw .gt_row_group_first th {
   border-top-width: 2px;
 }
 
-#wugauvjubh .gt_summary_row {
+#qteulpmgtw .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -438,16 +438,16 @@ window.Quarto = {
   padding-right: 5px;
 }
 
-#wugauvjubh .gt_first_summary_row {
+#qteulpmgtw .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#wugauvjubh .gt_first_summary_row.thick {
+#qteulpmgtw .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#wugauvjubh .gt_last_summary_row {
+#qteulpmgtw .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -457,7 +457,7 @@ window.Quarto = {
   border-bottom-color: #D3D3D3;
 }
 
-#wugauvjubh .gt_grand_summary_row {
+#qteulpmgtw .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -467,7 +467,7 @@ window.Quarto = {
   padding-right: 5px;
 }
 
-#wugauvjubh .gt_first_grand_summary_row {
+#qteulpmgtw .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -477,7 +477,7 @@ window.Quarto = {
   border-top-color: #D3D3D3;
 }
 
-#wugauvjubh .gt_last_grand_summary_row_top {
+#qteulpmgtw .gt_last_grand_summary_row_top {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -487,11 +487,11 @@ window.Quarto = {
   border-bottom-color: #D3D3D3;
 }
 
-#wugauvjubh .gt_striped {
+#qteulpmgtw .gt_striped {
   background-color: #FFFFFF;
 }
 
-#wugauvjubh .gt_table_body {
+#qteulpmgtw .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -500,7 +500,7 @@ window.Quarto = {
   border-bottom-color: #D3D3D3;
 }
 
-#wugauvjubh .gt_footnotes {
+#qteulpmgtw .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -514,7 +514,7 @@ window.Quarto = {
   border-right-color: #D3D3D3;
 }
 
-#wugauvjubh .gt_footnote {
+#qteulpmgtw .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-top: 4px;
@@ -523,7 +523,7 @@ window.Quarto = {
   padding-right: 5px;
 }
 
-#wugauvjubh .gt_sourcenotes {
+#qteulpmgtw .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -537,7 +537,7 @@ window.Quarto = {
   border-right-color: #D3D3D3;
 }
 
-#wugauvjubh .gt_sourcenote {
+#qteulpmgtw .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -545,72 +545,72 @@ window.Quarto = {
   padding-right: 5px;
 }
 
-#wugauvjubh .gt_left {
+#qteulpmgtw .gt_left {
   text-align: left;
 }
 
-#wugauvjubh .gt_center {
+#qteulpmgtw .gt_center {
   text-align: center;
 }
 
-#wugauvjubh .gt_right {
+#qteulpmgtw .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#wugauvjubh .gt_font_normal {
+#qteulpmgtw .gt_font_normal {
   font-weight: normal;
 }
 
-#wugauvjubh .gt_font_bold {
+#qteulpmgtw .gt_font_bold {
   font-weight: bold;
 }
 
-#wugauvjubh .gt_font_italic {
+#qteulpmgtw .gt_font_italic {
   font-style: italic;
 }
 
-#wugauvjubh .gt_super {
+#qteulpmgtw .gt_super {
   font-size: 65%;
 }
 
-#wugauvjubh .gt_footnote_marks {
+#qteulpmgtw .gt_footnote_marks {
   font-size: 75%;
   vertical-align: 0.4em;
   position: initial;
 }
 
-#wugauvjubh .gt_asterisk {
+#qteulpmgtw .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#wugauvjubh .gt_indent_1 {
+#qteulpmgtw .gt_indent_1 {
   text-indent: 5px;
 }
 
-#wugauvjubh .gt_indent_2 {
+#qteulpmgtw .gt_indent_2 {
   text-indent: 10px;
 }
 
-#wugauvjubh .gt_indent_3 {
+#qteulpmgtw .gt_indent_3 {
   text-indent: 15px;
 }
 
-#wugauvjubh .gt_indent_4 {
+#qteulpmgtw .gt_indent_4 {
   text-indent: 20px;
 }
 
-#wugauvjubh .gt_indent_5 {
+#qteulpmgtw .gt_indent_5 {
   text-indent: 25px;
 }
 
-#wugauvjubh .katex-display {
+#qteulpmgtw .katex-display {
   display: inline-flex !important;
   margin-bottom: 0.75em !important;
 }
 
-#wugauvjubh div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+#qteulpmgtw div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
   height: 0px !important;
 }
 </style>
@@ -659,23 +659,23 @@ window.Quarto = {
 <h2 class="anchored" data-anchor-id="summary-of-merged-datasets">Summary of Merged Datasets</h2>
 <div class="cell">
 <div class="cell-output-display">
-<div id="nxahzpgegw" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#nxahzpgegw table {
+<div id="xjbsymjcai" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#xjbsymjcai table {
   font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-#nxahzpgegw thead, #nxahzpgegw tbody, #nxahzpgegw tfoot, #nxahzpgegw tr, #nxahzpgegw td, #nxahzpgegw th {
+#xjbsymjcai thead, #xjbsymjcai tbody, #xjbsymjcai tfoot, #xjbsymjcai tr, #xjbsymjcai td, #xjbsymjcai th {
   border-style: none;
 }
 
-#nxahzpgegw p {
+#xjbsymjcai p {
   margin: 0;
   padding: 0;
 }
 
-#nxahzpgegw .gt_table {
+#xjbsymjcai .gt_table {
   display: table;
   border-collapse: collapse;
   line-height: normal;
@@ -701,12 +701,12 @@ window.Quarto = {
   border-left-color: #D3D3D3;
 }
 
-#nxahzpgegw .gt_caption {
+#xjbsymjcai .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
 
-#nxahzpgegw .gt_title {
+#xjbsymjcai .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -718,7 +718,7 @@ window.Quarto = {
   border-bottom-width: 0;
 }
 
-#nxahzpgegw .gt_subtitle {
+#xjbsymjcai .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -730,7 +730,7 @@ window.Quarto = {
   border-top-width: 0;
 }
 
-#nxahzpgegw .gt_heading {
+#xjbsymjcai .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -742,13 +742,13 @@ window.Quarto = {
   border-right-color: #D3D3D3;
 }
 
-#nxahzpgegw .gt_bottom_border {
+#xjbsymjcai .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#nxahzpgegw .gt_col_headings {
+#xjbsymjcai .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -763,7 +763,7 @@ window.Quarto = {
   border-right-color: #D3D3D3;
 }
 
-#nxahzpgegw .gt_col_heading {
+#xjbsymjcai .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -783,7 +783,7 @@ window.Quarto = {
   overflow-x: hidden;
 }
 
-#nxahzpgegw .gt_column_spanner_outer {
+#xjbsymjcai .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -795,15 +795,15 @@ window.Quarto = {
   padding-right: 4px;
 }
 
-#nxahzpgegw .gt_column_spanner_outer:first-child {
+#xjbsymjcai .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#nxahzpgegw .gt_column_spanner_outer:last-child {
+#xjbsymjcai .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#nxahzpgegw .gt_column_spanner {
+#xjbsymjcai .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -815,11 +815,11 @@ window.Quarto = {
   width: 100%;
 }
 
-#nxahzpgegw .gt_spanner_row {
+#xjbsymjcai .gt_spanner_row {
   border-bottom-style: hidden;
 }
 
-#nxahzpgegw .gt_group_heading {
+#xjbsymjcai .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -845,7 +845,7 @@ window.Quarto = {
   text-align: left;
 }
 
-#nxahzpgegw .gt_empty_group_heading {
+#xjbsymjcai .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -860,15 +860,15 @@ window.Quarto = {
   vertical-align: middle;
 }
 
-#nxahzpgegw .gt_from_md > :first-child {
+#xjbsymjcai .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#nxahzpgegw .gt_from_md > :last-child {
+#xjbsymjcai .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#nxahzpgegw .gt_row {
+#xjbsymjcai .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -887,7 +887,7 @@ window.Quarto = {
   overflow-x: hidden;
 }
 
-#nxahzpgegw .gt_stub {
+#xjbsymjcai .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -900,7 +900,7 @@ window.Quarto = {
   padding-right: 5px;
 }
 
-#nxahzpgegw .gt_stub_row_group {
+#xjbsymjcai .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -914,15 +914,15 @@ window.Quarto = {
   vertical-align: top;
 }
 
-#nxahzpgegw .gt_row_group_first td {
+#xjbsymjcai .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#nxahzpgegw .gt_row_group_first th {
+#xjbsymjcai .gt_row_group_first th {
   border-top-width: 2px;
 }
 
-#nxahzpgegw .gt_summary_row {
+#xjbsymjcai .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -932,16 +932,16 @@ window.Quarto = {
   padding-right: 5px;
 }
 
-#nxahzpgegw .gt_first_summary_row {
+#xjbsymjcai .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#nxahzpgegw .gt_first_summary_row.thick {
+#xjbsymjcai .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#nxahzpgegw .gt_last_summary_row {
+#xjbsymjcai .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -951,7 +951,7 @@ window.Quarto = {
   border-bottom-color: #D3D3D3;
 }
 
-#nxahzpgegw .gt_grand_summary_row {
+#xjbsymjcai .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -961,7 +961,7 @@ window.Quarto = {
   padding-right: 5px;
 }
 
-#nxahzpgegw .gt_first_grand_summary_row {
+#xjbsymjcai .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -971,7 +971,7 @@ window.Quarto = {
   border-top-color: #D3D3D3;
 }
 
-#nxahzpgegw .gt_last_grand_summary_row_top {
+#xjbsymjcai .gt_last_grand_summary_row_top {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -981,11 +981,11 @@ window.Quarto = {
   border-bottom-color: #D3D3D3;
 }
 
-#nxahzpgegw .gt_striped {
+#xjbsymjcai .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#nxahzpgegw .gt_table_body {
+#xjbsymjcai .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -994,7 +994,7 @@ window.Quarto = {
   border-bottom-color: #D3D3D3;
 }
 
-#nxahzpgegw .gt_footnotes {
+#xjbsymjcai .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -1008,7 +1008,7 @@ window.Quarto = {
   border-right-color: #D3D3D3;
 }
 
-#nxahzpgegw .gt_footnote {
+#xjbsymjcai .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-top: 4px;
@@ -1017,7 +1017,7 @@ window.Quarto = {
   padding-right: 5px;
 }
 
-#nxahzpgegw .gt_sourcenotes {
+#xjbsymjcai .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -1031,7 +1031,7 @@ window.Quarto = {
   border-right-color: #D3D3D3;
 }
 
-#nxahzpgegw .gt_sourcenote {
+#xjbsymjcai .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -1039,72 +1039,72 @@ window.Quarto = {
   padding-right: 5px;
 }
 
-#nxahzpgegw .gt_left {
+#xjbsymjcai .gt_left {
   text-align: left;
 }
 
-#nxahzpgegw .gt_center {
+#xjbsymjcai .gt_center {
   text-align: center;
 }
 
-#nxahzpgegw .gt_right {
+#xjbsymjcai .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#nxahzpgegw .gt_font_normal {
+#xjbsymjcai .gt_font_normal {
   font-weight: normal;
 }
 
-#nxahzpgegw .gt_font_bold {
+#xjbsymjcai .gt_font_bold {
   font-weight: bold;
 }
 
-#nxahzpgegw .gt_font_italic {
+#xjbsymjcai .gt_font_italic {
   font-style: italic;
 }
 
-#nxahzpgegw .gt_super {
+#xjbsymjcai .gt_super {
   font-size: 65%;
 }
 
-#nxahzpgegw .gt_footnote_marks {
+#xjbsymjcai .gt_footnote_marks {
   font-size: 75%;
   vertical-align: 0.4em;
   position: initial;
 }
 
-#nxahzpgegw .gt_asterisk {
+#xjbsymjcai .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#nxahzpgegw .gt_indent_1 {
+#xjbsymjcai .gt_indent_1 {
   text-indent: 5px;
 }
 
-#nxahzpgegw .gt_indent_2 {
+#xjbsymjcai .gt_indent_2 {
   text-indent: 10px;
 }
 
-#nxahzpgegw .gt_indent_3 {
+#xjbsymjcai .gt_indent_3 {
   text-indent: 15px;
 }
 
-#nxahzpgegw .gt_indent_4 {
+#xjbsymjcai .gt_indent_4 {
   text-indent: 20px;
 }
 
-#nxahzpgegw .gt_indent_5 {
+#xjbsymjcai .gt_indent_5 {
   text-indent: 25px;
 }
 
-#nxahzpgegw .katex-display {
+#xjbsymjcai .katex-display {
   display: inline-flex !important;
   margin-bottom: 0.75em !important;
 }
 
-#nxahzpgegw div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+#xjbsymjcai div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
   height: 0px !important;
 }
 </style>
@@ -1200,7 +1200,7 @@ PRPOOS Calcifiers
 </div>
 </div>
 <p>To merge the NOAA Zooplankton data (zoop_data/Zooplankton-new.csv) with the bottle data (merged_bottle_co2sys.csv), we performed an inner join on Station ID, month, year, and average monthly DIC to create zoop_data/zooplankton_pH.csv. The same merge process was used for the BTEDB Krill data (krill_data/BTEDB_Abundances.csv) to create krill_data/CV_merged_krill.csv).</p>
-<p>To merge the PRPOOS data (PRPOOS/PRPOOS_all.csv) with the bottle data (merged_bottle_co2sys.csv), we performed a left join on Station ID, month, and year. Then, we collapsed the overlapping observations by calculating summary statistics for pH, <span class="math inline">\(\Omega_{aragonite}\)</span>, <span class="math inline">\(\Omega_{calcium}\)</span>, and other relevant carbonate chemistry variables.</p>
+<p>To merge the PRPOOS data (PRPOOS/PRPOOS_all.csv) with the bottle data (merged_bottle_co2sys.csv), we performed a left join on Station ID, month, and year. Then, we collapsed the overlapping observations by calculating summary statistics for pH, <span class="math inline">\(\Omega_{aragonite}\)</span>, <span class="math inline">\(\Omega_{calcium}\)</span>, and other relevant carbonate chemistry variables to create PRPOOS/prpoos_summary.csv.</p>
 </section>
 <section id="generalized-additive-models-gams" class="level2">
 <h2 class="anchored" data-anchor-id="generalized-additive-models-gams">Generalized Additive Models (GAMs)</h2>
@@ -1341,8 +1341,8 @@ PRPOOS Calcifiers
 </div>
 </div>
 </div>
-<p>Across all four calcifying taxa, there is a strong seasonal influence in how abundance responds to pH at the depth of the aragonite saturation horizon. Bryozoan larvae, pteropods/heterpods, and rhizaria follow similar patterns across seasons, with negative relationships between pH and abundance in fall and summer, indicating that these taxa may be most sensitive to higher pH during warmer months, and positive associations in winter. Ostracoda, on the other hand, appear relatively insensitive to pH fluctuations, except in spring where abundance has a positive relationship with pH.</p>
-<p>Overall, these findings indicate that calcifying zooplankton responses to ocean acidifcation are not uniform and may be seasonally mediated. Also, they may be influenced by additional environmental factors.</p>
+<p>Across all four calcifying taxa, there is a strong seasonal influence in how abundance responds to pH at the depth of the aragonite saturation horizon. Bryozoan larvae, pteropods/heterpods, and rhizaria follow similar patterns across seasons, with negative relationships between pH and abundance in fall and summer, indicating that these taxa may be most sensitive to higher pH during warmer months, and a positive relationship in winter. Ostracoda, on the other hand, appear relatively insensitive to pH fluctuations, except in spring where abundance has a positive relationship with pH.</p>
+<p>Overall, these findings indicate that calcifying zooplankton responses to ocean acidifcation are not uniform and may be seasonally mediated. Also, they may be influenced by additional environmental factors, as supported by the GAMs.</p>
 </section>
 <section id="visualizing-saturation-depth-over-time-by-station" class="level4">
 <h4 class="anchored" data-anchor-id="visualizing-saturation-depth-over-time-by-station">Visualizing Saturation Depth Over Time by Station</h4>
@@ -1356,7 +1356,7 @@ PRPOOS Calcifiers
 </div>
 </div>
 </div>
-<p>The <code>plot_saturation_horizon</code> function visualizes the depth of the aragonite saturation horizon from 2009 to 2021 for a given Station ID. Blue points represent years with sufficient observations, while red points indicate limited data availability. Gray points at 0 m reflect missing values, where data were insufficient to interpolate a saturation depth. Shallower horizons (closer to the surface) indicate more corrosive conditions, whereas deeper depths are more favorable for calcifying organisms.</p>
+<p>The <code>plot_saturation_horizon</code> function visualizes the depth of the aragonite saturation horizon from 2009 to 2021 for a given Station ID. Blue points represent years with sufficient observations, while red points indicate limited data availability. Gray points at 0 m reflect missing values, where data were insufficient to interpolate a saturation depth. Shallower horizons (closer to the surface) indicate more corrosive conditions, whereas deeper depths are more favorable for calcifying organisms. Try changing the parameter to another Station ID to see how the depth of saturation changes over time!</p>
 </section>
 </section>
 <section id="gams-for-individual-calcifying-taxa" class="level3">
@@ -1866,7 +1866,7 @@ GCV =  2.882  Scale est. = 2.6799    n = 388</code></pre>
 </section>
 <section id="summary-of-findings" class="level1">
 <h1>Summary of Findings</h1>
-<p>The GAMs showed that spatial patterns are consistent indicators of total and small zooplankton variation.</p>
+<p>Overall, calcifying zooplankton abundance is disproportionately affected by pH in the fall and summer as indicated by the steep negative slope, which is interesting because we would typically expect an overall positive trend as observed in the winter. Ostracods, in particular, seem less influenced by changes in pH, maintaining a stable abundance over the course of the seasons. This could be due to the fact that the pH range does not exhibit abnormal values of pH (i.e.&nbsp;very low or very high pH values). However, the GAMs showed that spatial patterns are consistently significant indicators of total, small, and species-specific zooplankton variation. While their spatial location varies from species to species, total plankton tend to congregate coastally, which aligns with findings from Part I where coastal stations seem to be less impacted by ocean acidification than offshore stations.</p>
 </section>
 <section id="future-work" class="level1">
 <h1>Future Work</h1>
