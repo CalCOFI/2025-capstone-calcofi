@@ -721,10 +721,14 @@ The `plot_saturation_horizon` function visualizes the depth of the aragonite sat
 
 ### GAMs for Individual Calcifying Taxa
 
+We found that the spatial effect is significant in our GAM models when modeling for total abundance and species-specific abundance.
+
 ```{r}
 # read in data
 prpoos_summary <- read_csv("../data/PRPOOS/prpoos_summary_namecleaned.csv")
 ```
+
+For this particular taxon, such as bryozoan larvae, abundance is greater near the coast, which is the case for most of the species we investigated. However, the spatial trend varies between species.
 
 ```{r}
 abundance_vars <- names(prpoos_summary)[str_detect(names(prpoos_summary), "Abundance$")]
@@ -885,7 +889,7 @@ plot(gam_model_bl)
 
 ### GAMs Grouped by Calcifying/Non-calcifying Taxa
 
-
+The alcifying Species we are interested in are: bryozoan larvae, pteropoda heteropoda, ostracods and rhizaria.
 
 ```{r}
 # Define the four species of interest
