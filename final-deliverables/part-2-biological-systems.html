@@ -2,7 +2,7 @@
 <html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
 
 <meta charset="utf-8">
-<meta name="generator" content="quarto-1.6.42">
+<meta name="generator" content="quarto-1.5.57">
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
@@ -29,10 +29,10 @@ ul.task-list li input[type="checkbox"] {
 <script src="part-2-biological-systems_files/libs/quarto-html/tippy.umd.min.js"></script>
 <script src="part-2-biological-systems_files/libs/quarto-html/anchor.min.js"></script>
 <link href="part-2-biological-systems_files/libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="part-2-biological-systems_files/libs/quarto-html/quarto-syntax-highlighting-2f5df379a58b258e96c21c0638c20c03.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="part-2-biological-systems_files/libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="part-2-biological-systems_files/libs/bootstrap/bootstrap.min.js"></script>
 <link href="part-2-biological-systems_files/libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="part-2-biological-systems_files/libs/bootstrap/bootstrap-c0367b04c37547644fece4185067e4a7.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="part-2-biological-systems_files/libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
 
   <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
   <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
@@ -102,6 +102,7 @@ window.Quarto = {
   <ul class="collapse">
   <li><a href="#effects-of-ph-at-saturation-depth-on-abundance-by-season" id="toc-effects-of-ph-at-saturation-depth-on-abundance-by-season" class="nav-link" data-scroll-target="#effects-of-ph-at-saturation-depth-on-abundance-by-season">Effects of pH at Saturation Depth on Abundance by Season</a></li>
   <li><a href="#gams-for-individual-calcifying-taxa" id="toc-gams-for-individual-calcifying-taxa" class="nav-link" data-scroll-target="#gams-for-individual-calcifying-taxa">GAMs for Individual Calcifying Taxa</a></li>
+  <li><a href="#gams-grouped-by-calcifyingnon-calcifying-taxa" id="toc-gams-grouped-by-calcifyingnon-calcifying-taxa" class="nav-link" data-scroll-target="#gams-grouped-by-calcifyingnon-calcifying-taxa">GAMs Grouped by Calcifying/Non-calcifying Taxa</a></li>
   </ul></li>
   </ul></li>
   <li><a href="#summary-of-findings" id="toc-summary-of-findings" class="nav-link" data-scroll-target="#summary-of-findings">Summary of Findings</a></li>
@@ -165,23 +166,23 @@ window.Quarto = {
 <h1>Key Definitions</h1>
 <div class="cell">
 <div class="cell-output-display">
-<div id="qteulpmgtw" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#qteulpmgtw table {
+<div id="cuhyybshyp" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#cuhyybshyp table {
   font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-#qteulpmgtw thead, #qteulpmgtw tbody, #qteulpmgtw tfoot, #qteulpmgtw tr, #qteulpmgtw td, #qteulpmgtw th {
+#cuhyybshyp thead, #cuhyybshyp tbody, #cuhyybshyp tfoot, #cuhyybshyp tr, #cuhyybshyp td, #cuhyybshyp th {
   border-style: none;
 }
 
-#qteulpmgtw p {
+#cuhyybshyp p {
   margin: 0;
   padding: 0;
 }
 
-#qteulpmgtw .gt_table {
+#cuhyybshyp .gt_table {
   display: table;
   border-collapse: collapse;
   line-height: normal;
@@ -207,12 +208,12 @@ window.Quarto = {
   border-left-color: #D3D3D3;
 }
 
-#qteulpmgtw .gt_caption {
+#cuhyybshyp .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
 
-#qteulpmgtw .gt_title {
+#cuhyybshyp .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -224,7 +225,7 @@ window.Quarto = {
   border-bottom-width: 0;
 }
 
-#qteulpmgtw .gt_subtitle {
+#cuhyybshyp .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -236,7 +237,7 @@ window.Quarto = {
   border-top-width: 0;
 }
 
-#qteulpmgtw .gt_heading {
+#cuhyybshyp .gt_heading {
   background-color: #FFFFFF;
   text-align: left;
   border-bottom-color: #FFFFFF;
@@ -248,13 +249,13 @@ window.Quarto = {
   border-right-color: #D3D3D3;
 }
 
-#qteulpmgtw .gt_bottom_border {
+#cuhyybshyp .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#qteulpmgtw .gt_col_headings {
+#cuhyybshyp .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -269,7 +270,7 @@ window.Quarto = {
   border-right-color: #D3D3D3;
 }
 
-#qteulpmgtw .gt_col_heading {
+#cuhyybshyp .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -289,7 +290,7 @@ window.Quarto = {
   overflow-x: hidden;
 }
 
-#qteulpmgtw .gt_column_spanner_outer {
+#cuhyybshyp .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -301,15 +302,15 @@ window.Quarto = {
   padding-right: 4px;
 }
 
-#qteulpmgtw .gt_column_spanner_outer:first-child {
+#cuhyybshyp .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#qteulpmgtw .gt_column_spanner_outer:last-child {
+#cuhyybshyp .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#qteulpmgtw .gt_column_spanner {
+#cuhyybshyp .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -321,11 +322,11 @@ window.Quarto = {
   width: 100%;
 }
 
-#qteulpmgtw .gt_spanner_row {
+#cuhyybshyp .gt_spanner_row {
   border-bottom-style: hidden;
 }
 
-#qteulpmgtw .gt_group_heading {
+#cuhyybshyp .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -351,7 +352,7 @@ window.Quarto = {
   text-align: left;
 }
 
-#qteulpmgtw .gt_empty_group_heading {
+#cuhyybshyp .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -366,15 +367,15 @@ window.Quarto = {
   vertical-align: middle;
 }
 
-#qteulpmgtw .gt_from_md > :first-child {
+#cuhyybshyp .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#qteulpmgtw .gt_from_md > :last-child {
+#cuhyybshyp .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#qteulpmgtw .gt_row {
+#cuhyybshyp .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -393,7 +394,7 @@ window.Quarto = {
   overflow-x: hidden;
 }
 
-#qteulpmgtw .gt_stub {
+#cuhyybshyp .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -406,7 +407,7 @@ window.Quarto = {
   padding-right: 5px;
 }
 
-#qteulpmgtw .gt_stub_row_group {
+#cuhyybshyp .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -420,15 +421,15 @@ window.Quarto = {
   vertical-align: top;
 }
 
-#qteulpmgtw .gt_row_group_first td {
+#cuhyybshyp .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#qteulpmgtw .gt_row_group_first th {
+#cuhyybshyp .gt_row_group_first th {
   border-top-width: 2px;
 }
 
-#qteulpmgtw .gt_summary_row {
+#cuhyybshyp .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -438,16 +439,16 @@ window.Quarto = {
   padding-right: 5px;
 }
 
-#qteulpmgtw .gt_first_summary_row {
+#cuhyybshyp .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#qteulpmgtw .gt_first_summary_row.thick {
+#cuhyybshyp .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#qteulpmgtw .gt_last_summary_row {
+#cuhyybshyp .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -457,7 +458,7 @@ window.Quarto = {
   border-bottom-color: #D3D3D3;
 }
 
-#qteulpmgtw .gt_grand_summary_row {
+#cuhyybshyp .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -467,7 +468,7 @@ window.Quarto = {
   padding-right: 5px;
 }
 
-#qteulpmgtw .gt_first_grand_summary_row {
+#cuhyybshyp .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -477,7 +478,7 @@ window.Quarto = {
   border-top-color: #D3D3D3;
 }
 
-#qteulpmgtw .gt_last_grand_summary_row_top {
+#cuhyybshyp .gt_last_grand_summary_row_top {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -487,11 +488,11 @@ window.Quarto = {
   border-bottom-color: #D3D3D3;
 }
 
-#qteulpmgtw .gt_striped {
+#cuhyybshyp .gt_striped {
   background-color: #FFFFFF;
 }
 
-#qteulpmgtw .gt_table_body {
+#cuhyybshyp .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -500,7 +501,7 @@ window.Quarto = {
   border-bottom-color: #D3D3D3;
 }
 
-#qteulpmgtw .gt_footnotes {
+#cuhyybshyp .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -514,7 +515,7 @@ window.Quarto = {
   border-right-color: #D3D3D3;
 }
 
-#qteulpmgtw .gt_footnote {
+#cuhyybshyp .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-top: 4px;
@@ -523,7 +524,7 @@ window.Quarto = {
   padding-right: 5px;
 }
 
-#qteulpmgtw .gt_sourcenotes {
+#cuhyybshyp .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -537,7 +538,7 @@ window.Quarto = {
   border-right-color: #D3D3D3;
 }
 
-#qteulpmgtw .gt_sourcenote {
+#cuhyybshyp .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -545,72 +546,72 @@ window.Quarto = {
   padding-right: 5px;
 }
 
-#qteulpmgtw .gt_left {
+#cuhyybshyp .gt_left {
   text-align: left;
 }
 
-#qteulpmgtw .gt_center {
+#cuhyybshyp .gt_center {
   text-align: center;
 }
 
-#qteulpmgtw .gt_right {
+#cuhyybshyp .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#qteulpmgtw .gt_font_normal {
+#cuhyybshyp .gt_font_normal {
   font-weight: normal;
 }
 
-#qteulpmgtw .gt_font_bold {
+#cuhyybshyp .gt_font_bold {
   font-weight: bold;
 }
 
-#qteulpmgtw .gt_font_italic {
+#cuhyybshyp .gt_font_italic {
   font-style: italic;
 }
 
-#qteulpmgtw .gt_super {
+#cuhyybshyp .gt_super {
   font-size: 65%;
 }
 
-#qteulpmgtw .gt_footnote_marks {
+#cuhyybshyp .gt_footnote_marks {
   font-size: 75%;
   vertical-align: 0.4em;
   position: initial;
 }
 
-#qteulpmgtw .gt_asterisk {
+#cuhyybshyp .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#qteulpmgtw .gt_indent_1 {
+#cuhyybshyp .gt_indent_1 {
   text-indent: 5px;
 }
 
-#qteulpmgtw .gt_indent_2 {
+#cuhyybshyp .gt_indent_2 {
   text-indent: 10px;
 }
 
-#qteulpmgtw .gt_indent_3 {
+#cuhyybshyp .gt_indent_3 {
   text-indent: 15px;
 }
 
-#qteulpmgtw .gt_indent_4 {
+#cuhyybshyp .gt_indent_4 {
   text-indent: 20px;
 }
 
-#qteulpmgtw .gt_indent_5 {
+#cuhyybshyp .gt_indent_5 {
   text-indent: 25px;
 }
 
-#qteulpmgtw .katex-display {
+#cuhyybshyp .katex-display {
   display: inline-flex !important;
   margin-bottom: 0.75em !important;
 }
 
-#qteulpmgtw div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+#cuhyybshyp div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
   height: 0px !important;
 }
 </style>
@@ -659,23 +660,23 @@ window.Quarto = {
 <h2 class="anchored" data-anchor-id="summary-of-merged-datasets">Summary of Merged Datasets</h2>
 <div class="cell">
 <div class="cell-output-display">
-<div id="xjbsymjcai" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
-<style>#xjbsymjcai table {
+<div id="krmhwxhtvz" style="padding-left:0px;padding-right:0px;padding-top:10px;padding-bottom:10px;overflow-x:auto;overflow-y:auto;width:auto;height:auto;">
+<style>#krmhwxhtvz table {
   font-family: system-ui, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol', 'Noto Color Emoji';
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-#xjbsymjcai thead, #xjbsymjcai tbody, #xjbsymjcai tfoot, #xjbsymjcai tr, #xjbsymjcai td, #xjbsymjcai th {
+#krmhwxhtvz thead, #krmhwxhtvz tbody, #krmhwxhtvz tfoot, #krmhwxhtvz tr, #krmhwxhtvz td, #krmhwxhtvz th {
   border-style: none;
 }
 
-#xjbsymjcai p {
+#krmhwxhtvz p {
   margin: 0;
   padding: 0;
 }
 
-#xjbsymjcai .gt_table {
+#krmhwxhtvz .gt_table {
   display: table;
   border-collapse: collapse;
   line-height: normal;
@@ -701,12 +702,12 @@ window.Quarto = {
   border-left-color: #D3D3D3;
 }
 
-#xjbsymjcai .gt_caption {
+#krmhwxhtvz .gt_caption {
   padding-top: 4px;
   padding-bottom: 4px;
 }
 
-#xjbsymjcai .gt_title {
+#krmhwxhtvz .gt_title {
   color: #333333;
   font-size: 125%;
   font-weight: initial;
@@ -718,7 +719,7 @@ window.Quarto = {
   border-bottom-width: 0;
 }
 
-#xjbsymjcai .gt_subtitle {
+#krmhwxhtvz .gt_subtitle {
   color: #333333;
   font-size: 85%;
   font-weight: initial;
@@ -730,7 +731,7 @@ window.Quarto = {
   border-top-width: 0;
 }
 
-#xjbsymjcai .gt_heading {
+#krmhwxhtvz .gt_heading {
   background-color: #FFFFFF;
   text-align: center;
   border-bottom-color: #FFFFFF;
@@ -742,13 +743,13 @@ window.Quarto = {
   border-right-color: #D3D3D3;
 }
 
-#xjbsymjcai .gt_bottom_border {
+#krmhwxhtvz .gt_bottom_border {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
 }
 
-#xjbsymjcai .gt_col_headings {
+#krmhwxhtvz .gt_col_headings {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -763,7 +764,7 @@ window.Quarto = {
   border-right-color: #D3D3D3;
 }
 
-#xjbsymjcai .gt_col_heading {
+#krmhwxhtvz .gt_col_heading {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -783,7 +784,7 @@ window.Quarto = {
   overflow-x: hidden;
 }
 
-#xjbsymjcai .gt_column_spanner_outer {
+#krmhwxhtvz .gt_column_spanner_outer {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -795,15 +796,15 @@ window.Quarto = {
   padding-right: 4px;
 }
 
-#xjbsymjcai .gt_column_spanner_outer:first-child {
+#krmhwxhtvz .gt_column_spanner_outer:first-child {
   padding-left: 0;
 }
 
-#xjbsymjcai .gt_column_spanner_outer:last-child {
+#krmhwxhtvz .gt_column_spanner_outer:last-child {
   padding-right: 0;
 }
 
-#xjbsymjcai .gt_column_spanner {
+#krmhwxhtvz .gt_column_spanner {
   border-bottom-style: solid;
   border-bottom-width: 2px;
   border-bottom-color: #D3D3D3;
@@ -815,11 +816,11 @@ window.Quarto = {
   width: 100%;
 }
 
-#xjbsymjcai .gt_spanner_row {
+#krmhwxhtvz .gt_spanner_row {
   border-bottom-style: hidden;
 }
 
-#xjbsymjcai .gt_group_heading {
+#krmhwxhtvz .gt_group_heading {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -845,7 +846,7 @@ window.Quarto = {
   text-align: left;
 }
 
-#xjbsymjcai .gt_empty_group_heading {
+#krmhwxhtvz .gt_empty_group_heading {
   padding: 0.5px;
   color: #333333;
   background-color: #FFFFFF;
@@ -860,15 +861,15 @@ window.Quarto = {
   vertical-align: middle;
 }
 
-#xjbsymjcai .gt_from_md > :first-child {
+#krmhwxhtvz .gt_from_md > :first-child {
   margin-top: 0;
 }
 
-#xjbsymjcai .gt_from_md > :last-child {
+#krmhwxhtvz .gt_from_md > :last-child {
   margin-bottom: 0;
 }
 
-#xjbsymjcai .gt_row {
+#krmhwxhtvz .gt_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -887,7 +888,7 @@ window.Quarto = {
   overflow-x: hidden;
 }
 
-#xjbsymjcai .gt_stub {
+#krmhwxhtvz .gt_stub {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -900,7 +901,7 @@ window.Quarto = {
   padding-right: 5px;
 }
 
-#xjbsymjcai .gt_stub_row_group {
+#krmhwxhtvz .gt_stub_row_group {
   color: #333333;
   background-color: #FFFFFF;
   font-size: 100%;
@@ -914,15 +915,15 @@ window.Quarto = {
   vertical-align: top;
 }
 
-#xjbsymjcai .gt_row_group_first td {
+#krmhwxhtvz .gt_row_group_first td {
   border-top-width: 2px;
 }
 
-#xjbsymjcai .gt_row_group_first th {
+#krmhwxhtvz .gt_row_group_first th {
   border-top-width: 2px;
 }
 
-#xjbsymjcai .gt_summary_row {
+#krmhwxhtvz .gt_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -932,16 +933,16 @@ window.Quarto = {
   padding-right: 5px;
 }
 
-#xjbsymjcai .gt_first_summary_row {
+#krmhwxhtvz .gt_first_summary_row {
   border-top-style: solid;
   border-top-color: #D3D3D3;
 }
 
-#xjbsymjcai .gt_first_summary_row.thick {
+#krmhwxhtvz .gt_first_summary_row.thick {
   border-top-width: 2px;
 }
 
-#xjbsymjcai .gt_last_summary_row {
+#krmhwxhtvz .gt_last_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -951,7 +952,7 @@ window.Quarto = {
   border-bottom-color: #D3D3D3;
 }
 
-#xjbsymjcai .gt_grand_summary_row {
+#krmhwxhtvz .gt_grand_summary_row {
   color: #333333;
   background-color: #FFFFFF;
   text-transform: inherit;
@@ -961,7 +962,7 @@ window.Quarto = {
   padding-right: 5px;
 }
 
-#xjbsymjcai .gt_first_grand_summary_row {
+#krmhwxhtvz .gt_first_grand_summary_row {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -971,7 +972,7 @@ window.Quarto = {
   border-top-color: #D3D3D3;
 }
 
-#xjbsymjcai .gt_last_grand_summary_row_top {
+#krmhwxhtvz .gt_last_grand_summary_row_top {
   padding-top: 8px;
   padding-bottom: 8px;
   padding-left: 5px;
@@ -981,11 +982,11 @@ window.Quarto = {
   border-bottom-color: #D3D3D3;
 }
 
-#xjbsymjcai .gt_striped {
+#krmhwxhtvz .gt_striped {
   background-color: rgba(128, 128, 128, 0.05);
 }
 
-#xjbsymjcai .gt_table_body {
+#krmhwxhtvz .gt_table_body {
   border-top-style: solid;
   border-top-width: 2px;
   border-top-color: #D3D3D3;
@@ -994,7 +995,7 @@ window.Quarto = {
   border-bottom-color: #D3D3D3;
 }
 
-#xjbsymjcai .gt_footnotes {
+#krmhwxhtvz .gt_footnotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -1008,7 +1009,7 @@ window.Quarto = {
   border-right-color: #D3D3D3;
 }
 
-#xjbsymjcai .gt_footnote {
+#krmhwxhtvz .gt_footnote {
   margin: 0px;
   font-size: 90%;
   padding-top: 4px;
@@ -1017,7 +1018,7 @@ window.Quarto = {
   padding-right: 5px;
 }
 
-#xjbsymjcai .gt_sourcenotes {
+#krmhwxhtvz .gt_sourcenotes {
   color: #333333;
   background-color: #FFFFFF;
   border-bottom-style: none;
@@ -1031,7 +1032,7 @@ window.Quarto = {
   border-right-color: #D3D3D3;
 }
 
-#xjbsymjcai .gt_sourcenote {
+#krmhwxhtvz .gt_sourcenote {
   font-size: 90%;
   padding-top: 4px;
   padding-bottom: 4px;
@@ -1039,72 +1040,72 @@ window.Quarto = {
   padding-right: 5px;
 }
 
-#xjbsymjcai .gt_left {
+#krmhwxhtvz .gt_left {
   text-align: left;
 }
 
-#xjbsymjcai .gt_center {
+#krmhwxhtvz .gt_center {
   text-align: center;
 }
 
-#xjbsymjcai .gt_right {
+#krmhwxhtvz .gt_right {
   text-align: right;
   font-variant-numeric: tabular-nums;
 }
 
-#xjbsymjcai .gt_font_normal {
+#krmhwxhtvz .gt_font_normal {
   font-weight: normal;
 }
 
-#xjbsymjcai .gt_font_bold {
+#krmhwxhtvz .gt_font_bold {
   font-weight: bold;
 }
 
-#xjbsymjcai .gt_font_italic {
+#krmhwxhtvz .gt_font_italic {
   font-style: italic;
 }
 
-#xjbsymjcai .gt_super {
+#krmhwxhtvz .gt_super {
   font-size: 65%;
 }
 
-#xjbsymjcai .gt_footnote_marks {
+#krmhwxhtvz .gt_footnote_marks {
   font-size: 75%;
   vertical-align: 0.4em;
   position: initial;
 }
 
-#xjbsymjcai .gt_asterisk {
+#krmhwxhtvz .gt_asterisk {
   font-size: 100%;
   vertical-align: 0;
 }
 
-#xjbsymjcai .gt_indent_1 {
+#krmhwxhtvz .gt_indent_1 {
   text-indent: 5px;
 }
 
-#xjbsymjcai .gt_indent_2 {
+#krmhwxhtvz .gt_indent_2 {
   text-indent: 10px;
 }
 
-#xjbsymjcai .gt_indent_3 {
+#krmhwxhtvz .gt_indent_3 {
   text-indent: 15px;
 }
 
-#xjbsymjcai .gt_indent_4 {
+#krmhwxhtvz .gt_indent_4 {
   text-indent: 20px;
 }
 
-#xjbsymjcai .gt_indent_5 {
+#krmhwxhtvz .gt_indent_5 {
   text-indent: 25px;
 }
 
-#xjbsymjcai .katex-display {
+#krmhwxhtvz .katex-display {
   display: inline-flex !important;
   margin-bottom: 0.75em !important;
 }
 
-#xjbsymjcai div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
+#krmhwxhtvz div.Reactable > div.rt-table > div.rt-thead > div.rt-tr.rt-tr-group-header > div.rt-th-group:after {
   height: 0px !important;
 }
 </style>
@@ -1121,10 +1122,10 @@ window.Quarto = {
 <col style="width: 12%">
 </colgroup>
 <thead>
-<tr class="gt_heading header">
+<tr class="header gt_heading">
 <th colspan="8" class="gt_heading gt_title gt_font_normal gt_bottom_border">Merged Biological Datasets</th>
 </tr>
-<tr class="gt_col_headings gt_spanner_row even">
+<tr class="odd gt_col_headings gt_spanner_row">
 <th rowspan="2" id="a::stub" class="gt_col_heading gt_columns_bottom_border gt_left" data-quarto-table-cell-role="th" scope="col"></th>
 <th rowspan="2" id="Bottle" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Bottle*</th>
 <th colspan="2" id="NOAA Zooplankton" class="gt_center gt_columns_top_border gt_column_spanner_outer" data-quarto-table-cell-role="th" scope="colgroup"><div class="gt_column_spanner">
@@ -1137,7 +1138,7 @@ BTEDB Krill
 PRPOOS Calcifiers
 </div></th>
 </tr>
-<tr class="gt_col_headings header">
+<tr class="header gt_col_headings">
 <th id="zoop_og" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Original</th>
 <th id="zoop_merge" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Merged</th>
 <th id="krill_og" class="gt_col_heading gt_columns_bottom_border gt_right" data-quarto-table-cell-role="th" scope="col">Original</th>
@@ -1661,106 +1662,9 @@ GCV = 0.45922  Scale est. = 0.42603   n = 388</code></pre>
 </div>
 </div>
 </div>
-<div class="cell">
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-21-1.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-Family: gaussian 
-Link function: identity 
-
-Formula:
-log1p(copepoda_oithona_likeAbundance) ~ s(Longitude, Latitude, 
-    k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean) + s(TA_mean) + 
-    s(DIC_mean) + s(RF_mean) + s(OmegaAR_mean)
-
-Parametric coefficients:
-            Estimate Std. Error t value Pr(&gt;|t|)    
-(Intercept) 10.06649    0.04333   232.3   &lt;2e-16 ***
----
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-Approximate significance of smooth terms:
-                        edf Ref.df     F p-value  
-s(Longitude,Latitude) 3.120  3.935 1.935  0.0982 .
-s(pH_mean)            7.719  8.538 1.209  0.2187  
-s(OmegaCA_mean)       1.000  1.000 0.166  0.6842  
-s(CO3_mean)           1.000  1.000 0.915  0.3395  
-s(TA_mean)            4.692  5.700 1.889  0.0848 .
-s(DIC_mean)           1.000  1.000 0.182  0.6703  
-s(RF_mean)            2.962  3.853 1.043  0.4612  
-s(OmegaAR_mean)       1.657  2.047 0.291  0.7161  
----
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-R-sq.(adj) =  0.313   Deviance explained = 35.4%
-GCV = 0.7767  Scale est. = 0.72836   n = 388</code></pre>
-</div>
-<div class="cell-output cell-output-stdout">
-<pre><code>[1] 1003.481</code></pre>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-21-2.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-21-3.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-21-4.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-21-5.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-21-6.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-21-7.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-21-8.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-21-9.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-</div>
+</section>
+<section id="gams-grouped-by-calcifyingnon-calcifying-taxa" class="level3">
+<h3 class="anchored" data-anchor-id="gams-grouped-by-calcifyingnon-calcifying-taxa">GAMs Grouped by Calcifying/Non-calcifying Taxa</h3>
 <div class="cell">
 <div class="cell-output-display">
 <div>
@@ -1769,94 +1673,33 @@ GCV = 0.7767  Scale est. = 0.72836   n = 388</code></pre>
 </figure>
 </div>
 </div>
-<div class="cell-output cell-output-stdout">
-<pre><code>
-Family: gaussian 
-Link function: identity 
-
-Formula:
-log1p(ostracodsAbundance) ~ s(Longitude, Latitude, k = 15) + 
-    s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean) + s(TA_mean) + 
-    s(DIC_mean) + s(RF_mean) + s(OmegaAR_mean)
-
-Parametric coefficients:
-            Estimate Std. Error t value Pr(&gt;|t|)    
-(Intercept)  7.22863    0.08311   86.98   &lt;2e-16 ***
----
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-Approximate significance of smooth terms:
-                         edf Ref.df     F p-value    
-s(Longitude,Latitude) 13.146 13.834 7.281 &lt; 2e-16 ***
-s(pH_mean)             7.065  8.182 2.601 0.00789 ** 
-s(OmegaCA_mean)        1.000  1.000 3.927 0.04826 *  
-s(CO3_mean)            1.000  1.000 0.166 0.68418    
-s(TA_mean)             1.000  1.000 0.452 0.50185    
-s(DIC_mean)            1.000  1.000 0.604 0.43767    
-s(RF_mean)             1.000  1.000 0.203 0.65222    
-s(OmegaAR_mean)        1.000  1.000 6.057 0.01432 *  
----
-Signif. codes:  0 '***' 0.001 '**' 0.01 '*' 0.05 '.' 0.1 ' ' 1
-
-R-sq.(adj) =  0.319   Deviance explained = 36.5%
-GCV =  2.882  Scale est. = 2.6799    n = 388</code></pre>
 </div>
-<div class="cell-output cell-output-stdout">
-<pre><code>[1] 1511.786</code></pre>
-</div>
+<div class="cell">
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-22-2.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-23-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-22-3.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-23-2.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-22-4.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-23-3.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-22-5.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-22-6.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-22-7.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-22-8.png" class="img-fluid figure-img" width="672"></p>
-</figure>
-</div>
-</div>
-<div class="cell-output-display">
-<div>
-<figure class="figure">
-<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-22-9.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="part-2-biological-systems_files/figure-html/unnamed-chunk-23-4.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
@@ -1972,6 +1815,8 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   });
   clipboard.on('success', onCopySuccess);
   if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
     const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
       text: getTextToCopy,
       container: window.document.getElementById('quarto-embedded-source-code-modal')
@@ -2082,6 +1927,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       if (window.Quarto?.typesetMath) {
         window.Quarto.typesetMath(note);
       }
+      // TODO in 1.5, we should make sure this works without a callout special case
       if (note.classList.contains("callout")) {
         return note.outerHTML;
       } else {

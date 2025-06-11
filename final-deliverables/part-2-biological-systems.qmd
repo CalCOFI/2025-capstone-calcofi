@@ -881,118 +881,62 @@ ggplot() +
 summary(gam_model_bl)
 AIC(gam_model_bl)
 plot(gam_model_bl)
+```
 
+### GAMs Grouped by Calcifying/Non-calcifying Taxa
+
+
+
+```{r}
+# Define the four species of interest
+highlighted_species <- c("bryozoan_larvaeAbundance", "pteropoda_heteropodaAbundance", "ostracodsAbundance", "rhizariaAbundance")
 ```
 
 ```{r}
-abundance_vars <- names(prpoos_summary)[str_detect(names(prpoos_summary), "Abundance$")]
+# Set up 2x2 plot layout
+par(mfrow = c(2, 2))
 
-# Example for one species, you can wrap in loop later
-species <- "copepoda_oithona_likeAbundance"
-
-# Fit the GAM
-formula_text <- as.formula(paste("log1p(", species, ") ~ s(Longitude, Latitude, k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean) + s(TA_mean) + s(DIC_mean) + s(RF_mean) + s(OmegaAR_mean)"))
-gam_model_bl <- gam(formula_text, data = prpoos_summary)
-
-# Make a prediction grid over your spatial extent
-lon_seq <- seq(min(prpoos_summary$Longitude) - 3,
-               max(prpoos_summary$Longitude) + 3,
-               length.out = 200)
-lat_seq <- seq(min(prpoos_summary$Latitude) - 3,
-               max(prpoos_summary$Latitude) + 3,
-               length.out = 200)
-grid <- expand.grid(Longitude = lon_seq, Latitude = lat_seq)
-
-# Use mean values for non-spatial covariates
-grid$pH_mean <- mean(prpoos_summary$pH_mean, na.rm = TRUE)
-grid$OmegaCA_mean <- mean(prpoos_summary$OmegaCA_mean, na.rm = TRUE)
-grid$CO3_mean <- mean(prpoos_summary$CO3_mean, na.rm = TRUE)
-grid$TA_mean <- mean(prpoos_summary$TA_mean, na.rm = TRUE)
-grid$DIC_mean <- mean(prpoos_summary$DIC_mean, na.rm = TRUE)
-grid$RF_mean <- mean(prpoos_summary$RF_mean, na.rm = TRUE)
-grid$OmegaAR_mean <- mean(prpoos_summary$OmegaAR_mean, na.rm = TRUE)
-
-# Predict from GAM
-grid$fit <- predict(gam_model_bl, newdata = grid)
-
-# World map data
-world <- map_data("world")
-
-# Plot with ggplot2
-ggplot() +
-  geom_raster(data = grid, aes(x = Longitude, y = Latitude, fill = fit), alpha = 0.8) +  # transparency
-  borders("world", colour = "black") +
-  coord_quickmap(xlim = range(prpoos_summary$Longitude) + c(-2, 2),
-                 ylim = range(prpoos_summary$Latitude) + c(-2, 2)) +
-  scale_fill_viridis_c(name = paste("log1p(", species, ")", sep = "")) +
-  labs(title = paste("GAM Spatial Smooth for", gsub("Abundance$", "", species)),
-       x = "Longitude", y = "Latitude") +
-  geom_point(data = prpoos_summary, aes(x = Longitude, y = Latitude), 
-             shape = 21, fill = "white", color = "black", size = 2, stroke = 0.3) + 
-
-  theme_minimal()
-summary(gam_model_bl)
-AIC(gam_model_bl)
-plot(gam_model_bl)
-
+# Loop through each species and fit the GAM model
+for (species in highlighted_species) {
+  # Fit GAM model
+  formula_text <- as.formula(paste("log1p(", species, ") ~ s(Longitude, Latitude, k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean)"))
+  gam_model <- gam(formula_text, data = prpoos_summary)
+  
+  # Plot spatial smooth for this species
+  plot(gam_model, select = 1, scheme = 2,
+       xlim = range(prpoos_summary$Longitude) + c(-0.5, 0.5),
+       ylim = range(prpoos_summary$Latitude) + c(-0.5, 0.5),
+       main = paste(species, "~ Location + pH + OmegaCA + CO3"),
+       xlab = "Longitude", ylab = "Latitude")
+}
 ```
 
 ```{r}
-abundance_vars <- names(prpoos_summary)[str_detect(names(prpoos_summary), "Abundance$")]
+#quartz(width = 300, height = 18)  # On Mac
 
-# Example for one species, you can wrap in loop later
-species <- "ostracodsAbundance"
+# Set up 2x2 plot layout
+par(mfrow = c(2, 3))
 
-# Fit the GAM
-formula_text <- as.formula(paste("log1p(", species, ") ~ s(Longitude, Latitude, k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean) + s(TA_mean) + s(DIC_mean) + s(RF_mean) + s(OmegaAR_mean)"))
-gam_model_bl <- gam(formula_text, data = prpoos_summary)
+abundance_vars <- names(prpoos_summary)[str_detect(names(prpoos_summary), "Abundance$")] 
 
-# Make a prediction grid over your spatial extent
-lon_seq <- seq(min(prpoos_summary$Longitude) - 3,
-               max(prpoos_summary$Longitude) + 3,
-               length.out = 200)
-lat_seq <- seq(min(prpoos_summary$Latitude) - 3,
-               max(prpoos_summary$Latitude) + 3,
-               length.out = 200)
-grid <- expand.grid(Longitude = lon_seq, Latitude = lat_seq)
-
-# Use mean values for non-spatial covariates
-grid$pH_mean <- mean(prpoos_summary$pH_mean, na.rm = TRUE)
-grid$OmegaCA_mean <- mean(prpoos_summary$OmegaCA_mean, na.rm = TRUE)
-grid$CO3_mean <- mean(prpoos_summary$CO3_mean, na.rm = TRUE)
-grid$TA_mean <- mean(prpoos_summary$TA_mean, na.rm = TRUE)
-grid$DIC_mean <- mean(prpoos_summary$DIC_mean, na.rm = TRUE)
-grid$RF_mean <- mean(prpoos_summary$RF_mean, na.rm = TRUE)
-grid$OmegaAR_mean <- mean(prpoos_summary$OmegaAR_mean, na.rm = TRUE)
-
-# Predict from GAM
-grid$fit <- predict(gam_model_bl, newdata = grid)
-
-# World map data
-world <- map_data("world")
-
-# Plot with ggplot2
-ggplot() +
-  geom_raster(data = grid, aes(x = Longitude, y = Latitude, fill = fit), alpha = 0.8) +  # transparency
-  borders("world", colour = "black") +
-  coord_quickmap(xlim = range(prpoos_summary$Longitude) + c(-2, 2),
-                 ylim = range(prpoos_summary$Latitude) + c(-2, 2)) +
-  scale_fill_viridis_c(name = paste("log1p(", species, ")", sep = "")) +
-  labs(title = paste("GAM Spatial Smooth for", gsub("Abundance$", "", species)),
-       x = "Longitude", y = "Latitude") +
-  geom_point(data = prpoos_summary, aes(x = Longitude, y = Latitude), 
-             shape = 21, fill = "white", color = "black", size = 2, stroke = 0.3) + 
-
-  theme_minimal()
-summary(gam_model_bl)
-AIC(gam_model_bl)
-plot(gam_model_bl)
-
+for (species in setdiff(abundance_vars, highlighted_species)) {
+  # Fit GAM model
+  
+  formula_text <- as.formula(paste("log1p(", species, ") ~ s(Longitude, Latitude, k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean)"))
+  gam_model <- gam(formula_text, data = prpoos_summary)
+  
+  # Plot spatial smooth for this species
+  plot(gam_model, select = 1, scheme = 2,
+       xlim = range(prpoos_summary$Longitude) + c(-0.5, 0.5),
+       ylim = range(prpoos_summary$Latitude) + c(-0.5, 0.5),
+     main = gsub("Abundance$", "", species),  # Clean title
+       xlab = "Longitude", ylab = "Latitude")
+}
 ```
 
 # Summary of Findings
 
-Overall, calcifying zooplankton abundance is disproportionately affected by pH in the fall and summer as indicated by the steep negative slope, which is interesting because we would typically expect an overall positive trend as observed in the winter. Ostracods, in particular, seem less influenced by changes in pH, maintaining a stable abundance over the course of the seasons. This could be due to the fact that the pH range does not exhibit abnormal values of pH (i.e. very low or very high pH values). However, the GAMs showed that spatial patterns are consistently significant indicators of total, small, and species-specific zooplankton variation. While their spatial location varies from species to species, total plankton tend to congregate coastally, which aligns with findings from Part I where coastal stations seem to be less impacted by ocean acidification than offshore stations. 
+Overall, calcifying zooplankton abundance is disproportionately affected by pH in the fall and summer as indicated by the steep negative slope, which is interesting because we would typically expect an overall positive trend as observed in the winter. Ostracods, in particular, seem less influenced by changes in pH, maintaining a stable abundance over the course of the seasons. This could be due to the fact that the pH range does not exhibit abnormal values of pH (i.e. very low or very high pH values). However, the GAMs showed that spatial patterns are consistently significant indicators of total, small, and species-specific zooplankton variation. While their spatial location varies from species to species, total plankton tend to congregate coastally, which aligns with findings from Part I where coastal stations seem to be less impacted by ocean acidification than offshore stations.
 
 # Future Work
 
