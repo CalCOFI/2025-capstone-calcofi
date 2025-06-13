@@ -165,6 +165,10 @@ To merge the PRPOOS data (PRPOOS/PRPOOS_all.csv) with the bottle data (merged_bo
 
 To model the response variables `total_plankton` and `small_plankton` in the NOAA dataset, we used GAMs with smoothing terms and spatial splines. We applied a log(x+1) transformation to both response variables. The following variables were used as predictors: spatial coordinates (longitude and latitude), oceanographic variables (salinity and temperature), temporal variables (month and year), carbonate chemistry variables (TA, DIC, pH, pCO2, RF, CO3, OmegaCA, and OmegaAR), and key macronutrients (nitrate, silicate, and phosphate).
 
+To further examine spatial and chemical interactions, we constructed separate GAMs for nearshore and offshore regions using tensor product smooths between pH and both CO₃²⁻ and OmegaAR. This allowed us to assess how carbonate chemistry interacts with pH differently across regions to influence plankton abundance.
+
+Additionally, we performed a Principal Component Analysis (PCA) on species-level abundance data followed by k-means clustering to explore patterns in community composition. Clusters identified from the PCA were visualized in reduced dimensional space to reveal distinct plankton assemblages.
+
 ## Interpolating Depth of Saturation Horizon and pH
 
 To visualize the effects of pH on plankton abundance, we first had to find the depth of the saturation horizon for aragonite, which is the boundary between supersaturated conditions above and undersaturated conditions below. We are specifically looking at aragonite because it is a mineral form of calcium carbonate. To compute the saturation depth, we interpolate across depths to find where $\Omega_{aragonite}$ = 1. Then, to compute the pH value we interpolate again to find the pH at that threshold depth. We use the dataset merged_bottle_co2sys.csv. Yearly data was used to estimate the saturation horizon because it provides more stable estimates and then seasonal data was used to estimate the pH.
@@ -392,6 +396,45 @@ ggplot() +
 
 Figure 4 shows coastal and northern regions show the highest predicted abundance whereas southern offshore regions show the lowest predicted abundance. This pattern is similar to Figure 2 although Figure 4 displays a smoother gradient from more to less abundant from shore to offshore, respectively, whereas Figure 2 displays more spatial structure. Figure 2 has slightly higher predicted values in some coastal areas, possibly due to the influence of large plankton taxa that cluster in coastal regions.
 
+### GAM models for Nearshore and Offshore data
+Construct separate GAM models for Nearshore and Offshore data to assess interaction effects between pH, CO3, and OmegaAR for different regions
+```{r}
+zooplankton_clean <- zooplankton %>%
+  select(Longitude, Latitude, Year_UTC, Month_UTC, total_plankton, small_plankton, pHout, OmegaARout, CO3out, CTDTEMP_ITS90, Salinity_PSS78) %>%
+  drop_na() %>%
+  mutate(
+    log_total_plankton = log1p(total_plankton),
+    log_small_plankton = log1p(small_plankton),
+    region = factor(ifelse(Longitude > -119, "Nearshore", "Offshore")),
+    quarter = cut(Month_UTC, breaks = c(0, 3, 6, 9, 12), labels = c("Q1", "Q2", "Q3", "Q4"))
+  )
+
+
+cat("Unique quarters in data: ", unique(zooplankton_clean$quarter), "
+")
+
+# Interaction Effects Analysis
+
+gam_interaction_nearshore <- gam(
+  log_total_plankton ~ s(pHout, CO3out, bs = "tp") + s(pHout, OmegaARout, bs = "tp"),
+  data = filter(zooplankton_clean, region == "Nearshore")
+)
+
+gam_interaction_offshore <- gam(
+  log_total_plankton ~ s(pHout, CO3out, bs = "tp") + s(pHout, OmegaARout, bs = "tp"),
+  data = filter(zooplankton_clean, region == "Offshore")
+)
+
+par(mfrow = c(2, 2))
+plot(gam_interaction_nearshore, select = 1, shade = TRUE, main = "Nearshore: pHout and CO3out")
+plot(gam_interaction_nearshore, select = 2, shade = TRUE, main = "Nearshore: pHout and OmegaARout")
+plot(gam_interaction_offshore, select = 1, shade = TRUE, main = "Offshore: pHout and CO3out")
+plot(gam_interaction_offshore,select = 2, shade = TRUE, main = "Offshore: pHout and OmegaARout")
+par(mfrow = c(1, 1))
+
+summary(gam_interaction_offshore)
+```
+In nearshore regions, both CO₃²⁻ and OmegaAR exhibit sharp increases around pH 8.0, suggesting a threshold effect. In contrast, offshore regions display more gradual, continuous increases across the pH range, indicating smoother responses to changes in acidity. This highlights distinct regional patterns in how carbonate chemistry interacts with pH to influence plankton abundance.
 ## BTEDB Krill
 
 ## PRPOOS Calcifying/Non-Calcifying Zooplankton
@@ -721,10 +764,14 @@ The `plot_saturation_horizon` function visualizes the depth of the aragonite sat
 
 ### GAMs for Individual Calcifying Taxa
 
+We found that the spatial effect is significant in our GAM models when modeling for total abundance and species-specific abundance.
+
 ```{r}
 # read in data
 prpoos_summary <- read_csv("../data/PRPOOS/prpoos_summary_namecleaned.csv")
 ```
+
+For this particular taxon, such as bryozoan larvae, abundance is greater near the coast, which is the case for most of the species we investigated. However, the spatial trend varies between species.
 
 ```{r}
 abundance_vars <- names(prpoos_summary)[str_detect(names(prpoos_summary), "Abundance$")]
@@ -881,118 +928,133 @@ ggplot() +
 summary(gam_model_bl)
 AIC(gam_model_bl)
 plot(gam_model_bl)
+```
 
+### GAMs Grouped by Calcifying/Non-calcifying Taxa
+
+The alcifying Species we are interested in are: bryozoan larvae, pteropoda heteropoda, ostracods and rhizaria.
+
+```{r}
+# Define the four species of interest
+highlighted_species <- c("bryozoan_larvaeAbundance", "pteropoda_heteropodaAbundance", "ostracodsAbundance", "rhizariaAbundance")
 ```
 
 ```{r}
-abundance_vars <- names(prpoos_summary)[str_detect(names(prpoos_summary), "Abundance$")]
+# Set up 2x2 plot layout
+par(mfrow = c(2, 2))
 
-# Example for one species, you can wrap in loop later
-species <- "copepoda_oithona_likeAbundance"
-
-# Fit the GAM
-formula_text <- as.formula(paste("log1p(", species, ") ~ s(Longitude, Latitude, k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean) + s(TA_mean) + s(DIC_mean) + s(RF_mean) + s(OmegaAR_mean)"))
-gam_model_bl <- gam(formula_text, data = prpoos_summary)
-
-# Make a prediction grid over your spatial extent
-lon_seq <- seq(min(prpoos_summary$Longitude) - 3,
-               max(prpoos_summary$Longitude) + 3,
-               length.out = 200)
-lat_seq <- seq(min(prpoos_summary$Latitude) - 3,
-               max(prpoos_summary$Latitude) + 3,
-               length.out = 200)
-grid <- expand.grid(Longitude = lon_seq, Latitude = lat_seq)
-
-# Use mean values for non-spatial covariates
-grid$pH_mean <- mean(prpoos_summary$pH_mean, na.rm = TRUE)
-grid$OmegaCA_mean <- mean(prpoos_summary$OmegaCA_mean, na.rm = TRUE)
-grid$CO3_mean <- mean(prpoos_summary$CO3_mean, na.rm = TRUE)
-grid$TA_mean <- mean(prpoos_summary$TA_mean, na.rm = TRUE)
-grid$DIC_mean <- mean(prpoos_summary$DIC_mean, na.rm = TRUE)
-grid$RF_mean <- mean(prpoos_summary$RF_mean, na.rm = TRUE)
-grid$OmegaAR_mean <- mean(prpoos_summary$OmegaAR_mean, na.rm = TRUE)
-
-# Predict from GAM
-grid$fit <- predict(gam_model_bl, newdata = grid)
-
-# World map data
-world <- map_data("world")
-
-# Plot with ggplot2
-ggplot() +
-  geom_raster(data = grid, aes(x = Longitude, y = Latitude, fill = fit), alpha = 0.8) +  # transparency
-  borders("world", colour = "black") +
-  coord_quickmap(xlim = range(prpoos_summary$Longitude) + c(-2, 2),
-                 ylim = range(prpoos_summary$Latitude) + c(-2, 2)) +
-  scale_fill_viridis_c(name = paste("log1p(", species, ")", sep = "")) +
-  labs(title = paste("GAM Spatial Smooth for", gsub("Abundance$", "", species)),
-       x = "Longitude", y = "Latitude") +
-  geom_point(data = prpoos_summary, aes(x = Longitude, y = Latitude), 
-             shape = 21, fill = "white", color = "black", size = 2, stroke = 0.3) + 
-
-  theme_minimal()
-summary(gam_model_bl)
-AIC(gam_model_bl)
-plot(gam_model_bl)
-
+# Loop through each species and fit the GAM model
+for (species in highlighted_species) {
+  # Fit GAM model
+  formula_text <- as.formula(paste("log1p(", species, ") ~ s(Longitude, Latitude, k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean)"))
+  gam_model <- gam(formula_text, data = prpoos_summary)
+  
+  # Plot spatial smooth for this species
+  plot(gam_model, select = 1, scheme = 2,
+       xlim = range(prpoos_summary$Longitude) + c(-0.5, 0.5),
+       ylim = range(prpoos_summary$Latitude) + c(-0.5, 0.5),
+       main = paste(species, "~ Location + pH + OmegaCA + CO3"),
+       xlab = "Longitude", ylab = "Latitude")
+}
 ```
 
 ```{r}
-abundance_vars <- names(prpoos_summary)[str_detect(names(prpoos_summary), "Abundance$")]
+#quartz(width = 300, height = 18)  # On Mac
 
-# Example for one species, you can wrap in loop later
-species <- "ostracodsAbundance"
+# Set up 2x2 plot layout
+par(mfrow = c(2, 3))
 
-# Fit the GAM
-formula_text <- as.formula(paste("log1p(", species, ") ~ s(Longitude, Latitude, k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean) + s(TA_mean) + s(DIC_mean) + s(RF_mean) + s(OmegaAR_mean)"))
-gam_model_bl <- gam(formula_text, data = prpoos_summary)
+abundance_vars <- names(prpoos_summary)[str_detect(names(prpoos_summary), "Abundance$")] 
 
-# Make a prediction grid over your spatial extent
-lon_seq <- seq(min(prpoos_summary$Longitude) - 3,
-               max(prpoos_summary$Longitude) + 3,
-               length.out = 200)
-lat_seq <- seq(min(prpoos_summary$Latitude) - 3,
-               max(prpoos_summary$Latitude) + 3,
-               length.out = 200)
-grid <- expand.grid(Longitude = lon_seq, Latitude = lat_seq)
-
-# Use mean values for non-spatial covariates
-grid$pH_mean <- mean(prpoos_summary$pH_mean, na.rm = TRUE)
-grid$OmegaCA_mean <- mean(prpoos_summary$OmegaCA_mean, na.rm = TRUE)
-grid$CO3_mean <- mean(prpoos_summary$CO3_mean, na.rm = TRUE)
-grid$TA_mean <- mean(prpoos_summary$TA_mean, na.rm = TRUE)
-grid$DIC_mean <- mean(prpoos_summary$DIC_mean, na.rm = TRUE)
-grid$RF_mean <- mean(prpoos_summary$RF_mean, na.rm = TRUE)
-grid$OmegaAR_mean <- mean(prpoos_summary$OmegaAR_mean, na.rm = TRUE)
-
-# Predict from GAM
-grid$fit <- predict(gam_model_bl, newdata = grid)
-
-# World map data
-world <- map_data("world")
-
-# Plot with ggplot2
-ggplot() +
-  geom_raster(data = grid, aes(x = Longitude, y = Latitude, fill = fit), alpha = 0.8) +  # transparency
-  borders("world", colour = "black") +
-  coord_quickmap(xlim = range(prpoos_summary$Longitude) + c(-2, 2),
-                 ylim = range(prpoos_summary$Latitude) + c(-2, 2)) +
-  scale_fill_viridis_c(name = paste("log1p(", species, ")", sep = "")) +
-  labs(title = paste("GAM Spatial Smooth for", gsub("Abundance$", "", species)),
-       x = "Longitude", y = "Latitude") +
-  geom_point(data = prpoos_summary, aes(x = Longitude, y = Latitude), 
-             shape = 21, fill = "white", color = "black", size = 2, stroke = 0.3) + 
-
-  theme_minimal()
-summary(gam_model_bl)
-AIC(gam_model_bl)
-plot(gam_model_bl)
-
+for (species in setdiff(abundance_vars, highlighted_species)) {
+  # Fit GAM model
+  
+  formula_text <- as.formula(paste("log1p(", species, ") ~ s(Longitude, Latitude, k = 15) + s(pH_mean) + s(OmegaCA_mean) + s(CO3_mean)"))
+  gam_model <- gam(formula_text, data = prpoos_summary)
+  
+  # Plot spatial smooth for this species
+  plot(gam_model, select = 1, scheme = 2,
+       xlim = range(prpoos_summary$Longitude) + c(-0.5, 0.5),
+       ylim = range(prpoos_summary$Latitude) + c(-0.5, 0.5),
+     main = gsub("Abundance$", "", species),  # Clean title
+       xlab = "Longitude", ylab = "Latitude")
+}
 ```
+
+### Clustering Analysis with PCA
+Identify clusters of species based on their abundance profiles
+Standardize the species abundance matrix
+Apply PCA to reduce dimensionality and visualize the dataset
+
+
+PCA was applied to reduce dimensionality, focusing on the two principal components PC1 and PC2 that explain the highest variance:
+PC1 (28.6% variance): Captures the most substantial variation, primarily influenced by the highly variable species in Cluster 3.
+PC2 (9.9% variance): Captures less variance but provides vertical separation, assisting in visualizing overlapping clusters.
+
+
+```{r}
+zooplankton_clean <- zooplankton %>%
+  select(Longitude, Latitude, Year_UTC, Month_UTC, total_plankton, small_plankton, pHout, OmegaARout, CO3out, CTDTEMP_ITS90, Salinity_PSS78) %>%
+  drop_na() %>%
+  mutate(
+    log_total_plankton = log1p(total_plankton),
+    log_small_plankton = log1p(small_plankton),
+    region = factor(ifelse(Longitude > -119, "Nearshore", "Offshore"))
+  )
+
+zooplankton_clean$quarter <- cut(zooplankton_clean$Month_UTC, breaks = c(0, 3, 6, 9, 12), labels = c("Q1", "Q2", "Q3", "Q4"))
+
+library(factoextra)
+library(ggplot2)
+
+abundance_cols <- grep("Abundance$", names(prpoos_summary), value = TRUE)
+species_matrix <- prpoos_summary %>%
+  select(all_of(abundance_cols)) %>%
+  drop_na() %>%
+  scale()
+
+pca_result <- prcomp(species_matrix, center = TRUE, scale. = TRUE)
+
+set.seed(123)
+kmeans_model <- kmeans(species_matrix, centers = 4)
+prpoos_summary$cluster <- as.factor(kmeans_model$cluster)
+
+# Define custom color palette
+custom_colors <- c("#FF6347", "#4682B4", "#32CD32", "#9370DB")
+
+# Enhanced PCA Plot
+p <- fviz_pca_ind(
+  pca_result, 
+  label = "none", 
+  habillage = prpoos_summary$cluster, 
+  addEllipses = TRUE, 
+  ellipse.level = 0.95, 
+  geom = "point",
+  palette = custom_colors,
+  pointsize = 3,
+  pointshape = 21
+) +
+  labs(
+    title = "Enhanced PCA Plot with Clusters", 
+    x = paste0("Dim1 (", round(pca_result$sdev[1]^2 / sum(pca_result$sdev^2) * 100, 1), "% Variance)"),
+    y = paste0("Dim2 (", round(pca_result$sdev[2]^2 / sum(pca_result$sdev^2) * 100, 1), "% Variance)")
+  ) +
+  theme_minimal(base_size = 14) +
+  theme(
+    plot.title = element_text(hjust = 0.5, face = "bold"),
+    panel.grid.major = element_line(color = "grey80"),
+    panel.grid.minor = element_blank()
+  ) +
+  geom_point(aes(color = prpoos_summary$cluster), size = 3, shape = 21) +
+  scale_color_manual(values = custom_colors)
+
+print(p)
+```
+Figure shows clear separation between clusters in PCA space, with Group 2 (blue) being the most distinct along Dim1, accounting for the largest proportion of variance (27.7%). Groups 1, 3, and 4 are more tightly clustered and overlap in the lower-left region, indicating more similar community structures. This suggests that Group 2 represents a functionally or environmentally different plankton assemblage.
 
 # Summary of Findings
 
-Overall, calcifying zooplankton abundance is disproportionately affected by pH in the fall and summer as indicated by the steep negative slope, which is interesting because we would typically expect an overall positive trend as observed in the winter. Ostracods, in particular, seem less influenced by changes in pH, maintaining a stable abundance over the course of the seasons. This could be due to the fact that the pH range does not exhibit abnormal values of pH (i.e. very low or very high pH values). However, the GAMs showed that spatial patterns are consistently significant indicators of total, small, and species-specific zooplankton variation. While their spatial location varies from species to species, total plankton tend to congregate coastally, which aligns with findings from Part I where coastal stations seem to be less impacted by ocean acidification than offshore stations. 
+Overall, calcifying zooplankton abundance is disproportionately affected by pH in the fall and summer as indicated by the steep negative slope, which is interesting because we would typically expect an overall positive trend as observed in the winter. Ostracods, in particular, seem less influenced by changes in pH, maintaining a stable abundance over the course of the seasons. This could be due to the fact that the pH range does not exhibit abnormal values of pH (i.e. very low or very high pH values). However, the GAMs showed that spatial patterns are consistently significant indicators of total, small, and species-specific zooplankton variation. While their spatial location varies from species to species, total plankton tend to congregate coastally, which aligns with findings from Part I where coastal stations seem to be less impacted by ocean acidification than offshore stations.
 
 # Future Work
 
