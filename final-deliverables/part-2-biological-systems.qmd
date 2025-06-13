@@ -430,7 +430,7 @@ par(mfrow = c(1, 1))
 
 summary(gam_interaction_offshore)
 ```
-
+In nearshore regions, both CO₃²⁻ and OmegaAR exhibit sharp increases around pH 8.0, suggesting a threshold effect. In contrast, offshore regions display more gradual, continuous increases across the pH range, indicating smoother responses to changes in acidity. This highlights distinct regional patterns in how carbonate chemistry interacts with pH to influence plankton abundance.
 ## BTEDB Krill
 
 ## PRPOOS Calcifying/Non-Calcifying Zooplankton
@@ -977,7 +977,7 @@ for (species in setdiff(abundance_vars, highlighted_species)) {
 }
 ```
 
-## PRPOOS Clustering Analysis with PCA
+### Clustering Analysis with PCA
 Identify clusters of species based on their abundance profiles
 Standardize the species abundance matrix
 Apply PCA to reduce dimensionality and visualize the dataset
