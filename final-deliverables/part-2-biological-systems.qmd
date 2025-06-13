@@ -167,6 +167,8 @@ To model the response variables `total_plankton` and `small_plankton` in the NOA
 
 To further examine spatial and chemical interactions, we constructed separate GAMs for nearshore and offshore regions using tensor product smooths between pH and both CO₃²⁻ and OmegaAR. This allowed us to assess how carbonate chemistry interacts with pH differently across regions to influence plankton abundance.
 
+## PCA and k-Means Clustering
+
 Additionally, we performed a Principal Component Analysis (PCA) on species-level abundance data followed by k-means clustering to explore patterns in community composition. Clusters identified from the PCA were visualized in reduced dimensional space to reveal distinct plankton assemblages.
 
 ## Interpolating Depth of Saturation Horizon and pH
@@ -179,7 +181,7 @@ To visualize the effects of pH on plankton abundance, we first had to find the d
 
 ### GAM for Total Plankton
 
-The model has an adjusted $R^2$ of 0.32 with an AIC of 1095. There are nine significant variables at the $\alpha=0.05$ level: longitude and latitude, DIC, salinity, temperature, month, CO3, silicate, and phosphate. The partial effect plots of these smooth terms are shown in Figures 1-2.
+The model has an adjusted $R^2$ of 0.32 with an AIC of 1095. There are eight significant variables at the $\alpha=0.05$ level: longitude and latitude, TA, DIC, salinity, temperature, month, CO3, silicate, and phosphate. The partial effect plots of these smooth terms are shown in Figures 1-2.
 
 ```{r, fig.cap = "Figure 1: Partial effects of significant GAM smooth terms on log(x+1) total zooplankton abundance."}
 # GAM for total plankton
@@ -209,7 +211,7 @@ total_plankton_gam <- gam(
 #AIC(total_plankton_gam)
 
 
-significant_terms <- c(3, 4, 6, 8, 11, 12, 15, 16)
+significant_terms <- c(3, 4, 6, 8, 11, 15, 16)
 
 par(mfrow = c(3, 3))  # 3 rows, 3 columns
 
@@ -435,7 +437,6 @@ par(mfrow = c(1, 1))
 summary(gam_interaction_offshore)
 ```
 In nearshore regions, both CO₃²⁻ and OmegaAR exhibit sharp increases around pH 8.0, suggesting a threshold effect. In contrast, offshore regions display more gradual, continuous increases across the pH range, indicating smoother responses to changes in acidity. This highlights distinct regional patterns in how carbonate chemistry interacts with pH to influence plankton abundance.
-## BTEDB Krill
 
 ## PRPOOS Calcifying/Non-Calcifying Zooplankton
 
@@ -932,7 +933,7 @@ plot(gam_model_bl)
 
 ### GAMs Grouped by Calcifying/Non-calcifying Taxa
 
-The alcifying Species we are interested in are: bryozoan larvae, pteropoda heteropoda, ostracods and rhizaria.
+The calcifying Species we are interested in are: bryozoan larvae, pteropoda heteropoda, ostracods and rhizaria.
 
 ```{r}
 # Define the four species of interest
@@ -1050,7 +1051,7 @@ p <- fviz_pca_ind(
 
 print(p)
 ```
-Figure shows clear separation between clusters in PCA space, with Group 2 (blue) being the most distinct along Dim1, accounting for the largest proportion of variance (27.7%). Groups 1, 3, and 4 are more tightly clustered and overlap in the lower-left region, indicating more similar community structures. This suggests that Group 2 represents a functionally or environmentally different plankton assemblage.
+Figure 12 shows clear separation between clusters in PCA space, with Group 2 (blue) being the most distinct along Dim1, accounting for the largest proportion of variance (27.7%). Groups 1, 3, and 4 are more tightly clustered and overlap in the lower-left region, indicating more similar community structures. This suggests that Group 2 represents a functionally or environmentally different plankton assemblage.
 
 # Summary of Findings
 
