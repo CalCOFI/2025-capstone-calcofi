@@ -5,6 +5,8 @@ format:
   html:
     toc: true
     code-fold: true
+    embed-resources: true
+    
 fig-pos: H
 ---
 
