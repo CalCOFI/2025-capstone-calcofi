@@ -1,4 +1,4 @@
-# UCSB 2024-2025 Capstone Project: CalCOFI Seagrant
+# UCSB 2024-2025 Capstone Project: CalCOFI & California Sea Grant
 
 This project is sponsored by California Cooperative Oceanic Fisheries Investigations (CalCOFI), an organization founded in 1949 to study the ecological aspects of the Pacific sardine collapse off of the coast of California. CalCOFI is committed to studying California’s coastal marine environment and collecting relevant oceanographic data in order to provide insight on important climate change related topics such as renewable energy, integrated ocean management, and marine spatial planning.
 
